@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import modelPreflight, {
+  DEFAULT_HA_CONFIG_PATH,
+  DEFAULT_REFRESH_MS,
   chooseFallback,
+  getRefreshIntervalMs,
   isFresh,
   isReady,
   parsePreflightOutput,
@@ -79,7 +82,16 @@ test("uses an explicit preflight script and bounded command", async () => {
   assert.deepEqual(value, report);
   assert.equal(invocation[0], "node");
   assert.deepEqual(invocation[1].slice(1, 4), ["--json", "--refresh", "--cache"]);
+  assert.equal(invocation[1][invocation[1].indexOf("--ha-config") + 1], DEFAULT_HA_CONFIG_PATH);
   assert.equal(invocation[2].timeout, 35_000);
+});
+
+test("bounds malformed and non-finite refresh intervals to a safe default", () => {
+  assert.equal(getRefreshIntervalMs("not-a-number"), DEFAULT_REFRESH_MS);
+  assert.equal(getRefreshIntervalMs("Infinity"), DEFAULT_REFRESH_MS);
+  assert.equal(getRefreshIntervalMs("0"), DEFAULT_REFRESH_MS);
+  assert.equal(getRefreshIntervalMs("1"), 60_000);
+  assert.equal(getRefreshIntervalMs(undefined), DEFAULT_REFRESH_MS);
 });
 
 test("fails closed before routing when the refreshed report is stale or unbound", async () => {
@@ -93,6 +105,33 @@ test("fails closed before routing when the refreshed report is stale or unbound"
     pi.handlers.get("before_agent_start")({}, ctx("unknown/model")),
     /not bound to a failover group/,
   );
+});
+
+test("rejects stale or unknown refresh output, including concurrent refreshes", async () => {
+  const pi = fakePi();
+  let calls = 0;
+  let release;
+  modelPreflight(pi, {
+    now: () => Date.parse("2026-10-22T00:14:00.000Z"),
+    runCommand: async () => {
+      calls += 1;
+      return new Promise((resolve) => { release = resolve; });
+    },
+  });
+  const handler = pi.handlers.get("before_agent_start");
+  const first = handler({}, ctx());
+  const second = handler({}, ctx());
+  release({ ...report, probe: { status: "unknown" } });
+  await assert.rejects(first, /unavailable|stale|unknown/);
+  await assert.rejects(second, /unavailable|stale|unknown/);
+  assert.equal(calls, 1);
+
+  const stalePi = fakePi();
+  modelPreflight(stalePi, {
+    now: () => Date.parse("2026-10-22T00:16:00.000Z"),
+    runCommand: async () => report,
+  });
+  await assert.rejects(stalePi.handlers.get("before_agent_start")({}, ctx()), /unavailable|stale|unknown/);
 });
 
 test("fails closed when the preflight launcher is unavailable", async () => {

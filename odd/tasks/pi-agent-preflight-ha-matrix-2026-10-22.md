@@ -28,3 +28,15 @@ L2. Verification evidence: `node --test pi/agent/extensions/model-preflight.test
 L3. The new `pi-ha-role-groups.json` is both unignored by `pi/agent/.gitignore` and included in `setup_env.sh`'s selective `sync_pi` allowlist. The live `bash check-config.sh` check was intentionally not repaired: it fails only because `~/.pi/agent/pi-ext-roles/settings.json` is stale versus the canonical worktree settings, outside the authorized live-state scope.
 L4. Docs now list the tracked HA mapping and `model-preflight.mjs`; no credentials, installed packages, live Pi state, or PiWorkflow core were edited.
 L5. Final focused checks still pass after the doc update: 10/10 Node tests, role-tool policy, JSON parsing, Bash syntax, and `git diff --check`. Native review inspection reached a provider-owned consent gate for this medium-risk candidate; no review lineage was created and no review was run.
+L6. Repair request verbatim: "Repair the existing implementation commit e1836a0 in this isolated worktree. Start by cherry-picking e1836a0, then read AGENTS.md and the relevant issue/task documents through ## Log.
+
+Fix every blocking finding from the prior review:
+- Enforce freshness after every preflight refresh and fail closed on stale/unknown output, including concurrent refreshes.
+- Bound malformed/non-finite PI_MODEL_PREFLIGHT_REFRESH_MS to a safe default, never a 1ms timer.
+- Add the required public test file pi/agent/extensions/pi-ha-bootstrap.test.mjs and make the exact issue #65 command pass.
+- Reconcile REVIEW_RULES.md with the canonical role matrix derived from pi-model-fit/scripts/report.mjs and the user's latest request; do not leave old Opus4.6/GPT6.1/medium policy literals.
+- Make runtime preflight use the tracked credentials-free HA matrix by default or explicitly validate the live matrix against it; preserve credentials and fail closed.
+- Add deterministic tests for the above. Run focused tests and config checks.
+- Do not modify installed packages, auth files, live ~/.pi/agent state, or PiWorkflow core. Do not merge or push.
+
+Also inspect the diff for unnecessary changes and trim speculative edits. Commit the repaired coherent work unit and return the commit SHA, changed files, exact test results, and any checks that remain unavailable."

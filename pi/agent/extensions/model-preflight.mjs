@@ -3,10 +3,12 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 
 const execFile = promisify(execFileCallback);
-const DEFAULT_REFRESH_MS = 15 * 60 * 1000;
+export const DEFAULT_REFRESH_MS = 15 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 35 * 1000;
+export const DEFAULT_HA_CONFIG_PATH = fileURLToPath(new URL("../ha-failover.example.json", import.meta.url));
 
 export function routeKey(model) {
   const provider = model?.provider;
@@ -19,6 +21,16 @@ export function routeKey(model) {
 
 export function isFresh(report, now = Date.now()) {
   return Number.isFinite(Date.parse(report?.expiresAt ?? "")) && Date.parse(report.expiresAt) > now;
+}
+
+function isUsableReport(report, now) {
+  return isFresh(report, now) && report?.probe?.status === "ok";
+}
+
+export function getRefreshIntervalMs(value = process.env.PI_MODEL_PREFLIGHT_REFRESH_MS) {
+  const parsed = Number(value ?? DEFAULT_REFRESH_MS);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_REFRESH_MS;
+  return Math.max(60_000, parsed);
 }
 
 export function findGroupForRoute(report, currentRoute) {
@@ -74,7 +86,7 @@ export async function runPreflightCommand({
   const args = [script, "--json"];
   if (refresh) args.push("--refresh");
   args.push("--cache", cache);
-  if (env.PI_MODEL_PREFLIGHT_HA_CONFIG) args.push("--ha-config", env.PI_MODEL_PREFLIGHT_HA_CONFIG);
+  args.push("--ha-config", env.PI_MODEL_PREFLIGHT_HA_CONFIG ?? DEFAULT_HA_CONFIG_PATH);
   const result = await execImpl("node", args, {
     encoding: "utf8",
     timeout: Number(env.PI_MODEL_PREFLIGHT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS),
@@ -101,10 +113,23 @@ export default function modelPreflight(pi, options = {}) {
   const refresh = async (force = false) => {
     if (!refreshPromise) {
       refreshPromise = runCommand({ refresh: force })
-        .then((value) => { report = value; return value; })
+        .then((value) => {
+          if (!isUsableReport(value, now())) throw new Error("model preflight returned stale or unknown evidence");
+          report = value;
+          return value;
+        })
+        .catch((error) => {
+          report = null;
+          throw error;
+        })
         .finally(() => { refreshPromise = null; });
     }
-    return refreshPromise;
+    const value = await refreshPromise;
+    if (!isUsableReport(value, now())) {
+      report = null;
+      throw new Error("model preflight returned stale or unknown evidence");
+    }
+    return value;
   };
 
   const applyFallback = async (ctx, currentRoute, groupId) => {
@@ -137,16 +162,17 @@ export default function modelPreflight(pi, options = {}) {
       report = null;
       ctx.ui.notify(`Model preflight blocked: ${error instanceof Error ? error.message : "unavailable"}`, "error");
     }
-    const refreshMs = Math.max(60_000, Number(process.env.PI_MODEL_PREFLIGHT_REFRESH_MS ?? DEFAULT_REFRESH_MS));
+    const refreshMs = getRefreshIntervalMs();
     timer = setInterval(() => { refresh(false).catch(() => { report = null; }); }, refreshMs);
     timer.unref?.();
   });
 
   pi.on("before_agent_start", async (_event, ctx) => {
-    if (!report || !isFresh(report, now())) {
+    if (!isUsableReport(report, now())) {
       report = null;
       try { await refresh(true); } catch (error) { throw new Error(`model preflight unavailable: ${error instanceof Error ? error.message : "unknown error"}`); }
     }
+    if (!isUsableReport(report, now())) throw new Error("model preflight unavailable: stale or unknown evidence");
     const currentRoute = routeKey(ctx.model);
     const groupId = findGroupForRoute(report, currentRoute);
     if (!groupId) throw new Error(`model preflight blocked: ${currentRoute ?? "current model"} is not bound to a failover group`);
