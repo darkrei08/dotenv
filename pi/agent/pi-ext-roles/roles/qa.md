@@ -1,5 +1,5 @@
 ---
-model: cheap-model
+model: qa-model
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: QA specialist. Validates testing coverage, edge cases, and correctness of test implementations
 overrideSystemPrompt: true

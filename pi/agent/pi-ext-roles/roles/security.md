@@ -1,5 +1,5 @@
 ---
-model: reviewer-model
+model: security-model
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Security advisor. Identifies security vulnerabilities, authentication issues, and data exposure risks
 overrideSystemPrompt: true

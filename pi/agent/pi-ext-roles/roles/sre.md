@@ -1,5 +1,5 @@
 ---
-model: cheap-model
+model: sre-model
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: SRE advisor. Evaluates operational readiness, observability, error handling, and resource management
 overrideSystemPrompt: true

@@ -3,20 +3,20 @@
   "default_effort": "medium",
   "model_profiles": {
     "review-risk": {
-      "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "medium"
+      "model": "cliproxyapi/claude-opus-5-5",
+      "effort": "high"
     },
     "review-resilience": {
-      "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "medium"
+      "model": "cliproxyapi/claude-opus-5-5",
+      "effort": "high"
     },
     "review-readability": {
-      "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "medium"
+      "model": "cliproxyapi/claude-opus-5-5",
+      "effort": "high"
     },
     "review-reliability": {
-      "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "medium"
+      "model": "cliproxyapi/claude-opus-5-5",
+      "effort": "high"
     }
   }
 }

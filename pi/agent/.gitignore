@@ -13,6 +13,7 @@
 !/settings.json
 !/pi-packages.txt
 !/models.json
+!/pi-ha-role-groups.json
 !/modes.json
 !/keybindings.json
 !/pi-vcc-config.json

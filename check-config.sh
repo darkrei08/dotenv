@@ -6,6 +6,10 @@ SETTINGS="$ROOT/pi/agent/settings.json"
 GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
+MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
+PI_PACKAGE="$ROOT/pi/agent/package.json"
+HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
+HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 LIVE_SETTINGS="$PI_AGENT_DIR/settings.json"
 LIVE_WORKFLOWS_SETTINGS="$PI_AGENT_DIR/pi-ext-roles/settings.json"
@@ -26,6 +30,11 @@ check_json_file() {
 
 if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: invalid JSON\n' "$SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '(.defaultTools // []) | index("+tool_search") != null' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: defaultTools must activate +tool_search without replacing built-ins\n' "$SETTINGS"
   failures=1
 fi
 
@@ -204,27 +213,32 @@ if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
   $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:medium" and
+  $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
   $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:high" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
   $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:medium" and
+  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["developer-model"] == "cheap-model" and
-  $aliases["tests-expert"] == "cliproxy-sol:high" and
-  $aliases["researcher-model"] == "cliproxy-sol:xhigh" and
-  $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
+  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["architect-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["security-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["qa-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["release-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["sre-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
+  $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3-flash:high" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:high" and
   $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["reviewer-model"] == "cliproxy-reviewer-model" and
-  $aliases["oracle-model"] == "reviewer-model" and
+  $aliases["reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["oracle-model"] == "cliproxyapi/claude-opus-5-5:high" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
@@ -304,6 +318,45 @@ for role in "${required_roles[@]}"; do
 done
 if ((${#missing_roles[@]})); then
   printf '%s: missing required role file(s): %s\n' "$ROLES_DIR" "${missing_roles[*]}"
+  failures=1
+fi
+
+if [[ ! -s "$MODEL_PREFLIGHT_EXTENSION" ]]; then
+  printf '%s: model availability preflight extension is missing\n' "$MODEL_PREFLIGHT_EXTENSION"
+  failures=1
+fi
+if ! jq -e '.pi.extensions | index("extensions") != null' "$PI_PACKAGE" >/dev/null 2>&1; then
+  printf '%s: repository Pi package must register the extensions directory\n' "$PI_PACKAGE"
+  failures=1
+fi
+for config in "$HA_EXAMPLE" "$HA_ROLE_GROUPS"; do
+  if ! check_json_file "$config"; then failures=1; fi
+done
+
+if ! ROOT_FOR_HA="$ROOT" node --input-type=module <<'NODE'
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const root = process.env.ROOT_FOR_HA;
+const bind = await import(pathToFileURL(`${root}/pi/agent/extensions/pi-ha-role-groups/bind.mjs`));
+const groups = JSON.parse(readFileSync(`${root}/pi/agent/ha-failover.example.json`, "utf8"));
+const roleGroups = JSON.parse(readFileSync(`${root}/pi/agent/pi-ha-role-groups.json`, "utf8")).roleGroups;
+const aliases = JSON.parse(readFileSync(`${root}/pi/agent/pi-ext-roles/settings.json`, "utf8")).modelAliases;
+const roleModels = Object.fromEntries(Object.keys(roleGroups).map((role) => {
+  const source = readFileSync(`${root}/pi/agent/pi-ext-roles/roles/${role}.md`, "utf8");
+  return [role, source.match(/^model:\s*(\S+)\s*$/m)?.[1]];
+}));
+const failures = bind.assertRoleGroupCoverage({
+  primaries: bind.resolveRolePrimaries({ roleModels, aliases }),
+  roleGroups,
+  groups: groups.groups,
+});
+if (failures.length) {
+  console.error(failures.join("\n"));
+  process.exit(1);
+}
+NODE
+then
+  printf '%s: configured role primaries must be covered by their HA groups\n' "$HA_EXAMPLE"
   failures=1
 fi
 

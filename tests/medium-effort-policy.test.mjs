@@ -22,28 +22,34 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   const expected = {
     "native-cheap-model": { model: "openai-codex/gpt-5.6-luna", effort: "medium" },
     "native-luna": { model: "openai-codex/gpt-5.6-luna", effort: "high" },
-    "native-reviewer-model": { model: "anthropic/claude-opus-4-6-thinking", effort: "medium" },
+    "native-reviewer-model": { model: "anthropic/claude-opus-5-5", effort: "high" },
     "native-sol": { model: "openai-codex/gpt-6.1-sol", effort: "high" },
     "native-astra": { model: "openai-codex/gpt-6-astra", effort: "medium" },
     "cliproxy-cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
     "cliproxy-luna": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
-    "cliproxy-reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
+    "cliproxy-reviewer-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
     "cliproxy-sol": { model: "cliproxyapi/gpt-6.1-sol", effort: "high" },
     "cliproxy-astra": { model: "cliproxyapi/gpt-6-astra", effort: "medium" },
     "cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
     "scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
-    "developer-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
-    "tests-expert": { model: "cliproxyapi/gpt-6.1-sol", effort: "high" },
-    "researcher-model": { model: "cliproxyapi/gpt-6.1-sol", effort: "xhigh" },
-    "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
+    "developer-model": { model: "cliproxyapi/claude-sonnet-5-5", effort: "medium" },
+    "architect-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
+    "security-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
+    "qa-model": { model: "cliproxyapi/claude-sonnet-5-5", effort: "medium" },
+    "release-model": { model: "cliproxyapi/claude-sonnet-5-5", effort: "medium" },
+    "sre-model": { model: "cliproxyapi/claude-sonnet-5-5", effort: "medium" },
+    "tests-expert": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
+    "researcher-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
+    "summarizer-model": { model: "cliproxyapi/claude-haiku-5-5", effort: "low" },
     "gemini-scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "gemini-summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "gemini-researcher-model": { model: "cliproxyapi/gemini-3-flash", effort: "high" },
+    "gemini-researcher-model": { model: "cliproxyapi/gemini-pro-agent", effort: "high" },
     "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
     "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
-    "oracle-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
+    "reviewer-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
+    "oracle-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
   };
+  assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {
     assert.deepEqual(resolveModel(name), expectedModel, `${name}: unexpected route`);
   }
@@ -91,7 +97,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     // Mutate live alias effort: check-config must fail when live diverges from canonical
     const liveAliasesPath = join(liveDir, "pi-ext-roles/settings.json");
     const liveAliases = JSON.parse(readFileSync(liveAliasesPath, "utf8"));
-    liveAliases.modelAliases["cliproxy-reviewer-model"] = "cliproxyapi/claude-opus-5-5:high";
+    liveAliases.modelAliases["cliproxy-reviewer-model"] = "cliproxyapi/claude-opus-5-5:medium";
     writeFileSync(liveAliasesPath, JSON.stringify(liveAliases, null, 2));
     const driftedResult = runDistinct();
     assert.equal(driftedResult.status, 1);
@@ -99,7 +105,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     rmSync(liveDir, { recursive: true, force: true });
 
     const ggaPath = join(fixture, ".gga");
-    const rejected = readFileSync(ggaPath, "utf8").replace(/:medium"/, ":high\"");
+    const rejected = readFileSync(ggaPath, "utf8").replace(/:high"/, ":medium\"");
     writeFileSync(ggaPath, rejected);
     const settingsPath = join(fixture, "pi/agent/settings.json");
     const aliasesPath = join(fixture, "pi/agent/pi-ext-roles/settings.json");
@@ -109,7 +115,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const { model } = resolveModel("reviewer-model");
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stderr, "");
-    assert.equal(invalid.stdout, `${ggaPath}: PROVIDER must match the Pi workflow reviewer role (kilo:${model}:medium, found: kilo:${model}:high)\n`);
+    assert.equal(invalid.stdout, `${ggaPath}: PROVIDER must match the Pi workflow reviewer role (kilo:${model}:high, found: kilo:${model}:medium)\n`);
     assert.equal(readFileSync(ggaPath, "utf8"), rejected);
     assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore);
     assert.equal(readFileSync(aliasesPath, "utf8"), aliasesBefore);

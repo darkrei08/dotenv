@@ -1,5 +1,5 @@
 ---
-model: cheap-model
+model: release-model
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Release readiness validator. Checks migrations, version bumps, changelog, and deployment artifacts
 overrideSystemPrompt: true

@@ -62,6 +62,7 @@ Third-party packages:
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
+| `extensions/model-preflight.mjs` | `/model-preflight`, session-start and TTL refresh of the reusable model availability preflight; blocks routing on stale or unknown evidence | `node`, pi-model-fit `preflight.mjs` |
 | `extensions/pi-ext-workflows/*.ts` | Workflow functions registered through `pi-extensible-workflows`: `fetchIssueDetails` (`fetch-issue-details.ts`), `developUntilApproved` (`review-loop.ts`), `devIssuesInBatches` (`seq-issues.ts`), `tddDev` (`tdd.ts`); re-exported by `extensions/piextworkflows.ts` | `gh` / `glab` for issue lookup; the `pi-extensible-workflows` package must be installed |
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
 | `extensions/show-system-prompt.ts` | `/system-prompt` command: writes the current system prompt to `/tmp/system-prompt.md` | none |
@@ -89,6 +90,8 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | `pi/agent/modes.json` | `advisor`: provider `cliproxyapi`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-ext-roles/settings.json` | Shared role settings: `modelAliases`, the `skills` allowlist and the `extensions` allowlist. |
+| `pi/agent/ha-failover.example.json` | Credentials-free HA groups and ordered fallback entries. |
+| `pi/agent/pi-ha-role-groups.json` | Role-to-HA-group bindings used to validate primary coverage. |
 | `pi/agent/pi-extensible-workflows/settings.json` | Workflow-only overrides: `extensionSettings` for `herdr` and `trajectory`. |
 | `pi/agent/pi-ext-roles/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `qa`, `release`, `sre`. |
 | `pi/agent/prompts/` | Prompt templates: `fixissues.md` (drives the `devIssuesInBatches` workflow from `ready-for-agent` issues) and `spawn-pi-pane.md` (spawns a sibling Pi in a herdr pane). |
@@ -130,6 +133,29 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Workflow roles use CLIProxyAPI first, except the read-only Scout: developer, QA, release, and SRE use `cliproxyapi/claude-sonnet-5-5:medium`; summarizer uses `cliproxyapi/claude-haiku-5-5:low`; tests and research use `cliproxyapi/gpt-6-luna` at high/xhigh; Scout uses `opencode-go/cat-jam-free:medium` directly; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Native catalogs and aliases remain as a manual fallback but are hidden from the active picker. OpenCode Go is separate and remains directly logged into Pi through the `opencode-go` provider.
+Workflow roles follow the current `roleRecommendations` source in
+`pi-model-fit/scripts/report.mjs`: developer, QA, release, and SRE use
+`cliproxyapi/claude-sonnet-5-5:medium`; architect, security, reviewer, and oracle
+use `cliproxyapi/claude-opus-5-5:high`; tests use
+`cliproxyapi/gpt-5.6-luna:high`; researcher uses the same model at `xhigh`; Scout
+uses `cliproxyapi/gemini-3.8-flash-high:medium`; and summarizer uses
+`cliproxyapi/claude-haiku-5-5:low`. Native aliases remain manual mirrors, and
+OpenCode Go remains a separate direct provider. These assignments describe
+configuration only: catalog visibility, entitlement, inference, and quota are
+not interchangeable evidence.
 
-Gemini alternatives are available through explicit `gemini-*` aliases and the HA fallback groups: Flash High for Scout/developer/tests, Flash Lite for summarization, and Gemini Pro Agent for research. They do not silently replace the primary role model; use the alias or activate the matching HA group deliberately. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
+The tracked `pi/agent/pi-ha-role-groups.json` binds each role primary to a group
+in `ha-failover.example.json`. `pi-ha-bootstrap.mjs` returns fallbacks only when
+the current model is present in a bound group; an unknown model returns an empty
+list. The `model-preflight.mjs` extension invokes the reusable pi-model-fit
+preflight at session start and through `/model-preflight`, refreshes using the
+TTL cache every 15 minutes by default, and blocks agent routing when evidence is
+stale, unknown, malformed, or unavailable. Set
+`PI_MODEL_FIT_ROOT` or `PI_MODEL_PREFLIGHT_SCRIPT` to locate the shared
+`preflight.mjs`, `PI_MODEL_PREFLIGHT_CACHE` for the mode-600 cache path,
+`PI_MODEL_PREFLIGHT_HA_CONFIG` for the redacted HA config, and
+`PI_MODEL_PREFLIGHT_REFRESH_MS` or `PI_MODEL_PREFLIGHT_TIMEOUT_MS` for bounded
+refresh settings. No credentials or persistent aliases are changed.
+
+Gemini alternatives remain explicit HA fallbacks; they never silently replace a
+primary route. See `pi/agent/MODELS.md` for the full alias and effort table.

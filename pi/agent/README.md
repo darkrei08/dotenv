@@ -20,17 +20,22 @@ CLIProxyAPI. When entitlement or quota is unknown, keep the existing route
 provisional; do not silently substitute a provider or model. The tables below
 describe configured assignments, not verified availability or plan limits.
 
-The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, while Scout uses OpenCode Go directly:
+The role mapping follows the current `roleRecommendations` source in
+`pi-model-fit/scripts/report.mjs`. Catalog visibility is recorded separately
+from entitlement, inference, and quota; the configured routes below are not a
+claim that a live gateway can use them:
 
-| Role alias | Resolves to | Used by |
-| --- | --- | --- |
-| `cheap-model` | `cliproxyapi/gpt-5.6-luna:medium` | qa, release, sre |
-| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | scout |
-| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | summarizer |
-| `developer-model` | `cheap-model` | developer |
-| `tests-expert` | `cliproxyapi/gpt-6.1-sol:high` | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-6.1-sol:xhigh` | researcher |
-| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking:medium` | reviewer, oracle, architect, security |
+| Role alias | Resolves to | Effort | Used by |
+| --- | --- | --- | --- |
+| `developer-model` | `cliproxyapi/claude-sonnet-5-5` | medium | developer |
+| `architect-model` | `cliproxyapi/claude-opus-5-5` | high | architect |
+| `security-model` | `cliproxyapi/claude-opus-5-5` | high | security |
+| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-5-5` | medium | qa, release, sre |
+| `tests-expert` | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
+| `researcher-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | researcher |
+| `scout-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
+| `summarizer-model` | `cliproxyapi/claude-haiku-5-5` | low | summarizer |
+| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5` | high | reviewer, oracle |
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
 primary role assignments:
@@ -71,7 +76,7 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 | --- | --- |
 | `native-cheap-model` (GPT-5.6 Luna medium) | `cliproxy-cheap-model` → `cliproxyapi/gpt-5.6-luna:medium` |
 | `native-luna` (GPT-5.6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-5.6-luna:high` |
-| `native-reviewer-model` (Opus 4.6 medium) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-4-6-thinking:medium` |
+| `native-reviewer-model` (Opus 5.5 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-5-5:high` |
 | `native-sol` (GPT-6.1 Sol high) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:high` |
 | `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
 
@@ -109,7 +114,7 @@ in `settings.json`. Verify the configured servers with:
 pi mcp list
 ```
 
-Workflow agents inherit Pi's built-in `codemode`, `tool-search`, and `mcp` extensions from `pi/agent/pi-ext-roles/settings.json`. The shared `tool_search` allowance keeps the configured local MCP servers discoverable without preloading every MCP tool into every child session. A workflow call can still narrow this ceiling with an explicit tool allowlist; do not start a child with `!*` unless it also includes `tool_search` when MCP access is intended.
+Workflow agents inherit Pi's built-in `codemode`, `tool-search`, and `mcp` extensions from `pi/agent/pi-ext-roles/settings.json`. Root `settings.json` activates `tool_search` through additive `defaultTools: ["+tool_search"]`; the role-level allowlist keeps it available without widening any child beyond its explicit tools. A workflow call can still narrow this ceiling with an explicit tool allowlist; do not start a child with `!*` unless it also includes `tool_search` when MCP access is intended. The researcher role contains no selectors for absent tools such as `replace`, `insert`, or `undo_last_change`.
 
 ## Credentials and local files
 

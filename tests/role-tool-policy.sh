@@ -19,6 +19,7 @@ const expectedTools = {
 };
 const roleFiles = [...readOnlyRoles, ...writeCapableRoles];
 const settings = JSON.parse(fs.readFileSync(path.join(root, "pi/agent/pi-ext-roles/settings.json"), "utf8"));
+const rootSettings = JSON.parse(fs.readFileSync(path.join(root, "pi/agent/settings.json"), "utf8"));
 
 function roleConfig(name) {
   const file = path.join(rolesDir, `${name}.md`);
@@ -46,6 +47,9 @@ for (const name of roleFiles) {
     failures.push(`${name}: tools must exactly match its role-specific allowlist`);
   }
   if (!positive.includes("tool_search")) failures.push(`${name}: tool_search must remain explicitly available for MCP discovery`);
+  if (name === "researcher" && ["replace", "insert", "undo_last_change"].some((tool) => positive.includes(tool) || tools.includes(`!${tool}`))) {
+    failures.push(`${name}: selector references an absent Pi tool`);
+  }
   if (readOnlyRoles.includes(name) && positive.some((tool) => ["bash", "edit", "write"].includes(tool))) {
     failures.push(`${name}: read-only role must not allow shell, edit, or write tools`);
   }
@@ -54,6 +58,7 @@ for (const name of roleFiles) {
   }
 }
 
+if (!rootSettings.defaultTools?.includes("+tool_search")) failures.push("root settings: defaultTools must activate +tool_search");
 for (const extension of ["builtin:codemode", "builtin:tool-search", "builtin:mcp"]) {
   if (!settings.extensions?.includes(extension)) failures.push(`global settings: missing MCP/workflow extension ${extension}`);
 }

@@ -1,5 +1,5 @@
 ---
-model: reviewer-model
+model: architect-model
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Architecture advisor. Evaluates system design, component boundaries, and integration patterns
 overrideSystemPrompt: true
