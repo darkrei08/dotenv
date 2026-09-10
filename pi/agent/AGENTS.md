@@ -41,6 +41,15 @@ Prefer an existing workflow function when it matches the task; inspect `workflow
 
 When using workflow, unless specified, launch it in foreground and without any kind of budget limits.
 
+## Issue and PR method
+
+Follow the `issue-ops` skill for all issue and PR work (`~/.pi/agent/skills/issue-ops/SKILL.md`). Non-negotiable:
+
+- Issues use the issue-ops templates; titles are declarative and symptom-specific.
+- Apply `ready-for-agent` only when the ticket is self-contained: exact locations, pinned environment, and acceptance criteria with verification commands.
+- AFK execution consumes `ready-for-agent` via `prompts/fixissues.md` and the `devIssuesInBatches` workflow.
+- One PR per work unit, references the issue, thin diff, acceptance criteria pass. Do not commit, push, or close issues unless asked.
+
 ## Other preferences
 Also:
 - Prefer herdr for long-running interactive commands that need to survive context switches.

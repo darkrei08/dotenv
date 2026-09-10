@@ -16,3 +16,4 @@ Rules:
 - Return exact paths and line references if applicable.
 - Report what is known, what is uncertain, and the smallest next step.
 - Keep output concise; no implementation plan.
+- When scouting issue or PR work, follow the issue-ops method (~/.pi/agent/skills/issue-ops/SKILL.md).
