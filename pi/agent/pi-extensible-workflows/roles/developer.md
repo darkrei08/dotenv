@@ -2,7 +2,7 @@
 model: developer-model
 tools: ["!*", read, find, ls, bash, replace, undo_last_change, view_image]
 description: Developer focused agent
-skills: [tigerstyle, typescript-advanced]
+skills: [tigerstyle, typescript-advanced, issue-ops]
 ---
 
 # Developer Role
@@ -19,3 +19,4 @@ Rules:
 - When developing something new or changing something existing evaluate also documentation that needs updating
 - Use TDD (red -> green) to work.
 - Develop in tigerstyle and follow typescript best practices
+- For issue and PR work, follow the issue-ops skill (~/.pi/agent/skills/issue-ops/SKILL.md).
