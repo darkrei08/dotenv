@@ -49,6 +49,98 @@
           "cost": { "input": 2.5, "output": 15, "cacheRead": 0.25, "cacheWrite": 3.125 }
         }
       ]
+    },
+    "tuxevil-rotator": {
+      "baseUrl": "http://localhost:51200/v1",
+      "api": "openai-completions",
+      "apiKey": "tuxevil",
+      "models": [
+        {
+          "id": "gemini-3.8-flash-low",
+          "name": "Gemini 3.8 Flash (Low)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": "low",
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": null
+          },
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.8-flash-medium",
+          "name": "Gemini 3.8 Flash (Medium)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": "medium",
+            "high": null,
+            "xhigh": null,
+            "max": null
+          },
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.8-flash-high",
+          "name": "Gemini 3.8 Flash (High)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.1-pro-low",
+          "name": "Gemini 3.1 Pro (Low)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": "low",
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": null
+          },
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        },
+        {
+          "id": "gemini-3.1-pro-high",
+          "name": "Gemini 3.1 Pro (High)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "input": ["text", "image"],
+          "contextWindow": 1000000,
+          "maxTokens": 65536
+        }
+      ]
     }
   }
 }
