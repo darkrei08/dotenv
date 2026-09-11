@@ -197,8 +197,11 @@ npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-exce
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
 # the `aimem` CLI. The skill goes through the same skills flow as the lines above;
 # the CLI installer is invoked with --no-skill to avoid installing the skill twice.
-npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes
-command -v aimem >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/darkrei08/ai-memory-kit/main/install.sh | bash -s -- --no-skill
+# Pinned to a stable release tag (AIMEM_REF) instead of a moving branch.
+AIMEM_REF=v0.1.0
+npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi --copy --yes \
+  || npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes
+command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https://raw.githubusercontent.com/darkrei08/ai-memory-kit/${AIMEM_REF}/install.sh" | AIMEM_REF="${AIMEM_REF}" bash -s -- --no-skill
 
 # AI coding CLIs — installed only when missing, via each tool's official installer.
 command -v gentle-ai >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh | bash
