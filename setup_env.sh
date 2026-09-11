@@ -194,6 +194,12 @@ npx skills add https://github.com/pedronauck/skills --skill typescript-advanced 
 npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes
 npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes
 
+# Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
+# the `aimem` CLI. The skill goes through the same skills flow as the lines above;
+# the CLI installer is invoked with --no-skill to avoid installing the skill twice.
+npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes
+command -v aimem >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/darkrei08/ai-memory-kit/main/install.sh | bash -s -- --no-skill
+
 # AI coding CLIs — installed only when missing, via each tool's official installer.
 command -v gentle-ai >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh | bash
 command -v agy >/dev/null 2>&1 || curl -fsSL https://antigravity.google/cli/install.sh | bash
