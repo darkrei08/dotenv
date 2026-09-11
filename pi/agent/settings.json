@@ -30,7 +30,8 @@
     "npm:pi-orcarouter",
     "npm:@plannotator/pi-extension",
     "../../git/personale/pi-workflows/packages/extensions/herdr",
-    "npm:@benvargas/pi-openai-fast"
+    "npm:@benvargas/pi-openai-fast",
+    "github:darkrei08/pi-cockpit-tools-sync"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

@@ -37,3 +37,13 @@ pi --model tuxevil-rotator/gemini-3.1-pro-high
 The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemini-pro-low`, and `gemini-pro-high` names are **workflow-scoped aliases** defined in `pi-extensible-workflows/settings.json`. They resolve only where the workflow extension accepts model aliases (workflow role/model settings), not on the Pi CLI or in the native `/model` picker, until a global alias mechanism is verified. Selecting a model does not change the active workflow role. Existing `cheap-model` and role aliases remain unchanged.
 
 `cockpit-tools` is separate: it is the GUI/account manager and Codex sidecar, not the Gemini gateway. Use `tuxevil-rotator` for the Gemini-compatible endpoint above. `~/.pi/agent/auth.json` and tuxevil account tokens remain local and untracked; this repository does not store or modify them.
+
+## Cockpit account sync extension
+
+`settings.json` installs `github:darkrei08/pi-cockpit-tools-sync` as a Pi extension. When setup-ai provisions the optional rotator module, it installs the same extension with `pi install`. The extension reads local cockpit-tools account markers and provides:
+
+- `/cockpit-sync`: sync the active cockpit account to Pi auth.
+- `/cockpit-provision`: provision cockpit accounts into a local rotator.
+- `/cockpit-proxy`: inspect or manage the local proxy.
+
+It does not commit tokens; OAuth data remains in the user profile and is never stored in this repository.
