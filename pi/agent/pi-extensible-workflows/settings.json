@@ -14,7 +14,7 @@
     "gemini-pro-low": "tuxevil-rotator/gemini-3.1-pro-low:low",
     "gemini-pro-high": "tuxevil-rotator/gemini-3.1-pro-high:high"
   },
-  "skills": ["!*", "image-generation", "engineering-excellence", "gentle-ai", "ponytail*"],
+  "skills": ["!*", "image-generation", "engineering-excellence", "gentle-ai", "ponytail*", "impeccable", "design-taste", "phantom-ui"],
   "extensions": [
     "!*",
     "**/extensions/live-dashboard.ts",

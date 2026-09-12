@@ -18,6 +18,23 @@
 #                    pi/agent/pi-packages.txt (setup-ai's pi-packages module).
 #                    See README.md.
 #
+# Shared design skills, driven through their own upstream installers:
+#   design-taste     h3nryprod01/design-taste, installed with the agent-skills CLI
+#                    (`npx skills add`) for every agent CLI present on PATH.
+#                    Mixed license (MIT + Apache-2.0), see the upstream NOTICE.
+#   impeccable       pbakaus/impeccable, installed with its own installer
+#                    (`npx impeccable install --providers=... --scope=global`) for every
+#                    harness of its supported list that is present. Apache-2.0. The
+#                    installer downloads its engine binary into ~/.impeccable/bin on the
+#                    first run and installs harness hooks where the harness supports them.
+#                    It writes its project hook manifest for the current directory, so it
+#                    runs in a scratch directory: project hooks belong to a project.
+#
+# Local skills this repository ships as files, copied into every agent skills root:
+#   phantom-ui       agents/skills/phantom-ui (skill plus the MIT standalone build,
+#                    provenance in its VENDORED.md), because it is a component library
+#                    with no upstream skill to install.
+#
 # Behavior:
 #   * Idempotent. Where a host can list what it already has, an existing ponytail
 #     is detected and the add command is skipped. Otherwise the documented add
@@ -35,6 +52,10 @@ MARKETPLACE="DietrichGebert/ponytail"
 PLUGIN_REF="ponytail@ponytail"
 EXTENSION_URL="https://github.com/DietrichGebert/ponytail"
 OPENCODE_PLUGIN="@dietrichgebert/ponytail"
+
+DESIGN_TASTE_SOURCE="h3nryprod01/design-taste"
+SKILLS_CLI="skills@latest"
+IMPECCABLE_CLI="impeccable"
 
 skipped=0
 failures=0
@@ -133,13 +154,17 @@ install_copilot() {
     copilot plugin install "${PLUGIN_REF}"
 }
 
-# OpenCode documents its global config as opencode.json under the XDG config home.
-opencode_config_path() {
+# OpenCode documents its global config under the XDG config home.
+opencode_config_dir() {
   if [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
-    printf '%s/opencode/opencode.json' "${XDG_CONFIG_HOME}"
+    printf '%s/opencode' "${XDG_CONFIG_HOME}"
   else
-    printf '%s/.config/opencode/opencode.json' "${HOME}"
+    printf '%s/.config/opencode' "${HOME}"
   fi
+}
+
+opencode_config_path() {
+  printf '%s/opencode.json' "$(opencode_config_dir)"
 }
 
 install_opencode() {
@@ -208,6 +233,200 @@ console.log("added");
   fi
 }
 
+# --- local skills --------------------------------------------------------------------
+#
+# Skills this repository owns as files, rather than ones an upstream installer places.
+# Each is copied into every agent skills root that exists on this machine, so all CLIs
+# read the same text. A destination that already matches is left alone, and an agent
+# whose config directory is absent is never touched.
+
+# Global skills shipped under agents/skills/.
+LOCAL_SKILLS=(phantom-ui)
+
+# Directory holding an agent's own config, used to decide whether that agent exists.
+agent_config_dir() {
+  case "$1" in
+    claude-code) printf '%s/.claude' "${HOME}" ;;
+    codex) printf '%s/.codex' "${HOME}" ;;
+    gemini-cli) printf '%s/.gemini' "${HOME}" ;;
+    cursor) printf '%s/.cursor' "${HOME}" ;;
+    antigravity) printf '%s/.antigravity' "${HOME}" ;;
+    opencode) opencode_config_dir ;;
+    pi) printf '%s/.pi/agent' "${HOME}" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Every skills root this script writes to: one per installed agent, plus the shared root
+# the upstream skills CLI uses as well.
+local_skill_roots() {
+  local agent config
+  for agent in claude-code codex gemini-cli cursor antigravity opencode pi; do
+    config="$(agent_config_dir "${agent}")" || continue
+    if [[ -d "${config}" ]]; then
+      printf '%s/skills\n' "${config}"
+    fi
+  done
+  printf '%s/.agents/skills\n' "${HOME}"
+}
+
+repo_skill_dir() {
+  printf '%s/skills/%s' "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)" "$1"
+}
+
+install_local_skill() {
+  local skill="$1" src root dest
+  src="$(repo_skill_dir "${skill}")"
+  if [[ ! -d "${src}" ]]; then
+    log "FAIL ${skill}: repository copy not found (${src})"
+    failures=$(( failures + 1 ))
+    return 0
+  fi
+
+  while IFS= read -r root; do
+    dest="${root}/${skill}"
+    if [[ -d "${dest}" ]] && diff -rq "${src}" "${dest}" >/dev/null 2>&1; then
+      log "OK   ${skill} already current in ${root}"
+      continue
+    fi
+    # Replace only on a difference, so a stale copy cannot survive a refresh.
+    if ! mkdir -p "${root}" || ! rm -rf "${dest}" || ! cp -R "${src}" "${dest}"; then
+      log "FAIL ${skill}: could not install into ${root}"
+      failures=$(( failures + 1 ))
+      continue
+    fi
+    log "OK   ${skill} installed into ${root}"
+  done < <(local_skill_roots)
+}
+
+install_local_skills() {
+  local skill
+  for skill in "${LOCAL_SKILLS[@]}"; do
+    install_local_skill "${skill}"
+  done
+}
+
+# --- shared design skills ------------------------------------------------------------
+#
+# design-taste and impeccable are upstream distributions, so this script drives the
+# installers their own documentation names instead of vendoring their files: the
+# agent-skills CLI for design-taste, and impeccable's installer for impeccable. Both
+# are asked to cover every agent CLI found on PATH, and both are safe to re-run.
+
+# Agent name the `skills` CLI expects for an installed CLI binary.
+skill_agent_for_cli() {
+  case "$1" in
+    claude) printf 'claude-code' ;;
+    codex) printf 'codex' ;;
+    gemini) printf 'gemini-cli' ;;
+    agy) printf 'antigravity' ;;
+    cursor) printf 'cursor' ;;
+    opencode) printf 'opencode' ;;
+    pi) printf 'pi' ;;
+    *) return 1 ;;
+  esac
+}
+
+# Provider name `impeccable install` expects for an installed CLI binary. Those names
+# differ from the binaries: Copilot ships as the `github` provider, `agy` as `gemini`.
+impeccable_provider_for_cli() {
+  case "$1" in
+    claude) printf 'claude' ;;
+    codex) printf 'codex' ;;
+    gemini | agy) printf 'gemini' ;;
+    cursor) printf 'cursor' ;;
+    copilot) printf 'github' ;;
+    opencode) printf 'opencode' ;;
+    pi) printf 'pi' ;;
+    *) return 1 ;;
+  esac
+}
+
+# Every agent CLI present on PATH, mapped to the name its installer expects. An agent
+# whose CLI is missing is simply not listed, so a machine without it is not a failure.
+detected_skill_agents() {
+  local cli agent
+  for cli in claude codex gemini agy cursor opencode pi; do
+    have "${cli}" || continue
+    agent="$(skill_agent_for_cli "${cli}")" || continue
+    printf '%s\n' "${agent}"
+  done
+}
+
+# Deduplicated provider list for impeccable, because `agy` and `gemini` are one provider.
+detected_impeccable_providers() {
+  local cli provider found=""
+  for cli in claude codex gemini agy cursor copilot opencode pi; do
+    have "${cli}" || continue
+    provider="$(impeccable_provider_for_cli "${cli}")" || continue
+    case ",${found}," in
+      *",${provider},"*) continue ;;
+    esac
+    found="${found:+${found},}${provider}"
+  done
+  printf '%s' "${found}"
+}
+
+# stdin is /dev/null so an installer that expects a terminal cannot stall an unattended
+# run; both installers accept the flags above instead of asking.
+install_design_taste_for_agent() {
+  local agent="$1"
+  npx --yes "${SKILLS_CLI}" add "${DESIGN_TASTE_SOURCE}" --global --agent "${agent}" --copy --yes </dev/null
+}
+
+install_impeccable_for_providers() {
+  local providers="$1" scratch status=0
+  # The installer always writes its provider-native hook manifest for the CURRENT
+  # PROJECT, whatever the scope is. This script installs globally, so it runs in a
+  # scratch directory instead of leaving a hook manifest in whatever directory it
+  # happened to be called from; enabling project hooks stays a per-project decision
+  # (`npx impeccable install` inside that project).
+  scratch="$(mktemp -d)"
+  ( cd "${scratch}" && npx --yes "${IMPECCABLE_CLI}" install --providers="${providers}" --scope=global </dev/null ) || status=$?
+  rm -rf "${scratch}"
+  return "${status}"
+}
+
+install_design_taste() {
+  if ! have npx; then
+    log "SKIP design-taste (npx not found on PATH)"
+    skipped=$(( skipped + 1 ))
+    return 0
+  fi
+
+  local agents agent
+  agents="$(detected_skill_agents)"
+  if [[ -z "${agents}" ]]; then
+    log "SKIP design-taste (no agent CLI found on PATH)"
+    skipped=$(( skipped + 1 ))
+    return 0
+  fi
+
+  while IFS= read -r agent; do
+    step "design-taste: skills add ${DESIGN_TASTE_SOURCE} for ${agent}" \
+      install_design_taste_for_agent "${agent}"
+  done <<< "${agents}"
+}
+
+install_impeccable() {
+  if ! have npx; then
+    log "SKIP impeccable (npx not found on PATH)"
+    skipped=$(( skipped + 1 ))
+    return 0
+  fi
+
+  local providers
+  providers="$(detected_impeccable_providers)"
+  if [[ -z "${providers}" ]]; then
+    log "SKIP impeccable (no harness it supports found on PATH)"
+    skipped=$(( skipped + 1 ))
+    return 0
+  fi
+
+  step "impeccable: install --providers=${providers} --scope=global" \
+    install_impeccable_for_providers "${providers}"
+}
+
 report_claude_code() {
   local suffix=""
   if ! have claude; then
@@ -225,7 +444,12 @@ main() {
   install_copilot
   install_opencode
   report_claude_code
-  log "pi is not handled here: pi/agent/pi-packages.txt drives it (setup-ai pi-packages)"
+  log "pi is not handled here for ponytail: pi/agent/pi-packages.txt drives it (setup-ai pi-packages)"
+  log "Installing the shared design skills for every agent CLI found on PATH"
+  install_design_taste
+  install_impeccable
+  log "Installing the skills this repository ships for every agent found on PATH"
+  install_local_skills
   log "Summary: ${skipped} host(s) skipped, ${failures} step failure(s)"
 
   if [[ "${failures}" -gt 0 ]]; then
