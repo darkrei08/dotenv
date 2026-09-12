@@ -9,6 +9,7 @@
 !/package.json
 !/tsconfig.json
 !/settings.json
+!/pi-packages.txt
 !/models.json
 !/modes.json
 !/keybindings.json

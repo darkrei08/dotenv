@@ -14,7 +14,7 @@
     "gemini-pro-low": "tuxevil-rotator/gemini-3.1-pro-low:low",
     "gemini-pro-high": "tuxevil-rotator/gemini-3.1-pro-high:high"
   },
-  "skills": ["!*", "image-generation", "engineering-excellence", "gentle-ai"],
+  "skills": ["!*", "image-generation", "engineering-excellence", "gentle-ai", "ponytail*"],
   "extensions": [
     "!*",
     "**/extensions/live-dashboard.ts",
@@ -23,7 +23,8 @@
     "**/pi-codex-image/**",
     "**/pi-hashline-edit-pro/**",
     "**/@sting8k/pi-vcc/**",
-    "**/pi-omplike-advisor/**"
+    "**/pi-omplike-advisor/**",
+    "**/ponytail/**"
   ],
   "extensionSettings": {
     "herdr": { "enableFullyInspectableMode": false },
