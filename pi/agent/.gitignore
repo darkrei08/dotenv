@@ -6,6 +6,7 @@
 !/.pii-allowlist
 !/AGENTS.md
 !/README.md
+!/MODELS.md
 !/package.json
 !/tsconfig.json
 !/settings.json
