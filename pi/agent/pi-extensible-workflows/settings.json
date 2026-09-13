@@ -15,7 +15,8 @@
     "gemini-pro-high": "tuxevil-rotator/gemini-3.1-pro-high:high",
     "opencode-fast": "opencode-go/deepseek-v4.1-flash",
     "opencode-balanced": "opencode-go/deepseek-v4.1-flash:high",
-    "opencode-deep": "opencode-go/deepseek-v4-pro:max"
+    "opencode-deep": "opencode-go/deepseek-v4-pro:max",
+    "opencode-flash-max": "opencode-go/deepseek-v4.1-flash:max"
   },
   "skills": [
     "!*",

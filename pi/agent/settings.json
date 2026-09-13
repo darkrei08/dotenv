@@ -3,6 +3,9 @@
   "defaultProvider": "opencode-go",
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "high",
+  "modelThinkingLevels": {
+    "opencode-go/deepseek-v4.1-flash": "max"
+  },
   "theme": "dark",
   "packages": [
     "npm:pi-web-access",
@@ -31,7 +34,7 @@
     "npm:@plannotator/pi-extension",
     "../../git/personale/pi-workflows/packages/extensions/herdr",
     "npm:@benvargas/pi-openai-fast",
-    "github:darkrei08/pi-cockpit-tools-sync"
+    "git:github.com/darkrei08/pi-cockpit-tools-sync"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

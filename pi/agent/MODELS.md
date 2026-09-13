@@ -239,6 +239,16 @@ Two caveats that bite in practice:
   `thinking: max` in agent frontmatter is treated as invalid and can stop that
   agent from loading. Use `xhigh` there, or `max` only in Pi-native settings
   and `/thinking`.
+- The OpenCode Go DeepSeek models do not expose `xhigh`: `deepseek-v4.1-flash` and
+  `deepseek-v4-pro` list `high` and `max`, `deepseek-v4-flash` also lists `low`. Pi
+  resolves a request for a level the model does not expose to the model's top level, so
+  `:xhigh` and `:max` reach the provider as the same effort (verified: the session
+  record says `thinking: max` for a `:xhigh` request). Write `max` in Pi-native places
+  (`settings.json`, `modes.json`, `--model`, workflow aliases) rather than adding a
+  `modelOverrides` entry that maps `xhigh` to `max`: that would give one provider value
+  two labels and leave the next reader guessing which one is real. The `xhigh` token
+  above stays necessary only in the gentle-pi layer, where it is the highest accepted
+  level and the clamp is the intended mechanism.
 
 ### Troubleshooting
 
