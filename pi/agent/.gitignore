@@ -37,6 +37,8 @@
 !/skills/tigerstyle/**
 !/skills/issue-ops/
 !/skills/issue-ops/**
+!/skills/container-test-matrix/
+!/skills/container-test-matrix/**
 !/themes/
 !/themes/**
 !/npm/

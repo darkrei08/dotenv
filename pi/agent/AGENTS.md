@@ -39,6 +39,25 @@
 - When asked what is tested, answer exactly what was verified and what was not.
 - For UI/browser/TUI/hardware/deployments, inspect the actual target, not just build output.
 
+## Cross-platform verification
+
+Follow the `container-test-matrix` skill (`~/.pi/agent/skills/container-test-matrix/SKILL.md`)
+whenever a change touches scripts, installers, CLI entrypoints or packaging. Non-negotiable:
+
+- Run the affected commands and scripts in containers for every distribution family the
+  project claims, plus the derivatives it resolves through `ID_LIKE`, and on Windows (the
+  local host, or a Windows container on a Windows host) when a `.ps1`, `.cmd` or the
+  Windows code path changes.
+- Exercise the project's own entrypoints and the multi-platform toolchains it uses
+  (`npm`, `bun`, `node`, `pwsh`), not only the test suite: packaging and shim resolution
+  fail where unit tests pass.
+- Record host, image tag, exact command, exit code and the proving output in the PR, and
+  state what could not run. "Should work" and a green unit suite are not verification.
+- Clean up: `--rm`, no leftover containers, images pulled only for the rows you ran.
+
+Reference for the generic rules: `references/cross-platform-testing.md` in the
+Engineering-Excellence skill, or the same file under its upstream repository.
+
 ## Workflow and agents
 
 For complex work use the workflow tool. You should pick the proper agent per task unless specified. Check model aliases.
