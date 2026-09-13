@@ -239,6 +239,45 @@ Two caveats that bite in practice:
   `thinking: max` in agent frontmatter is treated as invalid and can stop that
   agent from loading. Use `xhigh` there, or `max` only in Pi-native settings
   and `/thinking`.
+- The OpenCode Go DeepSeek models do not expose `xhigh`: `deepseek-v4.1-flash` and
+  `deepseek-v4-pro` list `high` and `max`, `deepseek-v4-flash` also lists `low`. Pi
+  resolves a request for a level the model does not expose to the model's top level, so
+  `:xhigh` and `:max` reach the provider as the same effort (verified: the session
+  record says `thinking: max` for a `:xhigh` request). Write `max` in Pi-native places
+  (`settings.json`, `modes.json`, `--model`, workflow aliases) rather than adding a
+  `modelOverrides` entry that maps `xhigh` to `max`: that would give one provider value
+  two labels and leave the next reader guessing which one is real. The `xhigh` token
+  above stays necessary only in the gentle-pi layer, where it is the highest accepted
+  level and the clamp is the intended mechanism.
+
+### OpenCode Go: what each model actually accepts (verified 2026-09-13)
+
+Method: every request ran on the OpenCode Go subscription (the same call without
+`auth.json` stops with `Use /login to log into a provider`), and the outgoing payload was
+read through a `before_provider_request` hook, so the table reports what Pi **sent**, not
+what the catalog promises. Pi's rule for a level a model does not expose is the nearest
+exposed level above it, otherwise the model's top level. No row returned an error except
+where noted.
+
+| Group | Models | What reaches the provider |
+|---|---|---|
+| Full ladder | `gpt-5.6-luna` | `low`, `medium`, `high`, `xhigh`, `max`, each sent unchanged |
+| Effort: high + max | `deepseek-v4.1-flash`, `deepseek-v4-pro`, `glm-5.2` | `high`, `max`; `minimal`/`low`/`medium` land on `high`, `xhigh` on `max` |
+| Effort: low + high + max | `deepseek-v4-flash`, `deepseek-v4-flash-vision-exp`, `glm-5.3`, `glm-5.3-flash` | `low`, `high`, `max` |
+| Effort: top is xhigh | `grok-4.6`, `muse-spark-1.2-contributor`, `muse-spark-1.3-contributor` | `low` .. `xhigh` (`grok-4.6` also `medium`); `max` clamps down to `xhigh` |
+| Effort: xhigh unmapped | `qwen3.8-max` | `low`, `medium`, `xhigh`; `high` clamps **up** to `xhigh` |
+| Effort: high only | `hy3`, `hy4-preview` | `off` sends `none`, plus `low`, `high`; `max` clamps down to `high` |
+| Effort: max only | `kimi-k3` | `max`; `high` clamps up to `max` |
+| Default ladder | `glm-5.1`, `kimi-k2.7-code`, `longcat-2.0`, `mimo-v2.5`, `mimo-v2.5-pro`, `qwen3.6-plus`, `qwen3.7-max`, `qwen3.7-plus` | `off` .. `high`; `max` clamps **down** to `high` |
+| Thinking budget, no effort value | `minimax-m3`, `qwen3.8-flash` | `thinking: {enabled, 16384 tokens}` for every level; the chosen level changes nothing on the wire |
+| Thinking on/off only | `kimi-k2.6`, `minimax-m2.7` | `thinking: {type: enabled}`; `minimax-m2.7` answered `500 Internal server error` on this run |
+
+Consequences for this repository: `:max` is the real top level of the DeepSeek pair, and
+`xhigh` is a level of its own only on `gpt-5.6-luna`, `grok-4.6`, `muse-spark-*` and
+`qwen3.8-max`. Everywhere else `xhigh` is a request Pi resolves to another value, which is
+why `max` is written in the configuration. Levels inside a group that the rule derives
+(for example `minimal` on `deepseek-v4-flash`) are not measured one by one; every group's
+boundary value was.
 
 ### Troubleshooting
 
