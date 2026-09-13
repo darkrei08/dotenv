@@ -12,9 +12,21 @@
     "gemini-flash-medium": "tuxevil-rotator/gemini-3.8-flash-medium:medium",
     "gemini-flash-high": "tuxevil-rotator/gemini-3.8-flash-high:high",
     "gemini-pro-low": "tuxevil-rotator/gemini-3.1-pro-low:low",
-    "gemini-pro-high": "tuxevil-rotator/gemini-3.1-pro-high:high"
+    "gemini-pro-high": "tuxevil-rotator/gemini-3.1-pro-high:high",
+    "opencode-fast": "opencode-go/deepseek-v4.1-flash",
+    "opencode-balanced": "opencode-go/deepseek-v4.1-flash:high",
+    "opencode-deep": "opencode-go/deepseek-v4-pro:max"
   },
-  "skills": ["!*", "image-generation", "engineering-excellence", "gentle-ai", "ponytail*", "impeccable", "design-taste", "phantom-ui"],
+  "skills": [
+    "!*",
+    "image-generation",
+    "engineering-excellence",
+    "gentle-ai",
+    "ponytail*",
+    "impeccable",
+    "design-taste",
+    "phantom-ui"
+  ],
   "extensions": [
     "!*",
     "**/extensions/live-dashboard.ts",
@@ -27,7 +39,11 @@
     "**/ponytail/**"
   ],
   "extensionSettings": {
-    "herdr": { "enableFullyInspectableMode": false },
-    "trajectory": { "port": 8190 }
+    "herdr": {
+      "enableFullyInspectableMode": false
+    },
+    "trajectory": {
+      "port": 8190
+    }
   }
 }
