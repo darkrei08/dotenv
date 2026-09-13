@@ -188,6 +188,26 @@ if [ "$PACKAGE_MANAGER" = arch ]; then
 fi
 
 sync_pi
+
+# Apply the Pi packages declared in pi/agent/pi-packages.txt. pi-extensible-workflows
+# is skipped: @darkrei08/setup-ai's `pi-workflows` module owns that package.
+pi_packages="$REPO_DIR/pi/agent/pi-packages.txt"
+if ! command -v pi >/dev/null 2>&1; then
+  printf 'WARN: pi is not installed, so the Pi configuration (packages and extensions) is not applied.\n' >&2
+  printf 'WARN: install it with: npm install -g --prefix "$HOME/.local" @earendil-works/pi-coding-agent\n' >&2
+elif [ -r "$pi_packages" ]; then
+  while IFS= read -r spec || [ -n "$spec" ]; do
+    spec=${spec%%#*}
+    spec=${spec#"${spec%%[![:space:]]*}"}
+    spec=${spec%"${spec##*[![:space:]]}"}
+    [ -n "$spec" ] || continue
+    # The manifest carries a ~ path for the in-repo advisor package; the shell does
+    # not expand a tilde inside a quoted word read from a file, so do it here.
+    case "$spec" in '~/'*) spec="$HOME/${spec#\~/}" ;; esac
+    case "$spec" in *pi-extensible-workflows*) continue ;; esac
+    pi install "$spec" </dev/null || printf 'WARN: pi install %s failed; continuing\n' "$spec" >&2
+  done < "$pi_packages"
+fi
 npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes
 npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes
 npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes

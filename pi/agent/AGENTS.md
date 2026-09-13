@@ -54,3 +54,19 @@ Follow the `issue-ops` skill for all issue and PR work (`~/.pi/agent/skills/issu
 Also:
 - Prefer herdr for long-running interactive commands that need to survive context switches.
 - Name sessions clearly, capture logs, and inspect output instead of polling/sleeping.
+
+## Skill layout
+
+Skills have one physical copy. Install a skill once under `~/.agents/skills/` (or
+wherever its upstream installer puts it), then run
+`node ~/git/personale/dotenv/agents/link-skills.mjs --apply` to link it into the
+harness roots that need it. Non-negotiable:
+
+- Never copy the same skill into two harness roots; add it to
+  `agents/skills.manifest.json` and let the linker place it.
+- Never edit a linked skill in place. Edit the canonical copy under
+  `~/.agents/skills/`; every harness then sees the change.
+- `~/.pi/agent/skills/` holds only Pi-only skills. A shared skill there is a
+  duplicate that the linker removes, because Pi also reads the canonical root.
+- The layout, the conflict rules and the refresh procedure are in
+  `agents/LINKING.md`.
