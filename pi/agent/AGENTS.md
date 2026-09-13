@@ -76,6 +76,17 @@ Follow the `issue-ops` skill for all issue and PR work (`~/.pi/agent/skills/issu
 - AFK execution consumes `ready-for-agent` via `prompts/fixissues.md` and the `devIssuesInBatches` workflow.
 - One PR per work unit, references the issue, thin diff, acceptance criteria pass. Do not commit, push, or close issues unless asked.
 
+## Resource discipline
+
+Several Pi agents on one machine are a budget, not a free action. Follow
+`docs/resource-discipline.md`. Non-negotiable on a 16 GB host:
+
+- At most 4-6 concurrent Pi sessions; close a pane as soon as its task merges (about 330 MB each).
+- Launch paned agents with `NODE_OPTIONS=--max-old-space-size=1024` on the pane, never as a global
+  environment variable.
+- Keep Docker stopped while agents work, and keep WSL capped with `autoMemoryReclaim` in `~/.wslconfig`.
+- Measure before believing: free RAM, commit charge and the top processes, not impressions.
+
 ## Other preferences
 Also:
 - Prefer herdr for long-running interactive commands that need to survive context switches.
