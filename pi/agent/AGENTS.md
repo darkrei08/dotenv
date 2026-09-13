@@ -5,6 +5,13 @@
 - Ask clarifying questions for blockers or incompatible choices.
 - If something can be tested by launching temp servers or using browser then do it instead of asking user to do it.
 
+## Language
+
+- Speak to the user in Italian.
+- Write directives, delegated agent/subagent tasks, and technical
+  artifacts (code, comments, identifiers, commit messages, PR
+  descriptions, docs) in English.
+
 ## Output and Style
 
 - Be concise. Return concrete changes or findings first.
