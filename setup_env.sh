@@ -221,7 +221,11 @@ npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-exce
 AIMEM_REF=v0.1.0
 npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi --copy --yes \
   || npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes
-command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https://raw.githubusercontent.com/darkrei08/ai-memory-kit/${AIMEM_REF}/install.sh" | AIMEM_REF="${AIMEM_REF}" bash -s -- --no-skill
+# ai-memory-kit v0.1.0 used GitHub's refs/heads codeload URL for tags.
+# Rewrite it in the streamed installer until the upstream installer is fixed.
+command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https://raw.githubusercontent.com/darkrei08/ai-memory-kit/${AIMEM_REF}/install.sh" \
+  | sed 's|/tar.gz/refs/heads/\$REF|/tar.gz/\$REF|g' \
+  | AIMEM_REF="${AIMEM_REF}" bash -s -- --no-skill
 
 # AI coding CLIs — installed only when missing, via each tool's official installer.
 command -v gentle-ai >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh | bash
