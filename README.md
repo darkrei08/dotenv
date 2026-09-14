@@ -126,7 +126,7 @@ Third-party packages:
 | `npm:@narumitw/pi-goal` | Autonomous single-objective `/goal` completion. |
 | `git:github.com/DietrichGebert/ponytail` | Lazy-senior-dev ruleset: injects the rules each turn and registers the `/ponytail*` commands. Installed for the other agent CLIs by `agents/install-agent-extensions.sh`. |
 | `npm:pi-tool-display` | Compact tool-call rendering, diff visualization, output truncation. |
-| `git:github.com/YuGiMob/pi-hashline-edit-pro` | Hash-anchored `read`/`replace`/`insert`/`grep` tools; stale anchors are rejected. |
+| `git:github.com/YuGiMob/pi-hashline-edit-pro` | Hash-anchored `read`/`replace`/`insert`/`grep` tools; stale anchors are rejected. It owns `read`/`grep`, so `setup_env.sh` appends `export GENTLE_PI_QUIET_TOOLS=0` to `~/.bashrc`: gentle-pi's quiet-tools would otherwise register the same `read` tool and `pi` would abort at startup. Remove that line to hand `read` back to gentle-pi. |
 | `git:github.com/vekexasia/pi-notify@feat/customizable-notifications` | Desktop notifications via OSC 777/99/9 and Windows toast. |
 | `npm:@sting8k/pi-vcc` | Conversation compactor with structured summaries and no LLM calls; configured by `pi-vcc-config.json`. |
 | `npm:pi-orcarouter` | Package registered in `settings.json`; no description in its `package.json`. |
