@@ -251,3 +251,9 @@ fi
 "$nvim_bin" --headless "+Lazy! restore" +qa
 "$nvim_bin" --headless "+MasonInstall markdownlint" +qa
 "$nvim_bin" --headless "+lua require('nvim-treesitter').install({'bash','c','diff','html','lua','luadoc','markdown','markdown_inline','query','vim','vimdoc','typescript','javascript'}):wait(300000)" +qa
+
+# gentle-pi's quiet-tools re-registers the built-in read/edit/grep tools, but this
+# Pi config gives pi-hashline-edit-pro ownership of read/grep. Two extensions
+# cannot register the same tool name, so pi aborts at startup ("Tool read
+# conflicts with ..."); disable gentle-pi's quiet renderers and keep hashline-edit.
+append_once 'export GENTLE_PI_QUIET_TOOLS=0'
