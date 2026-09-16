@@ -1,8 +1,8 @@
 {
   "modes": {
     "advisor": {
-      "provider": "openrouter",
-      "modelId": "deepseek/deepseek-v4-flash-0731",
+      "provider": "opencode-go",
+      "modelId": "deepseek-v4-flash",
       "thinkingLevel": "xhigh",
       "autostart": true
     },

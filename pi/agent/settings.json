@@ -10,7 +10,6 @@
   "packages": [
     "npm:pi-web-access",
     "git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url",
-    "npm:visual-explainer",
     {
       "source": "git:github.com/vekexasia/pi-high-availability",
       "extensions": [
@@ -18,25 +17,24 @@
       ]
     },
     "npm:pi-btw",
-    "npm:pi-anthropic-oauth",
     "git:github.com/vekexasia/pi-codex-image@fix-codex-image-generation-output",
     "npm:pi-vim",
     "npm:pi-markdown-preview",
     "npm:@narumitw/pi-goal",
     "git:github.com/DietrichGebert/ponytail",
     "packages/pi-omplike-advisor",
+    "packages/pi-codex-context",
     "npm:pi-tool-display",
-    "git:github.com/YuGiMob/pi-hashline-edit-pro",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
-    "npm:@sting8k/pi-vcc",
     "../../git/personale/pi-workflows",
-    "npm:pi-orcarouter",
-    "npm:@plannotator/pi-extension",
     "../../git/personale/pi-workflows/packages/extensions/herdr",
-    "npm:@benvargas/pi-openai-fast",
+    "git:github.com/gotgenes/pi-anthropic-auth",
     "git:github.com/darkrei08/pi-cockpit-tools-sync"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,
-  "tuiMode": "regular"
+  "tuiMode": "regular",
+  "compaction": {
+    "enabled": true
+  }
 }

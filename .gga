@@ -1,0 +1,22 @@
+# Gentleman Guardian Angel Configuration
+# https://github.com/Gentleman-Programming/gga
+
+# AI provider. Same reviewer this machine develops with: the OpenCode CLI on the
+# OpenCode Go subscription (gentle-orchestrator with full tool access), so the
+# review can run its own checks.
+PROVIDER="opencode:opencode-go/deepseek-v4.1-flash"
+
+# This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
+# Markdown directives. The generated npm lockfile is excluded (huge, machine
+# derived, and carries pre-existing recursive-path churn).
+FILE_PATTERNS="*.sh,*.json,*.ts,*.mjs,*.md,*.lua,*.toml"
+EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
+
+# Dedicated review rules for this repo (not the pi agent AGENTS.md).
+RULES_FILE="REVIEW_RULES.md"
+
+# Tolerant parse: the reviewer answers with prose before the verdict.
+STRICT_MODE="false"
+
+# Larger changesets (upstream syncs) need a longer window.
+TIMEOUT="900"

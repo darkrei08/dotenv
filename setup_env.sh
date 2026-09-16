@@ -60,21 +60,53 @@ append_once() {
   grep -Fqx -- "$line" "$file" || printf '\n%s\n' "$line" >> "$file"
 }
 
+# Mirror the versioned Pi config into the live ~/.pi/agent WITHOUT touching
+# runtime state. We deliberately do NOT symlink ~/.pi/agent to the repo: the
+# symlink model made npm resolve recursive self-paths into the lockfile and put
+# credentials/sessions under version control. Instead we rsync an explicit
+# allowlist of versioned items on top of the live dir, so re-runs stay
+# idempotent and never delete auth.json, sessions/, or pi-managed installs
+# (npm/, packages pi resolves from settings.json).
 sync_pi() {
-  local target="$HOME/.pi/agent"
-  mkdir -p "$HOME/.pi"
+  local src="$REPO_DIR/pi/agent" target="$HOME/.pi/agent"
 
-  if [ -L "$target" ] && [ "$(readlink -f "$target")" = "$REPO_DIR/pi/agent" ]; then
-    return
+  # A leftover symlink from the old model would make rsync write back into the
+  # repo; replace it with a real directory first, backing up anything real.
+  if [ -L "$target" ]; then
+    rm -f "$target"
+  elif [ -e "$target" ] && [ ! -d "$target" ]; then
+    mv -- "$target" "$target.backup.$(date +%s)"
+  fi
+  mkdir -p "$target"
+
+  local item
+  for item in \
+    AGENTS.md advisor-system.md MODELS.md README.md \
+    settings.json models.json modes.json keybindings.json \
+    pi-vcc-config.json tsconfig.json package.json pi-packages.txt .pii-allowlist \
+    bin packages prompts skills themes pi-extensible-workflows; do
+    if [ -e "$src/$item" ]; then
+      rsync -a "$src/$item" "$target/"
+    fi
+  done
+
+  # extensions/: copy the repo-owned .ts extensions, but NOT the workflow-command
+  # wrappers (piextworkflows.ts + pi-ext-workflows/). setup-ai's `pi-workflows`
+  # module owns those and installs their `pi-extensible-workflows` dependency into
+  # pi-ext-workflows/node_modules; copying them here without that node_modules
+  # breaks `pi` startup ("Cannot find module 'pi-extensible-workflows'").
+  if [ -d "$src/extensions" ]; then
+    rsync -a --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
+      "$src/extensions" "$target/"
   fi
 
-  if [ -e "$target" ] || [ -L "$target" ]; then
-    local backup="$target.backup.$(date +%s)"
-    mv -- "$target" "$backup"
-    printf 'Backed up existing Pi agent directory to %s\n' "$backup"
+  # Verify the workflow roles and aliases actually landed: this is the config
+  # that silently breaks `workflow` (missing roles/aliases) if the copy fails.
+  if [ ! -d "$target/pi-extensible-workflows/roles" ] ||
+     [ ! -f "$target/pi-extensible-workflows/settings.json" ]; then
+    printf 'sync_pi: workflow roles/aliases missing after sync (%s)\n' "$target" >&2
+    return 1
   fi
-
-  ln -s "$REPO_DIR/pi/agent" "$target"
 }
 
 if [ "$PACKAGE_MANAGER" = debian ]; then
@@ -117,7 +149,6 @@ append_once 'export PATH="$PATH:/usr/local/go/bin"'
 append_once 'export PATH="$PATH:/opt/nvim-linux-x86_64/bin"'
 append_once 'eval "$(fzf --bash)"'
 append_once 'export BAT_THEME="TwoDark"'
-append_once 'export PI_ANTHROPIC_OAUTH_REWRITE_MODE="technical-safe"'
 append_once "alias ll='ls -alF'"
 append_once "alias herdr-devbox='herdr --remote devbox-hz --remote-keybindings server'"
 append_once 'export SUDO_EDITOR="nvim"'
@@ -208,11 +239,17 @@ elif [ -r "$pi_packages" ]; then
     pi install "$spec" </dev/null || printf 'WARN: pi install %s failed; continuing\n' "$spec" >&2
   done < "$pi_packages"
 fi
-npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes
-npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes
-npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes
-npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes
-npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes
+# The shared agent-skill stack. When setup-ai orchestrates this script it already
+# installs these for EVERY detected agent (not just pi), so it sets
+# SETUP_AI_SKIP_SKILLS=1 to avoid running the same `npx skills add` twice. A
+# standalone dotenv run leaves the flag unset and installs them for pi as before.
+if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
+  npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes
+  npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes
+  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes
+  npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes
+  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes
+fi
 
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
 # the `aimem` CLI. The skill goes through the same skills flow as the lines above;
@@ -233,7 +270,6 @@ command -v agy >/dev/null 2>&1 || curl -fsSL https://antigravity.google/cli/inst
 command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh
 if command -v herdr >/dev/null 2>&1; then
   [ -x /usr/local/bin/bun ] || sudo "$(command -v npm)" install -g --prefix /usr/local bun
-  herdr plugin install plannotator/herdr-annotate/lite --yes
   herdr integration install pi
 fi
 command -v pi >/dev/null 2>&1 && pi update --extensions
@@ -255,9 +291,3 @@ fi
 "$nvim_bin" --headless "+Lazy! restore" +qa
 "$nvim_bin" --headless "+MasonInstall markdownlint" +qa
 "$nvim_bin" --headless "+lua require('nvim-treesitter').install({'bash','c','diff','html','lua','luadoc','markdown','markdown_inline','query','vim','vimdoc','typescript','javascript'}):wait(300000)" +qa
-
-# gentle-pi's quiet-tools re-registers the built-in read/edit/grep tools, but this
-# Pi config gives pi-hashline-edit-pro ownership of read/grep. Two extensions
-# cannot register the same tool name, so pi aborts at startup ("Tool read
-# conflicts with ..."); disable gentle-pi's quiet renderers and keep hashline-edit.
-append_once 'export GENTLE_PI_QUIET_TOOLS=0'

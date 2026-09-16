@@ -1,8 +1,8 @@
 # Pi packages installed on every machine, declaratively.
 #
 # WHERE THIS FILE LIVES
-#   ~/.pi/agent/pi-packages.txt, and setup_env.sh links ~/.pi/agent to this
-#   checkout, so in the repository it is pi/agent/pi-packages.txt.
+#   ~/.pi/agent/pi-packages.txt, and setup_env.sh rsyncs this checkout's config
+#   into ~/.pi/agent, so in the repository it is pi/agent/pi-packages.txt.
 #   @darkrei08/setup-ai's `pi-packages` module resolves exactly this path (an
 #   explicit PI_PACKAGES_FILE wins first) and runs `pi install` once per line,
 #   then verifies the source landed in ~/.pi/agent/settings.json. Re-running is
@@ -27,6 +27,10 @@
 #     pi 0.85 parseSource does not read it as a git URL). That is a checkout
 #     inside ~/.pi/agent, which a manifest cannot recreate.
 #   Existing machines keep all three in settings.json.
+#   * @sting8k/pi-vcc: dropped as a Pi package (it is a second
+#     session_before_compact provider and conflicts with pi-codex-context, which
+#     requires sole compaction ownership). It stays only as an npm dependency in
+#     pi/agent/npm and is loaded for workflow children via the extensions glob.
 #
 # KEEPING THIS IN SYNC
 #   The list mirrors the remote sources in pi/agent/settings.json. A package
@@ -36,14 +40,12 @@
 
 npm:pi-web-access
 git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url
-npm:visual-explainer
 
 # settings.json keeps this one in object form to exclude its extensions/index.ts;
 # a manifest line can carry the source only, so that filter stays in settings.json.
 git:github.com/vekexasia/pi-high-availability
 
 npm:pi-btw
-npm:pi-anthropic-oauth
 git:github.com/vekexasia/pi-codex-image@fix-codex-image-generation-output
 npm:pi-vim
 npm:pi-markdown-preview
@@ -55,14 +57,11 @@ npm:@narumitw/pi-goal
 git:github.com/DietrichGebert/ponytail
 
 npm:pi-tool-display
-git:github.com/YuGiMob/pi-hashline-edit-pro
 git:github.com/vekexasia/pi-notify@feat/customizable-notifications
-npm:@sting8k/pi-vcc
-npm:pi-orcarouter
-npm:@plannotator/pi-extension
-npm:@benvargas/pi-openai-fast
+git:github.com/gotgenes/pi-anthropic-auth
 
-# --- Package that lives inside this checkout -----------------------------------
-# settings.json registers it as the relative path "packages/pi-omplike-advisor";
-# both forms resolve to the same directory under the linked ~/.pi/agent.
+# --- Packages that live inside this checkout ----------------------------------
+# settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");
+# both forms resolve to the same directory under ~/.pi/agent.
 ~/.pi/agent/packages/pi-omplike-advisor
+~/.pi/agent/packages/pi-codex-context

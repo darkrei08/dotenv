@@ -24,18 +24,23 @@ export function buildAdvisorAgent(opts: {
 	thinkingLevel: string;
 	systemPrompt: string;
 	modelRegistry: any;
+	sessionId?: string;
 	adviseTool: AdviseTool;
 }): Agent {
 	const readOnly = createReadOnlyTools(opts.cwd);
-	const thinkingLevel = opts.model.reasoning ? (opts.thinkingLevel as any) : ("off" as any);
-	const needsProviderStream = !!opts.model.api && !getApiProvider(opts.model.api);
+	const model = opts.sessionId && (opts.model.provider === "opencode" || opts.model.provider === "opencode-go")
+		? { ...opts.model, headers: { "x-opencode-session": opts.sessionId, "x-opencode-client": "pi", ...opts.model.headers } }
+		: opts.model;
+	const thinkingLevel = model.reasoning ? (opts.thinkingLevel as any) : ("off" as any);
+	const needsProviderStream = !!model.api && !getApiProvider(model.api);
 	return new Agent({
 		initialState: {
 			systemPrompt: opts.systemPrompt,
-			model: opts.model,
+			model,
 			thinkingLevel,
 			tools: [opts.adviseTool, ...readOnly] as any,
 		},
+		sessionId: opts.sessionId,
 		convertToLlm,
 		// Unknown API tags belong to extension-defined providers (for example
 		// xai-auth's `xai-responses`); route only those through the provider stream.

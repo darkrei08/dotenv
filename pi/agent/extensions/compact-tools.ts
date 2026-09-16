@@ -2,10 +2,9 @@
 /**
  * Compact rendering for read and edit tools.
  *
- * pi-hashline-edit owns those tools but defines no custom renderer,
- * so Pi falls back to the verbose built-in. We monkey-patch
- * ToolExecutionComponent.prototype.updateDisplay to intercept those
- * two tools and render a single compact line instead.
+ * Pi's built-in tools fall back to verbose output. We monkey-patch
+ * ToolExecutionComponent.prototype.updateDisplay to render them as a single
+ * compact line instead.
  *
  * When expanded (ctrl+o) the original updateDisplay runs normally.
  */
@@ -280,9 +279,13 @@ function applyPatch(): PatchStatus {
 }
 
 export default function compactToolsExtension(pi: ExtensionAPI) {
-  const disabled = process.env.PI_DISABLE_COMPACT_TOOLS !== "0";
-  if (disabled) {
-    // Temporarily disabled while debugging inline image truncation in WezTerm/Kitty rendering.
+  // Opt-in: the renderer patch is OFF by default while inline image truncation
+  // in WezTerm/Kitty rendering is still being debugged. Set
+  // PI_ENABLE_COMPACT_TOOLS=1 to turn it on. (Kept off-by-default on purpose;
+  // the previous PI_DISABLE_COMPACT_TOOLS!="0" double-negative did the same but
+  // read as always-disabled.)
+  const enabled = process.env.PI_ENABLE_COMPACT_TOOLS === "1";
+  if (!enabled) {
     return;
   }
   const patchStatus = applyPatch();
