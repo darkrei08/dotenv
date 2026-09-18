@@ -108,10 +108,10 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts` and `extensions/pi-pretty.ts`, the same two exclusions `setup-ai`'s `handle_quiet_tools_conflict` applies at runtime. `npm:pi-tool-display` registers `read`/`bash`/`find`/`grep`/`ls`, and both of those gentle-pi files register the same built-in tool names, which makes `pi` abort at startup with `Tool "read" conflicts with ...`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
-| `npm:pi-extensible-workflows`, `npm:gentle-pi`, `npm:gentle-engram`, `npm:pi-mcp-adapter` | `setup-ai`'s `pi-workflows` and `gentle-ai` modules install and verify these, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only the module added is dropped by the next run and the module's own readback verification then fails. |
+| `npm:pi-extensible-workflows`, `npm:gentle-pi`, `npm:pi-mcp-adapter` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the other two and verifies both, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `github:darkrei08/pi-cockpit-tools-sync` | Pi parses a bare `github:` source as a local path, so a manifest line cannot recreate it. |
 
-`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The four module-owned packages are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership.
+`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The three module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` is a plain `pi-packages.txt` line: `pi install` records it in the live `~/.pi/agent/npm/package.json`, and it is not repinned here.
 
 Third-party packages:
 
@@ -325,6 +325,11 @@ Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, 
 Run these on the machine, after `setup_env.sh`:
 
 ```bash
+# This checkout's own config invariants: settings.json parses, carries the
+# module-owned packages and the gentle-pi exclusions, has no ../../ path, and
+# setup_env.sh never writes GENTLE_PI_QUIET_TOOLS=0
+bash check-config.sh
+
 # The versioned Pi configuration was copied into the live config
 test -f ~/.pi/agent/pi-extensible-workflows/settings.json
 test -d ~/.pi/agent/pi-extensible-workflows/roles
