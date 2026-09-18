@@ -40,17 +40,60 @@ install_package() {
   esac
 }
 
+# GitHub's unauthenticated API allows roughly 60 requests per hour per IP, and a
+# 403 there fails `curl -f` with exit 22. Under `set -e` that aborted the whole
+# run for one optional CLI, so authenticate when a token is available, retry
+# transient failures, and skip that tool instead of failing the machine.
 install_release() {
   local repository=$1 asset_pattern=$2 binary=$3
   { [ -x "$HOME/.bin/$binary" ] || command -v "$binary" >/dev/null 2>&1; } && return
-  local workdir url
+  local workdir url rc=0
   workdir=$(mktemp -d)
-  url=$(curl -fsSL "https://api.github.com/repos/$repository/releases/latest" | jq -r --arg pattern "$asset_pattern" '.assets[] | select(.name | test($pattern)) | .browser_download_url' | head -1)
-  [ -n "$url" ]
-  [ "$url" != null ]
+
+  # GITHUB_TOKEN wins; `gh auth token` covers an authenticated gh CLI. A gh that
+  # is absent or not logged in is an expected, non-fatal case: the lookup below
+  # then warns with the unauthenticated rate limit as the likely cause. The
+  # token is passed to curl as a header and never printed.
+  local token=${GITHUB_TOKEN:-} auth=()
+  if [ -z "$token" ] && command -v gh >/dev/null 2>&1; then
+    token=$(gh auth token 2>/dev/null) || token=
+  fi
+  if [ -n "$token" ]; then
+    auth=(-H "Authorization: Bearer $token")
+  fi
+
+  # `first()` replaces `| head -1`, whose SIGPIPE under `pipefail` can turn a
+  # large result into exit 141, and the `|| rc=$?` keeps a failed lookup from
+  # reaching the plain `[ ]` tests this used to abort on.
+  # `${auth[@]+...}` guards the empty-array expansion: `set -u` aborts on it in
+  # bash before 4.4.
+  url=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 "${auth[@]+"${auth[@]}"}" \
+      "https://api.github.com/repos/$repository/releases/latest" \
+    | jq -r --arg pattern "$asset_pattern" \
+      'first(.assets[] | select(.name | test($pattern)) | .browser_download_url) // empty') || rc=$?
+  if [ "$rc" -ne 0 ]; then
+    if [ "$rc" -eq 22 ]; then
+      printf 'WARN: skipping %s: api.github.com refused the release lookup for %s (curl exit 22). Unauthenticated requests allow about 60 per hour per IP, so a rate limit is the likely cause; set GITHUB_TOKEN or log in with gh. Continuing without it.\n' \
+        "$binary" "$repository" >&2
+    else
+      printf 'WARN: skipping %s: the release lookup for %s failed (curl exit %s). Continuing without it.\n' \
+        "$binary" "$repository" "$rc" >&2
+    fi
+    rm -rf "$workdir"
+    return 0
+  fi
+  if [ -z "$url" ]; then
+    printf 'WARN: skipping %s: no release asset in %s matches %s. Continuing without %s.\n' \
+      "$binary" "$repository" "$asset_pattern" "$binary" >&2
+    rm -rf "$workdir"
+    return 0
+  fi
+
   curl -fsSL "$url" -o "$workdir/release.tar.gz"
   tar -xzf "$workdir/release.tar.gz" -C "$workdir"
-  install -Dm755 "$(find "$workdir" -type f -name "$binary" -perm -u+x | head -1)" "$HOME/.bin/$binary"
+  # `-print -quit` stops at the first match: `| head -1` here exits 141 under
+  # `pipefail` once the matches exceed the pipe buffer.
+  install -Dm755 "$(find "$workdir" -type f -name "$binary" -perm -u+x -print -quit)" "$HOME/.bin/$binary"
   rm -rf "$workdir"
 }
 
