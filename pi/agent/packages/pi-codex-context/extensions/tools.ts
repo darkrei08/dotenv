@@ -43,9 +43,17 @@ function truncate(text: string, limit: number): { text: string; truncated: boole
 function result(data: unknown, images: HistoryItem["images"] = []): AgentToolResult<unknown> {
   let value = data;
   let text = JSON.stringify(value);
-  if (Buffer.byteLength(text) > MAX_OUTPUT_BYTES) {
+  const textBytes = Buffer.byteLength(text);
+  const imageBytes = images.reduce((total, image) => total + Buffer.byteLength(JSON.stringify(image)), 0);
+  if (images.length > 0 && textBytes <= MAX_OUTPUT_BYTES && textBytes + imageBytes > MAX_OUTPUT_BYTES &&
+    value !== null && typeof value === "object" && !Array.isArray(value)) {
+    value = { ...value, images_omitted: images.length };
+    text = JSON.stringify(value);
+    images = [];
+  } else if (textBytes + imageBytes > MAX_OUTPUT_BYTES) {
     value = { error: "Result exceeded the tool output limit; narrow the query or page the results" };
     text = JSON.stringify(value);
+    images = [];
   }
   return {
     content: [{ type: "text", text }, ...images],
@@ -324,16 +332,12 @@ export function registerTools(pi: ExtensionAPI, runtime: Runtime): void {
       const offset = params.offset_chars ?? 0;
       const full = chars(item.content);
       const requested = Math.min(params.limit_chars ?? 40_000, 40_000);
-      // Apply the SAME char limit + 40 KB JSON byte cap that publicItem uses, then
-      // derive next_offset_chars from what is ACTUALLY returned. Slicing by the
-      // requested char count while capping by bytes made the advance skip the
-      // bytes the cap dropped, so paginating lost data (TODO.md P0 #2).
-      const capped = truncate(full.slice(offset, offset + requested).join(""), requested);
-      const returnedChars = chars(capped.text).length;
-      const nextOffset = offset + returnedChars;
+      const content = full.slice(offset, offset + requested).join("");
+      const page = publicItem({ ...item, content }, requested);
+      const emitted = typeof page.content === "string" ? chars(page.content).length : 0;
+      const nextOffset = offset + emitted;
       const value = {
-        ...publicItem({ ...item, content: capped.text }, requested),
-        content_truncated: capped.truncated || nextOffset < full.length,
+        ...page,
         offset_chars: offset,
         total_chars: full.length,
         next_offset_chars: nextOffset < full.length ? nextOffset : null,
