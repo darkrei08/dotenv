@@ -17,16 +17,18 @@
 #     <path>                     local checkout, absolute or ~/...
 #
 # DELIBERATELY NOT LISTED
-#   * pi-extensible-workflows: setup-ai's `pi-workflows` module owns that
-#     package (published release or patched local build) and skips it here too.
-#   * "../../git/personale/pi-workflows" and its
-#     "packages/extensions/herdr": both point outside this checkout, so they are
-#     machine-specific. See pi/agent/README.md.
+#   * pi-extensible-workflows, gentle-pi, pi-mcp-adapter: setup-ai owns these.
+#     Its `pi-workflows` module installs pi-extensible-workflows (published
+#     release or patched local build), and its `gentle-ai` module runs
+#     `pi install npm:gentle-pi` + `npm:pi-mcp-adapter` and verifies both in
+#     settings.json. They stay OUT of this manifest so the module keeps
+#     ownership, but they ARE listed in settings.json: setup_env.sh rsyncs that
+#     file over ~/.pi/agent, so an entry only the module added would be dropped
+#     by the next dotenv run (the module then fails its own verification).
 #   * github:darkrei08/pi-cockpit-tools-sync: pi parses a bare `github:` source
 #     as a LOCAL path (it has neither a protocol nor the `git:` prefix, so
 #     pi 0.85 parseSource does not read it as a git URL). That is a checkout
 #     inside ~/.pi/agent, which a manifest cannot recreate.
-#   Existing machines keep all three in settings.json.
 #   * @sting8k/pi-vcc: dropped as a Pi package (it is a second
 #     session_before_compact provider and conflicts with pi-codex-context, which
 #     requires sole compaction ownership). It stays only as an npm dependency in
@@ -59,6 +61,7 @@ git:github.com/DietrichGebert/ponytail
 npm:pi-tool-display
 git:github.com/vekexasia/pi-notify@feat/customizable-notifications
 git:github.com/gotgenes/pi-anthropic-auth
+npm:gentle-engram
 
 # --- Packages that live inside this checkout ----------------------------------
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");

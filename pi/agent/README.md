@@ -2,7 +2,7 @@
 
 This directory is linked to `~/.pi/agent` by the parent repository's `setup_env.sh`. Running setup replaces any existing target with this symlink.
 
-The workflow and Herdr package entries in `settings.json` still require a checkout at `~/git/personale/pi-workflows`. They remain local paths until that project is packaged or added to this repository.
+The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`, `gentle-engram`, `pi-mcp-adapter`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which do not add them to `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added.
 
 ## Tuxevil Gemini gateway
 

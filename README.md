@@ -100,17 +100,17 @@ The allowlisted versioned items under `pi/agent` are copied to `~/.pi/agent/...`
 bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 ```
 
-`pi/agent/settings.json` is the effective state the Pi runtime reads. The two are kept in sync by hand; the differences are deliberate:
+`pi/agent/settings.json` is the effective state the Pi runtime reads, and `sync_pi` restores it on every run, so it is authoritative on a machine set up this way. The two are kept in sync by hand; the differences are deliberate:
 
 | `settings.json` entry | Why it is not a plain `pi-packages.txt` line |
 | --- | --- |
 | `git:github.com/vekexasia/pi-high-availability` | Object form with `"extensions": ["-extensions/index.ts"]` to exclude that file. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
-| `../../git/personale/pi-workflows` and `.../packages/extensions/herdr` | Absolute-ish local paths outside this checkout. `setup-ai`'s `pi-workflows` module owns that package; see [Known gaps](#known-gaps). |
+| `npm:pi-extensible-workflows`, `npm:gentle-pi`, `npm:gentle-engram`, `npm:pi-mcp-adapter` | `setup-ai`'s `pi-workflows` and `gentle-ai` modules install and verify these, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only the module added is dropped by the next run and the module's own readback verification then fails. |
 | `github:darkrei08/pi-cockpit-tools-sync` | Pi parses a bare `github:` source as a local path, so a manifest line cannot recreate it. |
 
-`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`.
+`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The four module-owned packages are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership.
 
 Third-party packages:
 
@@ -355,7 +355,6 @@ curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
 
 - `pi/agent/extensions/herdr-agent-state.ts` is ignored by `pi/agent/.gitignore` (`/extensions/herdr-agent-state.ts`) and is absent from this checkout, so a fresh clone does not have it. `extensions/herdr-nvim-blocked/index.ts` documents the blocked state as coming from that file's `herdr:blocked` event, so the visible state has no in-repo producer. Not verified: whether the ignore rule is intentional or the file is simply never committed.
 - `pi/agent/package.json` declares `"pi-extensible-workflows": "file:../../../pi-workflows/packages/core"`. From `pi/agent` that resolves to `<repo>/../pi-workflows/packages/core`, which does not exist in this layout. Not verified: whether anything ever installs it.
-- `pi/agent/settings.json` contains two entries pointing at `../../git/personale/pi-workflows` (the package itself and `packages/extensions/herdr`). A machine that calls that checkout `pi-extensible-workflows` has no `pi-workflows` directory, so both paths dangle. Unverified: the correct replacement path on such a machine.
 - `setup_env.sh` installs the Pi CLI only on Arch (lines 210-219). On Debian/Ubuntu the block is skipped and `pi` must already be present; the package application and later `pi update --extensions` are guarded by `command -v pi`.
 - `pi/agent/settings.json` ships theme `dark`; `themes/omarchy-system.json` is not selected by any setting here. Unverified: whether it is meant to be activated on Omarchy.
 - `pi/agent/npm/node_modules` is git-ignored, preserved by `sync_pi`, and not populated by a direct `npm install` in `setup_env.sh`. Unverified: which step is expected to populate it.

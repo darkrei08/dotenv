@@ -26,10 +26,12 @@
     "packages/pi-codex-context",
     "npm:pi-tool-display",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
-    "../../git/personale/pi-workflows",
-    "../../git/personale/pi-workflows/packages/extensions/herdr",
     "git:github.com/gotgenes/pi-anthropic-auth",
-    "git:github.com/darkrei08/pi-cockpit-tools-sync"
+    "git:github.com/darkrei08/pi-cockpit-tools-sync",
+    "npm:pi-extensible-workflows",
+    "npm:gentle-pi",
+    "npm:gentle-engram",
+    "npm:pi-mcp-adapter"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,
