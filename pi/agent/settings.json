@@ -29,7 +29,13 @@
     "git:github.com/gotgenes/pi-anthropic-auth",
     "git:github.com/darkrei08/pi-cockpit-tools-sync",
     "npm:pi-extensible-workflows",
-    "npm:gentle-pi",
+    {
+      "source": "npm:gentle-pi",
+      "extensions": [
+        "-extensions/quiet-tools.ts",
+        "-extensions/pi-pretty.ts"
+      ]
+    },
     "npm:gentle-engram",
     "npm:pi-mcp-adapter"
   ],
