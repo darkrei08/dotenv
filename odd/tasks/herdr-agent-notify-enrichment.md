@@ -54,9 +54,17 @@ KDE renders the freedesktop markup subset literally.
 
 1. Extend `herdr/plugins/agent-notify/notify.mjs`: session lookup, tail parse, question
    extraction, emoji category, plain-text body, and `--self-test` coverage for the new pure
-   functions.
+   functions. — **done**
 2. Fix the stale `Known gaps` bullet about `herdr-agent-state.ts` (the integration is installed now)
    and document the enrichment plus its limits in the `Herdr agent notifications` section of
-   `README.md`.
+   `README.md`. — **done**
 3. Verify: `--self-test` green, a real blocked pane produces a notification carrying the actual
-   question, and the previous `done` path still works.
+   question, and the previous `done` path still works. — **done**
+
+## Outcome
+
+Shipped in commit `5ccdde9` (`feat(herdr): notify every agent request with its pending question`), pushed to `origin/master`.
+
+Beyond this plan, a three-reviewer pi workflow ran over the change and produced seven further fixes: backend timeouts, non-zero backend exit handling, state restoration after a failed send, malformed-question guards, exact-boundary tail reads, the multi-question marker, and the removal of dead code the self-test asserted on. Two of the review's most severe findings were disproven by experiment rather than accepted: the plugin context describes the pane that emitted the event, not the focused pane, which a live blocked pane in another tab proved (`git · 1 · etc`, `pane w8:p9`).
+
+Verified on Linux: a real blocked pi pane produced exactly one D-Bus notification carrying the question, its options, the recommendation, the location and the pane id, and `--self-test` prints `self-test: ok`. The macOS and Windows/WSL branches are untested: no such host was available.

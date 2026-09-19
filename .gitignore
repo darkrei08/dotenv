@@ -1,2 +1,4 @@
 # Local Pi runtime state
 .atl/
+# Local codegraph index
+.codegraph/
