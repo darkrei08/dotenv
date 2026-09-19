@@ -2,9 +2,9 @@
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "opencode-go",
   "defaultModel": "deepseek-v4.1-flash",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "xhigh",
   "modelThinkingLevels": {
-    "opencode-go/deepseek-v4.1-flash": "max"
+    "opencode-go/deepseek-v4.1-flash": "xhigh"
   },
   "theme": "dark",
   "packages": [
@@ -41,7 +41,7 @@
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,
-  "tuiMode": "regular",
+  "tuiMode": "fullscreen",
   "compaction": {
     "enabled": true
   }

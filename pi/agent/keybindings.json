@@ -1,4 +1,8 @@
 {
+  "app.message.dequeue": [
+    "alt+q",
+    "alt+up"
+  ],
   "tui.editor.deleteWordBackward": [
     "ctrl+w",
     "alt+backspace",
