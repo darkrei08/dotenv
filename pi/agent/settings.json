@@ -37,7 +37,8 @@
       ]
     },
     "npm:gentle-engram",
-    "npm:pi-mcp-adapter"
+    "npm:pi-mcp-adapter",
+    "npm:@juicesharp/rpiv-ask-user-question"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

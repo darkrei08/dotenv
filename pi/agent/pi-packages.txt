@@ -63,6 +63,10 @@ git:github.com/vekexasia/pi-notify@feat/customizable-notifications
 git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
 
+# Lets a Pi child agent ask the active user session for clarification; gentle-ai
+# installs the same package during its Pi-only setup.
+npm:@juicesharp/rpiv-ask-user-question
+
 # --- Packages that live inside this checkout ----------------------------------
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");
 # both forms resolve to the same directory under ~/.pi/agent.
