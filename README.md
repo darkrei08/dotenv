@@ -80,6 +80,7 @@ The Pi block in full:
 | `pi/agent` | `~/.pi/agent` | Selective `rsync` of the versioned allowlist; a leftover symlink is removed, non-directory targets are backed up, and runtime state is preserved (`sync_pi`, lines 106-153) |
 | `nvim/` | `~/.config/nvim/` | `rsync -a --delete --exclude=node_modules/` (line 231) |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` | `install -Dm644`, plus a `sed` insert on the `devbox` host (lines 232-235) |
+| `herdr/plugins/agent-notify/` | herdr plugin registry (per user, global to all sessions) | `herdr plugin link` when `herdr` is on `PATH`, inside the same `command -v herdr` block as `herdr integration install pi` |
 | `.tmux.conf` | `~/.tmux.conf` | `install -Dm644` (line 236) |
 | `.local/bin/` | `~/.local/bin/` | `rsync -a`, WSL only (line 240) |
 | `.wezterm.lua` | `$USERPROFILE/.wezterm.lua` | `install -Dm644`, WSL only, when `powershell.exe` and `wslpath` exist (lines 241-243) |
@@ -303,6 +304,17 @@ Short names such as `gemini-flash-low` are workflow-scoped aliases in `pi/agent/
 | this repository | `issue-ops`, `learning-opportunities`, `orient`, `tigerstyle` | Tracked directly under `pi/agent/skills/`, Pi-only |
 | `pi` examples | `questionnaire` tool | Copied into `pi/agent/extensions/questionnaire.ts` |
 
+## Herdr agent notifications
+
+`herdr/plugins/agent-notify/` is a herdr plugin registered with `herdr plugin link`. There is no build step; runtime needs `node` on `PATH` plus a notification backend: `notify-send` from `libnotify` on Linux (installed by `setup_env.sh`), `osascript` on macOS, and nothing extra for the Windows toast.
+
+- **Why it exists.** herdr's own popups (`[ui.toast]`) are skipped for panes in the active tab of the focused workspace, and a sound is not visible evidence, so an agent asking for input in a pane you are not looking at stays silent once sound is muted.
+- **What it does.** The `pane.agent_status_changed` hook notifies on `blocked` (critical urgency through the native Linux `notify-send` backend only) and on `done`, for every tab, without suppression. The notification title is `<emoji> <agent> <reason> · <workspace> / <tab>` when labels are available. Notifications are plain text because the desktop daemon renders the freedesktop markup subset literally; the emoji carries the category. Repeats of the same pane and status are dropped through a small file under `HERDR_PLUGIN_STATE_DIR`. A notification that fails to reach the desktop is reported as a hook failure and does not suppress a later retry for the same status. herdr keeps its own sound and in-app toast; the plugin only adds the OS notification.
+- **Pending question.** For a blocked pi pane the hook reads `herdr agent get <pane_id>` to locate the pi session JSONL and extracts the last pending `questionnaire` / `ask_user_choice` call, so the body carries the real question, up to four options with their descriptions, the recommendation, and the pane id. A multi-question request shows the first question plus a marker naming how many more questions there are. A question already answered in the session is not replayed. It degrades to the plain agent/reason line whenever that lookup fails or the pane is not a pi session.
+- **Backends.** `notify-send` on Linux, `osascript`'s `display notification` on macOS, and a WinRT toast through Windows PowerShell on Windows (silent, because herdr plays its own sound). On WSL, the Windows toast is used through `powershell.exe` because `notify-send` inside WSL usually has no notification daemon.
+- **Pi panes.** A pi pane only reports `blocked` to herdr through herdr's own Pi integration, which `setup_env.sh` installs with `herdr integration install pi`; without it a pi pane reports only `working`/`idle` from herdr's screen rules, so no request notification can fire. The integration loads at pi startup, so running pi sessions need a restart after it is installed.
+- **Checks.** `node herdr/plugins/agent-notify/notify.mjs --self-test` covers the pure logic, and `herdr plugin action invoke agent-notify.test` sends one real notification through the OS backend.
+
 ## Non-Pi agents
 
 `agents/install-agent-extensions.sh` targets every agent CLI it finds on `PATH` and logs a skip for the ones that are absent:
@@ -359,7 +371,7 @@ curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
 
 ## Known gaps
 
-- `pi/agent/extensions/herdr-agent-state.ts` is ignored by `pi/agent/.gitignore` (`/extensions/herdr-agent-state.ts`) and is absent from this checkout, so a fresh clone does not have it. `extensions/herdr-nvim-blocked/index.ts` documents the blocked state as coming from that file's `herdr:blocked` event, so the visible state has no in-repo producer. Not verified: whether the ignore rule is intentional or the file is simply never committed.
+- `pi/agent/extensions/herdr-agent-state.ts` is produced by `herdr integration install pi` (already run by `setup_env.sh`), is machine-local, and is ignored by `pi/agent/.gitignore`. It is present on this machine. A pi session started before the integration was installed does not load it and must be restarted.
 - `pi/agent/package.json` declares `"pi-extensible-workflows": "file:../../../pi-workflows/packages/core"`. From `pi/agent` that resolves to `<repo>/../pi-workflows/packages/core`, which does not exist in this layout. Not verified: whether anything ever installs it.
 - `setup_env.sh` installs the Pi CLI only on Arch (lines 253-262). On Debian/Ubuntu the block is skipped and `pi` must already be present; the package application and later `pi update --extensions` are guarded by `command -v pi`.
 - `pi/agent/settings.json` ships theme `dark`; `themes/omarchy-system.json` is not selected by any setting here. Unverified: whether it is meant to be activated on Omarchy.

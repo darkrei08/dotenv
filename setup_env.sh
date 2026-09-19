@@ -157,13 +157,13 @@ if [ "$PACKAGE_MANAGER" = debian ]; then
   package_specs=(
     'make:make' 'gcc:gcc' 'g++:g++' 'rg:ripgrep' 'git:git' 'curl:curl' 'xclip:xclip' 'jq:jq'
     'tree:tree' 'htop:htop' 'fdfind:fd-find' 'rsync:rsync' 'fzf:fzf' 'batcat:bat'
-    'gh:gh' 'glab:glab' 'python3:python3' 'python3-venv:python3-venv'
+    'gh:gh' 'glab:glab' 'python3:python3' 'python3-venv:python3-venv' 'notify-send:libnotify-bin'
   )
 else
   package_specs=(
     'make:make' 'gcc:gcc' 'g++:gcc' 'rg:ripgrep' 'git:git' 'curl:curl' 'xclip:xclip' 'jq:jq'
     'tree:tree' 'htop:htop' 'fd:fd' 'rsync:rsync' 'fzf:fzf' 'bat:bat'
-    'gh:github-cli' 'glab:glab' 'python3:python'
+    'gh:github-cli' 'glab:glab' 'python3:python' 'notify-send:libnotify'
   )
 fi
 
@@ -317,6 +317,7 @@ command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install
 if command -v herdr >/dev/null 2>&1; then
   [ -x /usr/local/bin/bun ] || sudo "$(command -v npm)" install -g --prefix /usr/local bun
   herdr integration install pi
+  herdr plugin link "$REPO_DIR/herdr/plugins/agent-notify"
 fi
 command -v pi >/dev/null 2>&1 && pi update --extensions
 (cd "$HOME/.config/nvim" && npm ci)

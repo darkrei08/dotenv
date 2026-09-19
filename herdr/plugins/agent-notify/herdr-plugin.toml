@@ -1,0 +1,17 @@
+id = "agent-notify"
+name = "Agent Notify"
+version = "0.1.0"
+min_herdr_version = "0.8.0"
+description = "Native OS notifications for agent requests and completions, including panes in the active tab."
+platforms = ["linux", "macos", "windows"]
+
+# herdr's own popups ([ui.toast]) skip the active tab of the focused workspace.
+# This hook runs for every pane in every tab, so a request is never silent.
+[[events]]
+on = "pane.agent_status_changed"
+command = ["node", "notify.mjs"]
+
+[[actions]]
+id = "test"
+title = "Agent Notify: send a test notification"
+command = ["node", "notify.mjs", "--test"]
