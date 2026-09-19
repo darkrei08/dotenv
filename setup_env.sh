@@ -286,12 +286,15 @@ fi
 # installs these for EVERY detected agent (not just pi), so it sets
 # SETUP_AI_SKIP_SKILLS=1 to avoid running the same `npx skills add` twice. A
 # standalone dotenv run leaves the flag unset and installs them for pi as before.
+# Every `skills` call gets an explicit </dev/null: with a closed or non-TTY stdin
+# its readline interface aborts the whole run with `EBADF: bad file descriptor,
+# read`, which is exactly the path a CI, `ssh -T` or scripted install takes.
 if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
-  npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes
-  npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes
-  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes
-  npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes
-  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes
+  npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes </dev/null
+  npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes </dev/null
+  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes </dev/null
+  npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes </dev/null
+  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes </dev/null
 fi
 
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
@@ -299,8 +302,8 @@ fi
 # the CLI installer is invoked with --no-skill to avoid installing the skill twice.
 # Pinned to a stable release tag (AIMEM_REF) instead of a moving branch.
 AIMEM_REF=v0.1.0
-npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi --copy --yes \
-  || npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes
+npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi --copy --yes </dev/null \
+  || npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes </dev/null
 # ai-memory-kit v0.1.0 used GitHub's refs/heads codeload URL for tags.
 # Rewrite it in the streamed installer until the upstream installer is fixed.
 command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https://raw.githubusercontent.com/darkrei08/ai-memory-kit/${AIMEM_REF}/install.sh" \
