@@ -1,10 +1,15 @@
 # Gentleman Guardian Angel Configuration
 # https://github.com/Gentleman-Programming/gga
 
-# AI provider. Same reviewer this machine develops with: the OpenCode CLI on the
-# OpenCode Go subscription (gentle-orchestrator with full tool access), so the
-# review can run its own checks.
-PROVIDER="opencode:opencode-go/deepseek-v4.1-flash"
+# AI provider. Review runs through the Codex CLI; the model and reasoning effort
+# come from this repository's project-scoped `.codex/config.toml` (gpt-5.6-luna,
+# xhigh), so they travel with the repo instead of this machine's global config.
+PROVIDER="codex"
+# GGA's Codex path keeps only the final assistant message
+# (`codex exec --output-last-message`), so the verdict line is the first thing the
+# parser sees. The earlier OpenCode setup returned the whole transcript, and a
+# tool-heavy review pushed `STATUS:` past the 30-line scan window, which is why
+# this file used to tolerate an unparsed verdict.
 
 # This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
 # Markdown directives. The generated npm lockfile is excluded (huge, machine
@@ -15,8 +20,10 @@ EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
 # Dedicated review rules for this repo (not the pi agent AGENTS.md).
 RULES_FILE="REVIEW_RULES.md"
 
-# Tolerant parse: the reviewer answers with prose before the verdict.
-STRICT_MODE="false"
+# The Codex path returns only the final assistant message, so the verdict is the
+# first line the parser sees. Strict mode is the fail-closed default: an
+# unparseable verdict blocks the commit instead of passing it.
+STRICT_MODE="true"
 
 # Larger changesets (upstream syncs) need a longer window.
 TIMEOUT="900"
