@@ -326,11 +326,17 @@ Login is still yours: without an account the gateway listens but has nothing to
 route, so run `tuxevil-rotator login` once.
 
 **An alias resolves to a real model but the provider still rejects it.** The
-target can be in the catalog and still be unusable at the provider. On this
-machine `reviewer-model` resolves to `anthropic/claude-fable-5-1:high` and that
-model is in the catalog, but the provider rejects the request behind a Claude
-Code version gate. Reported on this machine; I did not reproduce the rejection
-here, so treat the cause as **UNVERIFIED** and the symptom as real.
+target can be in the catalog and still be unusable at the provider. Verified on
+2026-09-21 with live calls: `anthropic/claude-fable-5-1:high` answers every
+request with `429`, `error_code: credits_required`,
+`disabled_reason: org_level_disabled`, `exhausted_included_allowance: false`,
+and the notice "Turn on usage credits". Fable is therefore a credits-only model
+on this account, not a quota-window limit, and the "Claude Code version gate"
+cause recorded earlier was wrong. `anthropic/claude-opus-5` and
+`anthropic/claude-sonnet-5` both answered on the same day, so the provider
+itself is fine. `reviewer-model` now points at `anthropic/claude-opus-5:high`,
+which is the effort this document's own workload policy prescribes for
+adversarial review.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -351,7 +357,7 @@ on 2026-09-13.
 | `researcher-model` | `cheap-model:xhigh` | Works |
 | `scout-model` | `cheap-model` | Works |
 | `tests-expert` | `cheap-model` | Works |
-| `reviewer-model` | `anthropic/claude-fable-5-1:high` | Target exists; provider rejects it here (Claude Code version gate). **UNVERIFIED** cause |
+| `reviewer-model` | `anthropic/claude-opus-5:high` | Works (verified 2026-09-21 with a live call). Replaced `anthropic/claude-fable-5-1:high`, which is a credits-only model here |
 | `old-reviewer-model` | `xai/grok-4.5:high` | Unusable here: no `xai` provider or credential is configured, and `grok-4.5` is not in the catalog (only `opencode-go/grok-4.6`) |
 | `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Unusable while the local gateway is down (verified down 2026-09-13) |
 | `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Same |
@@ -771,9 +777,11 @@ Web sources, all read 2026-09-13:
 
 ## Claims marked UNVERIFIED
 
-1. `reviewer-model` failing due to a Claude Code version gate. The target
-   `anthropic/claude-fable-5-1` is in the catalog; I did not run the alias, so
-   the provider-side cause is reported, not reproduced.
+1. ~~`reviewer-model` failing due to a Claude Code version gate.~~ Resolved
+   2026-09-21: the provider returns `429` with `error_code: credits_required` and
+   `disabled_reason: org_level_disabled`, so the cause was the model's credit
+   requirement, not a version gate. The alias now targets
+   `anthropic/claude-opus-5:high`, verified with a live call.
 2. `old-reviewer-model` -> `xai/grok-4.5:high`. I verified there is no `xai`
    provider or credential on this machine and that `grok-4.5` is absent from the
    catalog, but I did not execute the alias.
