@@ -22,6 +22,15 @@
 !/packages/
 !/packages/**
 /extensions/herdr-agent-state.ts
+# Runtime artifacts of the pi-workflows package root. setup-ai's pi-workflows module
+# creates them when it installs pi-extensible-workflows there, so they are machine
+# state rather than configuration, and node_modules must never be committed. They
+# live in this file rather than the repository root because the negation above
+# re-allows /extensions/**, and a deeper .gitignore wins over a shallower one.
+/extensions/pi-ext-workflows/.npmrc
+/extensions/pi-ext-workflows/package.json
+/extensions/pi-ext-workflows/package-lock.json
+/extensions/pi-ext-workflows/node_modules/
 !/bin/
 !/bin/**
 !/agents/

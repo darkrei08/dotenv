@@ -2,10 +2,3 @@
 .atl/
 # Local codegraph index
 .codegraph/
-# Runtime artifacts of the pi-workflows package root. setup-ai's pi-workflows module
-# creates them when it installs pi-extensible-workflows there, so they are machine
-# state rather than configuration, and node_modules must never be committed.
-pi/agent/extensions/pi-ext-workflows/.npmrc
-pi/agent/extensions/pi-ext-workflows/package.json
-pi/agent/extensions/pi-ext-workflows/package-lock.json
-pi/agent/extensions/pi-ext-workflows/node_modules/
