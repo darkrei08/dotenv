@@ -1,9 +1,10 @@
 {
   "lastChangelogVersion": "0.85.1",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4.1-flash",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-luna",
   "defaultThinkingLevel": "xhigh",
   "modelThinkingLevels": {
+    "openai-codex/gpt-5.6-luna": "high",
     "opencode-go/deepseek-v4.1-flash": "xhigh"
   },
   "theme": "dark",
