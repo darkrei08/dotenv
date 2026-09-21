@@ -1,0 +1,22 @@
+{
+  "default_model": "openai-codex/gpt-5.6-luna",
+  "default_effort": "high",
+  "model_profiles": {
+    "review-risk": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "effort": "high"
+    },
+    "review-resilience": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "effort": "high"
+    },
+    "review-readability": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "effort": "high"
+    },
+    "review-reliability": {
+      "model": "openai-codex/gpt-5.6-luna",
+      "effort": "high"
+    }
+  }
+}

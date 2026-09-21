@@ -125,7 +125,7 @@ sync_pi() {
   local item
   for item in \
     AGENTS.md advisor-system.md MODELS.md README.md \
-    settings.json models.json modes.json keybindings.json \
+    settings.json models.json modes.json keybindings.json subagents.json \
     pi-vcc-config.json tsconfig.json package.json pi-packages.txt .pii-allowlist \
     bin packages prompts skills themes pi-extensible-workflows; do
     if [ -e "$src/$item" ]; then
