@@ -142,6 +142,8 @@ sync_pi() {
     rsync -a --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
       "$src/extensions" "$target/"
   fi
+  # gentle-pi owns the visual shell; remove the retired local footer override.
+  rm -f "$target/extensions/gentle-bar.ts"
 
   # Verify the workflow roles and aliases actually landed: this is the config
   # that silently breaks `workflow` (missing roles/aliases) if the copy fails.
@@ -338,3 +340,6 @@ fi
 "$nvim_bin" --headless "+Lazy! restore" +qa
 "$nvim_bin" --headless "+MasonInstall markdownlint" +qa
 "$nvim_bin" --headless "+lua require('nvim-treesitter').install({'bash','c','diff','html','lua','luadoc','markdown','markdown_inline','query','vim','vimdoc','typescript','javascript'}):wait(300000)" +qa
+
+# Fail the setup run if a managed Pi alias or extension list drifted.
+"$REPO_DIR/check-config.sh"

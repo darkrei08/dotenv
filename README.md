@@ -144,7 +144,6 @@ Third-party packages:
 | `extensions/answer.ts` | `/answer` command: extract the questions from the last assistant message and answer them interactively; reuses `questionnaire.ts` | none |
 | `extensions/compact-tools.ts` | When opted in with `PI_ENABLE_COMPACT_TOOLS=1` (off by default), registers `/compact-tools-status` and patches `ToolExecutionComponent.prototype.updateDisplay` for compact `read`/`edit`/`write`/`bash` rendering | none |
 | `extensions/deep-think.ts` | `think` tool; `session_start`, `thinking_level_select` handlers | none |
-| `extensions/gentle-bar.ts` | Owns the footer: renders the gentle-pi shell bar (cwd/branch/±dirty, model · effort, ctx gauge, cost, OpenCode Go plan windows) with coloured tool and capability flags; `session_start`, `session_switch`, `session_branch`, `model_select`, `agent_start`, `agent_end`, `tool_execution_end`, `resources_discover`, `input` handlers | `git` |
 | `extensions/fork-out.ts` | `/fork-out` command: copy the current root-to-leaf path into a new session file and open it in a herdr split | `herdr` |
 | `extensions/rotator-autostart/index.ts` | `session_start` handler: probes the local tuxevil-rotator gateway and starts it when unavailable, with concurrent-session coordination and a warning if it stays unreachable | `tuxevil-rotator` |
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
