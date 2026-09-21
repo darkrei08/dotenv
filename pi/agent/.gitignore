@@ -15,6 +15,7 @@
 !/modes.json
 !/keybindings.json
 !/pi-vcc-config.json
+!/subagents.json
 
 !/extensions/
 !/extensions/**
