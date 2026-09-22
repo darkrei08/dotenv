@@ -19,3 +19,7 @@ Add GPT-6 Luna and Sol to the Pi OpenAI Codex catalog using the current 5.6 mode
 - Interactive default is GPT-6 Luna at xhigh.
 - Opus 4.8 routing references are replaced by Opus 5.5 at xhigh where applicable.
 - Focused commit excludes unrelated existing changes.
+
+## Evidence
+- Work-unit commit: `361d76d8ce2acd950744355ebf8b00d26623fea7` (`feat(pi): add GPT-6 Luna and Sol routing`).
+- Verification: all five JSON files parsed, TypeScript syntax check passed, pricing/routing assertions passed, and `git diff --cached --check` passed before commit.
