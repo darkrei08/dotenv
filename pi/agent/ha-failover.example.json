@@ -1,0 +1,19 @@
+{
+  "defaultGroup": "development",
+  "defaultCooldownMs": 3600000,
+  "errorHandling": {
+    "capacityErrorAction": "next_provider",
+    "quotaErrorAction": "next_provider",
+    "retryTimeoutMs": 300000,
+    "maxRetriesPerTurn": 2
+  },
+  "groups": {
+    "development": {
+      "name": "Development",
+      "entries": [
+        { "id": "openai-codex/gpt-6-luna" },
+        { "id": "anthropic/claude-opus-5-5" }
+      ]
+    }
+  }
+}

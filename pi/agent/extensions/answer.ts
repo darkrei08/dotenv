@@ -69,7 +69,7 @@ Rules:
 - If no questions are found, return {"questions": []}.`;
 
 const EXTRACTION_PROVIDER = "openai-codex";
-const EXTRACTION_MODEL_ID = "gpt-5.6-luna";
+const EXTRACTION_MODEL_ID = "gpt-6-luna";
 const EXTRACTION_REASONING = "none" as const;
 
 function selectExtractionModel(ctx: ExtensionContext): Model<Api> {
