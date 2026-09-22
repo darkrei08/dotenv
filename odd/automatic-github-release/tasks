@@ -21,3 +21,9 @@ Use a GitHub Actions workflow triggered by pushes to `main`. It creates the next
 - Real Pi RPC startup failed because `npm:@juicesharp/rpiv-ask-user-question` and `gentle-pi/extensions/ask-user-question.ts` both register `ask_user_question`.
 - Remove the redundant package from the tracked package manifest and Pi settings; keep the package-owned Gentle AI tool.
 - Retest startup before publishing the workflow change.
+
+## Evidence
+- Startup before the fix failed with a duplicate `ask_user_question` tool registration between `@juicesharp/rpiv-ask-user-question` and `gentle-pi`.
+- After removing the redundant registration, `timeout 30s pi --no-session --mode rpc </dev/null` exited `0` with no stderr.
+- Workflow validation passed with `git diff --check`, `bash -n` for both embedded run blocks, and a temporary versioning harness.
+- Functional commit: `da4a52d` (`feat(ci): automate GitHub patch releases`), published as `v0.4.1`.
