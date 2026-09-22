@@ -1,7 +1,7 @@
 {
   "modelAliases": {
     "old-reviewer-model": "xai/grok-4.5:high",
-    "reviewer-model": "anthropic/claude-opus-5:high",
+    "reviewer-model": "anthropic/claude-opus-5-5:xhigh",
     "cheap-model": "openai-codex/gpt-6-luna:xhigh",
     "scout-model": "cheap-model",
     "tests-expert": "cheap-model",

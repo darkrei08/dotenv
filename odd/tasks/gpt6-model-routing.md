@@ -23,3 +23,7 @@ Add GPT-6 Luna and Sol to the Pi OpenAI Codex catalog using the current 5.6 mode
 ## Evidence
 - Work-unit commit: `361d76d8ce2acd950744355ebf8b00d26623fea7` (`feat(pi): add GPT-6 Luna and Sol routing`).
 - Verification: all five JSON files parsed, TypeScript syntax check passed, pricing/routing assertions passed, and `git diff --cached --check` passed before commit.
+
+## Follow-up
+- Updated the remaining `reviewer-model` workflow alias to `anthropic/claude-opus-5-5:xhigh`.
+- Confirmed `pi/agent/ha-failover.example.json` already routes failover through GPT-6 Luna and Opus 5.5.
