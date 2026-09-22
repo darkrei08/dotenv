@@ -61,6 +61,7 @@
 /auth.json
 /ha.json
 /ha.json.*
+!/ha-failover.example.json
 /extensions/home-assistant/config.json
 /trust.json
 /sessions/

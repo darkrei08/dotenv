@@ -105,7 +105,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 
 | `settings.json` entry | Why it is not a plain `pi-packages.txt` line |
 | --- | --- |
-| `git:github.com/vekexasia/pi-high-availability` | Object form with `"extensions": ["-extensions/index.ts"]` to exclude that file. The manifest line carries the source only. |
+| `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). |
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts` and `extensions/pi-pretty.ts`, the same two exclusions `setup-ai`'s `handle_quiet_tools_conflict` applies at runtime. `npm:pi-tool-display` registers `read`/`bash`/`find`/`grep`/`ls`, and both of those gentle-pi files register the same built-in tool names, which makes `pi` abort at startup with `Tool "read" conflicts with ...`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
@@ -120,7 +120,7 @@ Third-party packages:
 | --- | --- |
 | `npm:pi-web-access` | Web search, URL fetching, GitHub cloning, PDF/YouTube/local video analysis; multiple search backends. |
 | `git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url` | `pi-chrome-cdp`: drives the user's already-open Chrome session; `bin/cdp` points at its `scripts/cdp.mjs`. |
-| `git:github.com/vekexasia/pi-high-availability` | Automatic failover when a quota or capacity is exhausted. `extensions/index.ts` is excluded by `settings.json`. |
+| `git:github.com/vekexasia/pi-high-availability` | Automatic failover when a quota or capacity is exhausted. Enabled with `extensions/index.ts`; reads `~/.pi/agent/ha.json` (credentials, git-ignored; see `ha-failover.example.json`). |
 | `npm:pi-btw` | `/btw` parallel side conversations. |
 | `git:github.com/gotgenes/pi-anthropic-auth` | Anthropic authentication extension; it replaces `pi-anthropic-oauth`. |
 | `git:github.com/vekexasia/pi-codex-image@fix-codex-image-generation-output` | Codex-style `image_generation` and `view_image` tools with dynamic model routing. |

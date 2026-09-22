@@ -43,8 +43,9 @@
 npm:pi-web-access
 git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url
 
-# settings.json keeps this one in object form to exclude its extensions/index.ts;
-# a manifest line can carry the source only, so that filter stays in settings.json.
+# Enabled with all extensions, including extensions/index.ts. Failover config is
+# read from ~/.pi/agent/ha.json (real file holds credentials and is git-ignored;
+# see ha-failover.example.json for the credentials-free template).
 git:github.com/vekexasia/pi-high-availability
 
 npm:pi-btw
@@ -62,7 +63,6 @@ npm:pi-tool-display
 git:github.com/vekexasia/pi-notify@feat/customizable-notifications
 git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
-
 
 # --- Packages that live inside this checkout ----------------------------------
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");
