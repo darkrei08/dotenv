@@ -36,7 +36,7 @@ function fixture(t) {
 function run(args, { home }) {
   return spawnSync(process.execPath, [script, ...args], {
     encoding: 'utf8',
-    env: { ...process.env, HOME: home },
+    env: { ...process.env, HOME: home, USERPROFILE: home },
   });
 }
 
