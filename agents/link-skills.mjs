@@ -19,6 +19,7 @@
 //   node agents/link-skills.mjs --apply         reconcile the tree
 //   node agents/link-skills.mjs --verify        check the layout, change nothing
 //   node agents/link-skills.mjs --only pi       restrict to one harness
+//   node agents/link-skills.mjs --skill humanizer restrict to selected skills (repeatable)
 //   node agents/link-skills.mjs --root <dir>    canonical root override
 //   node agents/link-skills.mjs --backup-dir <dir>
 //
@@ -60,7 +61,7 @@ function expandPath(value) {
 }
 
 function parseArgs(argv) {
-  const options = { apply: false, verify: false, only: null, root: null, backupDir: null };
+  const options = { apply: false, verify: false, only: null, skills: [], root: null, backupDir: null };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     const value = () => {
@@ -72,6 +73,7 @@ function parseArgs(argv) {
     if (arg === '--apply') options.apply = true;
     else if (arg === '--verify') options.verify = true;
     else if (arg === '--only') options.only = value();
+    else if (arg === '--skill') options.skills.push(value());
     else if (arg === '--root') options.root = value();
     else if (arg === '--backup-dir') options.backupDir = value();
     else if (arg === '--help' || arg === '-h') options.help = true;
@@ -159,9 +161,10 @@ function wanted(skill, harnessName, harness, manifest) {
   return !(policy.except ?? []).includes(harnessName);
 }
 
-function planCanonical(manifest, canonicalRoot) {
+function planCanonical(manifest, canonicalRoot, selectedSkills) {
   const entries = [];
   for (const skill of Object.keys(manifest.skills).sort()) {
+    if (selectedSkills && !selectedSkills.has(skill)) continue;
     if (manifest.skills[skill].managed === false) continue;
     const path = join(canonicalRoot, skill);
     if (!exists(path)) {
@@ -176,10 +179,11 @@ function planCanonical(manifest, canonicalRoot) {
   return entries;
 }
 
-function planHarness(harnessName, harness, manifest, canonicalRoot) {
+function planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills) {
   const root = expandPath(harness.root);
   const entries = [];
   for (const skill of Object.keys(manifest.skills).sort()) {
+    if (selectedSkills && !selectedSkills.has(skill)) continue;
     const policy = manifest.skills[skill];
     const canonicalPath = join(canonicalRoot, skill);
     const target = join(root, skill);
@@ -288,13 +292,14 @@ function applyHarness(harnessName, planned, options, report) {
   }
 }
 
-function verify(manifest, canonicalRoot, harnesses) {
+function verify(manifest, canonicalRoot, harnesses, selectedSkills) {
   const failures = [];
   let links = 0;
   for (const [harnessName, harness] of harnesses) {
     if (!harnessPresent(harness)) continue;
     const root = expandPath(harness.root);
     for (const skill of Object.keys(manifest.skills).sort()) {
+      if (selectedSkills && !selectedSkills.has(skill)) continue;
       if (manifest.skills[skill].managed === false) continue;
       const want = wanted(skill, harnessName, harness, manifest);
       const target = join(root, skill);
@@ -311,6 +316,7 @@ function verify(manifest, canonicalRoot, harnesses) {
     }
   }
   for (const skill of Object.keys(manifest.skills).sort()) {
+    if (selectedSkills && !selectedSkills.has(skill)) continue;
     const policy = manifest.skills[skill];
     if (policy.managed === false) continue;
     const path = join(canonicalRoot, skill);
@@ -343,12 +349,16 @@ function main() {
     return;
   }
   const manifest = loadManifest();
+  const selectedSkills = options.skills.length > 0 ? new Set(options.skills) : null;
+  for (const skill of selectedSkills ?? []) {
+    if (!Object.hasOwn(manifest.skills, skill)) fail(`no skill named ${skill}`);
+  }
   const canonicalRoot = expandPath(options.root ?? manifest.canonicalRoot);
   const harnesses = Object.entries(manifest.harnesses).filter(([name]) => !options.only || name === options.only);
   if (harnesses.length === 0) fail(`no harness named ${options.only}`);
 
   if (options.verify) {
-    if (!printVerify(verify(manifest, canonicalRoot, harnesses))) process.exit(1);
+    if (!printVerify(verify(manifest, canonicalRoot, harnesses, selectedSkills))) process.exit(1);
     return;
   }
 
@@ -366,7 +376,7 @@ function main() {
     if (action === 'conflict') conflicts.push(`${name}  ${detail}`);
   };
 
-  const canonicalPlan = options.only ? [] : planCanonical(manifest, canonicalRoot);
+  const canonicalPlan = options.only ? [] : planCanonical(manifest, canonicalRoot, selectedSkills);
   if (canonicalPlan.length > 0) {
     process.stdout.write('\ncanonical\n');
     if (options.apply) applyCanonical(canonicalPlan, canonicalRoot, report);
@@ -379,7 +389,7 @@ function main() {
       report('skip', 'harness', `not installed (${harness.root})`);
       continue;
     }
-    const planned = planHarness(harnessName, harness, manifest, canonicalRoot);
+    const planned = planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills);
     if (planned.entries.length === 0) process.stdout.write('  (nothing to do)\n');
     if (options.apply) applyHarness(harnessName, planned, options, report);
     else for (const entry of planned.entries) report(entry.action, entry.name, entry.detail);
@@ -391,7 +401,7 @@ function main() {
   let failed = conflicts.length > 0;
   if (options.apply) {
     process.stdout.write('\n');
-    if (!printVerify(verify(manifest, canonicalRoot, harnesses))) failed = true;
+    if (!printVerify(verify(manifest, canonicalRoot, harnesses, selectedSkills))) failed = true;
   }
   if (conflicts.length > 0) {
     for (const conflict of conflicts) process.stdout.write(`conflict: ${conflict}\n`);

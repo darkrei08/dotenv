@@ -30,13 +30,17 @@ node agents/link-skills.mjs              # dry run: report what --apply would do
 node agents/link-skills.mjs --apply      # reconcile the tree
 node agents/link-skills.mjs --verify     # check the layout, change nothing
 node agents/link-skills.mjs --only pi    # restrict to one harness
+node agents/link-skills.mjs --skill humanizer # restrict to one skill
+node agents/link-skills.mjs --skill humanizer --skill heroui-react # multiple skills
 node agents/link-skills.mjs --root <dir> # canonical root override
 node agents/link-skills.mjs --backup-dir <dir>
 ```
 
-Dry-run is the default; only `--apply` mutates. Exit status is `0` when there is
-nothing to do or everything is in place, `1` when at least one conflict was
-reported, and `2` for a bad invocation.
+Dry-run is the default; only `--apply` mutates. `--skill <name>` can be repeated;
+requested names must exist in the manifest, and the filter limits planning, apply,
+and verification to those skills. It composes with `--only <harness>`. Exit status
+is `0` when there is nothing to do or everything is in place, `1` when at least
+one conflict was reported, and `2` for a bad invocation.
 
 ## Actions
 
@@ -75,8 +79,9 @@ hand:
    `~/.agents/skills/<name>/` (with a `SKILL.md`).
 2. Add it to `agents/skills.manifest.json` and list the harnesses that must not
    receive it under `except`.
-3. `node agents/link-skills.mjs` to review, then `--apply`.
-4. `node agents/link-skills.mjs --verify`.
+3. Review with `node agents/link-skills.mjs --skill <name>`, then apply with
+   `node agents/link-skills.mjs --apply --skill <name>`.
+4. Verify with `node agents/link-skills.mjs --verify --skill <name>`.
 
 `agents/install-agent-extensions.sh` copies the skills this repository ships
 (for example `phantom-ui`) into every harness root. That is compatible: the next

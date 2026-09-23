@@ -103,6 +103,75 @@ append_once() {
   grep -Fqx -- "$line" "$file" || printf '\n%s\n' "$line" >> "$file"
 }
 
+# Install only the CLI-Anything Pi extension assets, pinned to a reviewed commit.
+# Its upstream installer ignores PI_CODING_AGENT_DIR and its uninstall deletes the
+# whole target directory, so never invoke either upstream install.sh mode.
+install_cli_anything_pi() (
+  local revision=34f519533bc175d2fe287ab8316b0dd99bb9cc43
+  local agent_dir="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+  case "$agent_dir" in
+    '~') agent_dir="$HOME" ;;
+    '~/'*) agent_dir="$HOME/${agent_dir#\~/}" ;;
+  esac
+
+  local workdir source extension_source plugin_source target asset resource_dir
+  workdir=$(mktemp -d)
+  trap 'rm -rf "$workdir"' EXIT
+  source="$workdir/source"
+  git -C "$workdir" init -q source
+  git -C "$source" remote add origin https://github.com/HKUDS/CLI-Anything.git
+  git -C "$source" sparse-checkout init --no-cone
+  git -C "$source" sparse-checkout set --no-cone \
+    '/.pi-extension/cli-anything/index.ts' \
+    '/cli-anything-plugin/HARNESS.md' \
+    '/cli-anything-plugin/commands/*.md' \
+    '/cli-anything-plugin/guides/*.md' \
+    '/cli-anything-plugin/templates/*' \
+    '/cli-anything-plugin/repl_skin.py' \
+    '/cli-anything-plugin/skill_generator.py'
+  git -C "$source" fetch --quiet --filter=blob:none --depth=1 origin "$revision"
+  git -C "$source" checkout --quiet --detach FETCH_HEAD
+  [ "$(git -C "$source" rev-parse HEAD)" = "$revision" ] || {
+    printf 'CLI-Anything source did not resolve to pinned revision %s\n' "$revision" >&2
+    return 1
+  }
+
+  extension_source="$source/.pi-extension/cli-anything"
+  plugin_source="$source/cli-anything-plugin"
+  target="$agent_dir/extensions/cli-anything"
+  for asset in \
+    "$extension_source/index.ts" "$plugin_source/HARNESS.md" \
+    "$plugin_source/commands/cli-anything.md" "$plugin_source/commands/list.md" \
+    "$plugin_source/commands/refine.md" "$plugin_source/commands/test.md" \
+    "$plugin_source/commands/validate.md" "$plugin_source/guides/session-locking.md" \
+    "$plugin_source/templates/SKILL.md.template" "$plugin_source/repl_skin.py" \
+    "$plugin_source/skill_generator.py"; do
+    [ -s "$asset" ] || { printf 'CLI-Anything source asset missing: %s\n' "$asset" >&2; return 1; }
+  done
+
+  if [ -L "$target" ] || { [ -e "$target" ] && [ ! -d "$target" ]; }; then
+    printf 'Refusing to install CLI-Anything into non-directory or symlink: %s\n' "$target" >&2
+    return 1
+  fi
+  mkdir -p "$target/scripts"
+  rsync -a "$extension_source/index.ts" "$target/"
+  rsync -a "$plugin_source/HARNESS.md" "$target/"
+  for resource_dir in commands guides templates; do
+    rsync -a "$plugin_source/$resource_dir/" "$target/$resource_dir/"
+  done
+  rsync -a "$plugin_source/repl_skin.py" "$target/scripts/repl_skin.py"
+  rsync -a "$plugin_source/skill_generator.py" "$target/scripts/skill_generator.py"
+
+  for asset in \
+    index.ts HARNESS.md commands/cli-anything.md commands/list.md \
+    commands/refine.md commands/test.md commands/validate.md \
+    guides/session-locking.md templates/SKILL.md.template \
+    scripts/repl_skin.py scripts/skill_generator.py; do
+    [ -s "$target/$asset" ] || { printf 'CLI-Anything installed asset missing: %s\n' "$target/$asset" >&2; return 1; }
+  done
+  printf 'Installed CLI-Anything Pi extension at %s\n' "$target"
+)
+
 # Mirror the versioned Pi config into the live ~/.pi/agent WITHOUT touching
 # runtime state. We deliberately do NOT symlink ~/.pi/agent to the repo: the
 # symlink model made npm resolve recursive self-paths into the lockfile and put
@@ -264,6 +333,7 @@ if [ "$PACKAGE_MANAGER" = arch ]; then
 fi
 
 sync_pi
+install_cli_anything_pi
 
 # Apply the Pi packages declared in pi/agent/pi-packages.txt. pi-extensible-workflows
 # is skipped: @darkrei08/setup-ai's `pi-workflows` module owns that package.
