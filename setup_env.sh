@@ -314,6 +314,11 @@ command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https:/
 
 # AI coding CLIs — installed only when missing, via each tool's official installer.
 command -v gentle-ai >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh | bash
+if ! command -v gga >/dev/null 2>&1; then
+  printf 'ERROR: gentle-ai setup completed without the gga executable; cannot install the repository pre-commit hook.\n' >&2
+  exit 1
+fi
+(cd "$REPO_DIR" && gga install)
 command -v agy >/dev/null 2>&1 || curl -fsSL https://antigravity.google/cli/install.sh | bash
 command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh
 if command -v herdr >/dev/null 2>&1; then

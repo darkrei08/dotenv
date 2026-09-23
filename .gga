@@ -1,9 +1,8 @@
 # Gentleman Guardian Angel Configuration
 # https://github.com/Gentleman-Programming/gga
 
-# AI provider. Review runs through the Codex CLI; the model and reasoning effort
-# come from this repository's project-scoped `.codex/config.toml` (gpt-5.6-luna,
-# xhigh), so they travel with the repo instead of this machine's global config.
+# AI provider. Reviews use this repository's project-scoped `.codex/config.toml`:
+# its model follows Pi's tracked `defaultModel` (gpt-6-luna), with xhigh effort.
 PROVIDER="codex"
 # GGA's Codex path keeps only the final assistant message
 # (`codex exec --output-last-message`), so the verdict line is the first thing the

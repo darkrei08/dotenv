@@ -3,6 +3,7 @@ set -uo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
+CODEX_CONFIG="$ROOT/.codex/config.toml"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-extensible-workflows/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
@@ -25,6 +26,14 @@ check_json_file() {
 
 if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: invalid JSON\n' "$SETTINGS"
+  failures=1
+fi
+
+pi_default_model=$(jq -r '.defaultModel // empty' "$SETTINGS" 2>/dev/null)
+codex_default_model=$(sed -nE 's/^[[:space:]]*model[[:space:]]*=[[:space:]]*"([^"]*)"[[:space:]]*(#.*)?$/\1/p' "$CODEX_CONFIG" 2>/dev/null)
+if [[ -z "$pi_default_model" || -z "$codex_default_model" || "$pi_default_model" != "$codex_default_model" ]]; then
+  printf '%s: model must match %s defaultModel (Codex: %s, Pi: %s)\n' \
+    "$CODEX_CONFIG" "$SETTINGS" "${codex_default_model:-missing}" "${pi_default_model:-missing}"
   failures=1
 fi
 
