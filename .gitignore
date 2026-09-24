@@ -2,3 +2,8 @@
 .atl/
 # Local codegraph index
 .codegraph/
+
+# CLIProxyAPI local runtime state
+/cliproxyapi/config.yaml
+/cliproxyapi/auths/
+/cliproxyapi/logs/

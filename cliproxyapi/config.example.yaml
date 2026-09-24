@@ -1,0 +1,21 @@
+# Listen on all container interfaces; Compose limits host access to 127.0.0.1.
+host: "0.0.0.0"
+port: 8317
+
+# Provider credentials are stored here, separately from the inbound client API key.
+auth-dir: "/root/.cli-proxy-api"
+
+# Replace this placeholder with a private key for clients calling this proxy.
+api-keys:
+  - "REPLACE_WITH_A_LONG_RANDOM_CLIENT_KEY"
+
+# Keep debug logging disabled.
+debug: false
+
+# An empty management key disables the Management API; remote access stays off.
+remote-management:
+  allow-remote: false
+  secret-key: ""
+
+# Require authentication for WebSocket API clients.
+ws-auth: true

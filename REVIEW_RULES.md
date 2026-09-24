@@ -16,12 +16,14 @@ carries user integrations that must survive every upstream sync.
 A change that drops or alters any of these without an explicit instruction is a
 defect:
 
-- `pi/agent/models.json`: the `tuxevil-rotator` provider block (Gemini via the
+- `pi/agent/models.json`: the `openai-codex` catalog entries for `gpt-6-luna`
+  and `gpt-6-sol`, and the `tuxevil-rotator` provider block (Gemini via the
   rotator gateway).
 - `pi/agent/pi-extensible-workflows/settings.json`: the `gemini-*` and
   `opencode-*` model aliases, and the expanded `skills` list.
-- `pi/agent/settings.json`: `defaultProvider: opencode-go`, `modelThinkingLevels`,
-  and the `pi-cockpit-tools-sync` package.
+- `pi/agent/settings.json`: `defaultProvider: openai-codex`,
+  `defaultModel: gpt-6-luna`, `defaultThinkingLevel: xhigh`,
+  `modelThinkingLevels`, and the `pi-cockpit-tools-sync` package.
 - `pi/agent/modes.json`: the `opencode-max` mode.
 - `pi/agent/AGENTS.md`: the Language directive (Italian to user, English for all
   inter-agent work and artifacts).

@@ -1,0 +1,10 @@
+services:
+  cli-proxy-api:
+    image: eceasy/cli-proxy-api:latest
+    ports:
+      - "127.0.0.1:8317:8317"
+      - "127.0.0.1:1455:1455"
+    volumes:
+      - ./config.yaml:/CLIProxyAPI/config.yaml:ro
+      - ./auths:/root/.cli-proxy-api
+    restart: unless-stopped

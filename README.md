@@ -1,6 +1,6 @@
 # dotenv
 
-Personal Linux/WSL dotfiles plus the Pi coding-agent configuration that ships with them. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here.
+Personal Linux/WSL dotfiles plus the Pi coding-agent configuration that ships with them. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here. For the optional localhost-only CLIProxyAPI setup, see [the setup guide](cliproxyapi/README.md).
 
 Remotes: `origin` is `darkrei08/dotenv` (the fork this machine works in), `upstream` is `vekexasia/dotenv`.
 
@@ -241,14 +241,14 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: opencode-go`, `defaultModel: deepseek-v4.1-flash`, and `defaultThinkingLevel: high`. It maps `opencode-go/deepseek-v4.1-flash` to thinking level `max` in `modelThinkingLevels` and enables compaction with `compaction.enabled: true`.
+`pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
 
 `pi/agent/models.json` declares three providers:
 
 | Provider | What the file adds |
 | --- | --- |
 | `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`; there are no fallback providers or quantization pins. |
-| `openai-codex` | Three models: `gpt-5.6-luna` (cost 1/6 per million, 250k context, 128k max output), `gpt-5.6-sol` (5/30), `gpt-5.6-terra` (2.5/15). All text+image, `openai-codex-responses` API. |
+| `openai-codex` | Five models: `gpt-5.6-luna` (cost 1/6 per million), `gpt-5.6-sol` (5/30), `gpt-6-luna` (0.1/0.5), `gpt-6-sol` (2/10), and `gpt-5.6-terra` (2.5/15). All use text+image, `openai-codex-responses`, 250k context, and 128k max output. |
 | `tuxevil-rotator` | The local Gemini gateway: `baseUrl` `http://localhost:51200/v1`, `api: openai-completions`, `apiKey: tuxevil` (documented non-secret open-mode key). Five models, one per thinking effort: `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, `gemini-3.1-pro-low`, `gemini-3.1-pro-high`, each 1,000,000-token context and 65,536 max output, text+image. Each `thinkingLevelMap` maps exactly one effort level and nulls the rest. |
 
 Install, authenticate and start the local gateway before using those models:

@@ -34,6 +34,7 @@
       ]
     },
     "npm:gentle-engram",
+    "npm:@router-for-me/pi-cliproxyapi-provider",
     "npm:pi-mcp-adapter"
   ],
   "hideThinkingBlock": true,
