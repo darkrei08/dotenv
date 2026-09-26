@@ -36,6 +36,28 @@ docker compose exec cli-proxy-api cli-proxy-api --config /CLIProxyAPI/config.yam
 
 Open the URL printed by the command and explicitly complete the upstream OAuth flow. The OAuth callback uses port 1455, published on host loopback and forwarded to the container. The resulting provider credentials are stored in `auths/`; no existing Pi credentials are copied or used automatically.
 
+## Use Gemini CLI accounts
+
+CLIProxyAPI and `tuxevil-rotator` are separate gateways with separate OAuth credentials and quotas. Tuxevil remains a separate static provider/catalog and is not part of the standard workflow aliases. See the [Tuxevil setup](../pi/agent/README.md) for its Antigravity/Gemini account pool and existing Pi aliases.
+
+The official [Gemini CLI provider plugin](https://github.com/router-for-me/cpa-plugin-gemini-cli) supports OAuth login. Run this once for each Google account, completing the browser flow with the intended account:
+
+```bash
+docker compose exec cli-proxy-api cli-proxy-api \
+  --config /CLIProxyAPI/config.yaml --geminicli-login --no-browser
+```
+
+The OAuth credentials are stored under the mounted `auths/` directory. They are independent of the inbound client key in `config.yaml` and are not copied from Tuxevil or Pi. A saved credential can include multiple `project_ids`; CLIProxyAPI exposes those as virtual project credentials, not as additional Google accounts.
+
+After login, Pi's `/model` picker discovers the models exposed by CLIProxyAPI. Pi chooses the provider/model; CLIProxyAPI chooses an eligible credential. The documented [`routing.strategy`](https://github.com/router-for-me/CLIProxyAPIDocs/blob/main/docs/en/configuration/basic.md) supports `round-robin` (the default) or `fill-first`; you can set it explicitly in the ignored local `config.yaml`:
+
+```yaml
+routing:
+  strategy: "round-robin"
+```
+
+`quota-exceeded.switch-project` can try another project attached to a credential; it does not create accounts. Gemini CLI quota failover can vary by CLIProxyAPI release, so do not assume a rate-limited credential is always skipped immediately ([upstream issue #1756](https://github.com/router-for-me/CLIProxyAPI/issues/1756)). Tuxevil separately documents quota/health-aware routing for its own Antigravity account pool; account rotation can carry provider terms-of-service risk ([Tuxevil Rotator](https://github.com/tuxevil/tuxevil-rotator)).
+
 ## Connect Pi
 
 The provider package `npm:@router-for-me/pi-cliproxyapi-provider` is declared in both `pi/agent/settings.json` and `pi/agent/pi-packages.txt`. After syncing the repository's Pi configuration and installing packages (or run `pi install npm:@router-for-me/pi-cliproxyapi-provider` if it is not installed yet), restart Pi and use:
@@ -45,4 +67,4 @@ The provider package `npm:@router-for-me/pi-cliproxyapi-provider` is declared in
 /model
 ```
 
-Use the inbound client API key from `config.yaml` when Pi requests the proxy credential. Pi's interactive login stores credentials in `~/.pi/agent/auth.json`; keep that file private (`chmod 600 ~/.pi/agent/auth.json`) and never commit it. After upstream OAuth completes, `/model` discovers the available model catalog dynamically. Select a model explicitly; this setup does not change `defaultProvider`, `defaultModel`, `pi/agent/models.json`, workflow aliases, or default routing. No upstream OAuth is initiated until you explicitly complete the login above.
+Use the inbound client API key from `config.yaml` when Pi requests the proxy credential. Pi's interactive login stores credentials in `~/.pi/agent/auth.json`; keep that file private (`chmod 600 ~/.pi/agent/auth.json`) and never commit it. After upstream OAuth completes, `/model` discovers the available model catalog dynamically. Workflow aliases now use CLIProxyAPI targets, including `reviewer-model=cliproxyapi/claude-opus-5-5:high` and `cheap-model=cliproxyapi/gpt-6-luna:high`; other standard role aliases chain through `cheap-model`. Pi's interactive default remains `openai-codex/gpt-5.6-luna` unless you select another model. No upstream OAuth is initiated until you explicitly complete the login above.

@@ -43,6 +43,10 @@ default.
 Effort resolves the same way, independently of the model. You can pin the model
 from one layer and the effort from another.
 
+This repository's interactive default is `openai-codex/gpt-5.6-luna` at
+`xhigh`. The CLIProxyAPI provider dynamically discovers its model catalog;
+configuration or discovery does not establish that inference succeeds.
+
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
 
 - `resolveAgentProfile()` picks model and thinking from the ordered candidate
@@ -333,12 +337,13 @@ every request with `429`, `error_code: credits_required`,
 and the notice "Turn on usage credits". Fable was therefore a credits-only
 model on that account, not a quota-window limit, and the "Claude Code version
 gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
-`anthropic/claude-sonnet-5` both answered on the same day. At that time,
-`reviewer-model` pointed at `anthropic/claude-opus-5:high`, which matched this
-document's workload policy for adversarial review. The current alias targets
-`anthropic/claude-opus-5-5:high`, which appeared in the 2026-09-26 Pi model
-listing; inference has not been verified. The earlier absence of CLIProxyAPI
-models applies only to the previous target.
+`anthropic/claude-sonnet-5` both answered on the same day. That historical
+configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
+this document's workload policy for adversarial review. Current workflow
+settings use `cliproxyapi/claude-opus-5-5:high`; `old-reviewer-model` is no
+longer configured. CLIProxyAPI discovery is dynamic. The earlier model-list
+absence is historical and does not establish current availability; inference
+has not been verified.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -349,25 +354,20 @@ update, check this before editing model config.
 ### Aliases currently configured in this repository
 
 Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The
-previous CLIProxyAPI targets were absent from the 2026-09-26 Pi model listing;
-that historical result does not establish availability of the current targets.
-Inference for the current targets has not been verified.
+previous CLIProxyAPI targets were absent from the 2026-09-26 Pi model listing.
+That historical listing does not establish availability or absence under current
+dynamic discovery. `old-reviewer-model` is no longer in workflow settings, and
+inference for current targets has not been verified.
 
 | Alias | Configured target | Resolution or availability |
 |---|---|---|
-| `cheap-model` | `openai-codex/gpt-5.6-luna:high` | Configured; inference not verified |
-| `developer-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
-| `oracle-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
-| `researcher-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
-| `scout-model` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
-| `tests-expert` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
-| `reviewer-model` | `anthropic/claude-opus-5-5:high` | Listed by `pi --list-models`; inference not verified |
-| `old-reviewer-model` | `opencode-go/grok-4.7:high` | Listed by `pi --list-models` only; inference not verified |
-| `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Historically unavailable while the local gateway was down (verified down 2026-09-13) |
-| `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Same historical gateway observation |
-| `opencode-fast` | `opencode-go/deepseek-v4.1-flash` | Worked in the historical check recorded above |
-| `opencode-balanced` | `opencode-go/deepseek-v4.1-flash:high` | Worked in the historical check recorded above |
-| `opencode-deep` | `opencode-go/deepseek-v4-pro:max` | Worked in the historical check recorded above |
+| `cheap-model` | `cliproxyapi/gpt-6-luna:high` | Configured; inference not verified |
+| `developer-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
+| `oracle-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
+| `researcher-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
+| `scout-model` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
+| `tests-expert` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
+| `reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
 
 The workflow package also ships dynamic aliases with these names
 (`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic
@@ -785,13 +785,14 @@ Web sources, all read 2026-09-13:
    resolution on 2026-09-21: the provider returned `429` with
    `error_code: credits_required` and `disabled_reason: org_level_disabled`, so
    the cause was the model's credit requirement, not a version gate. At that
-   time the alias targeted `anthropic/claude-opus-5:high`, verified with a live
-   call. Its current target is `anthropic/claude-opus-5-5:high`, which appeared
-   in Pi's model listing; inference has not been verified. The earlier absence
-   of CLIProxyAPI models applied only to the previous target.
-2. `old-reviewer-model` now targets `opencode-go/grok-4.7:high`, which appeared
-   in Pi's model listing. I did not execute the alias, so runtime compatibility
-   remains unverified.
+   time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
+   a live call. Current workflow settings target
+   `cliproxyapi/claude-opus-5-5:high`; inference has not been verified. The
+   earlier CLIProxyAPI model-list absence is historical and does not establish
+   availability under current dynamic discovery.
+2. `old-reviewer-model` is no longer in workflow settings. Its former
+   `opencode-go/grok-4.7:high` target was listed by Pi, but the alias was not
+   executed and its runtime compatibility remains unverified.
 3. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces

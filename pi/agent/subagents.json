@@ -1,21 +1,21 @@
 {
-  "default_model": "openai-codex/gpt-6-luna",
+  "default_model": "openai-codex/gpt-5.6-luna",
   "default_effort": "xhigh",
   "model_profiles": {
     "review-risk": {
-      "model": "openai-codex/gpt-6-luna",
+      "model": "openai-codex/gpt-5.6-luna",
       "effort": "xhigh"
     },
     "review-resilience": {
-      "model": "openai-codex/gpt-6-luna",
+      "model": "openai-codex/gpt-5.6-luna",
       "effort": "xhigh"
     },
     "review-readability": {
-      "model": "openai-codex/gpt-6-luna",
+      "model": "openai-codex/gpt-5.6-luna",
       "effort": "xhigh"
     },
     "review-reliability": {
-      "model": "openai-codex/gpt-6-luna",
+      "model": "openai-codex/gpt-5.6-luna",
       "effort": "xhigh"
     }
   }

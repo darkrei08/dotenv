@@ -2,7 +2,7 @@
 # https://github.com/Gentleman-Programming/gga
 
 # AI provider. Reviews use this repository's project-scoped `.codex/config.toml`:
-# its model follows Pi's tracked `defaultModel` (gpt-6-luna), with xhigh effort.
+# its model follows Pi's tracked `defaultModel` (gpt-5.6-luna), with xhigh effort.
 PROVIDER="codex"
 # GGA's Codex path keeps only the final assistant message
 # (`codex exec --output-last-message`), so the verdict line is the first thing the

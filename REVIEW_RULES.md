@@ -16,15 +16,22 @@ carries user integrations that must survive every upstream sync.
 A change that drops or alters any of these without an explicit instruction is a
 defect:
 
-- `pi/agent/models.json`: the `openai-codex` catalog entries for `gpt-6-luna`
-  and `gpt-6-sol`, and the `tuxevil-rotator` provider block (Gemini via the
-  rotator gateway).
-- `pi/agent/pi-extensible-workflows/settings.json`: the `gemini-*` and
-  `opencode-*` model aliases, and the expanded `skills` list.
-- `pi/agent/settings.json`: `defaultProvider: openai-codex`,
-  `defaultModel: gpt-6-luna`, `defaultThinkingLevel: xhigh`,
+- `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
+  `gpt-6-luna` and `gpt-6-sol`. The local Tuxevil catalog is retained only when
+  it is still present and is not a standard workflow route.
+- `pi/agent/pi-extensible-workflows/settings.json`: exact Vekexasia standard
+  workflow routing is intentional: `cheap-model=cliproxyapi/gpt-6-luna:high`,
+  `reviewer-model=cliproxyapi/claude-opus-5-5:high`, and chained standard roles.
+  `enabledModels` may contain the upstream exact dynamic/forward-compatible list
+  even when current discovery is empty. The `opencode-max` mode, if still
+  present, is not used by standard workflow aliases. Preserve the expanded
+  `skills` list.
+- `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
+  openai-codex`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: xhigh`,
   `modelThinkingLevels`, and the `pi-cockpit-tools-sync` package.
-- `pi/agent/modes.json`: the `opencode-max` mode.
+- `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
+  replaces `pi-web-access` so only one `web_search` tool is registered; it uses
+  CLIProxyAPI first and openai-codex fallback.
 - `pi/agent/AGENTS.md`: the Language directive (Italian to user, English for all
   inter-agent work and artifacts).
 

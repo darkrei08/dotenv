@@ -118,7 +118,7 @@ Third-party packages:
 
 | Package | Contributes |
 | --- | --- |
-| `npm:pi-web-access` | Web search, URL fetching, GitHub cloning, PDF/YouTube/local video analysis; multiple search backends. |
+| `pi/agent/extensions/light-web-search.ts` | Tracked `web_search` replacement for `pi-web-access`; tries CLIProxyAPI first and falls back to openai-codex, avoiding duplicate `web_search` registration. |
 | `git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url` | `pi-chrome-cdp`: drives the user's already-open Chrome session; `bin/cdp` points at its `scripts/cdp.mjs`. |
 | `git:github.com/vekexasia/pi-high-availability` | Automatic failover when a quota or capacity is exhausted. Enabled with `extensions/index.ts`; reads `~/.pi/agent/ha.json` (credentials, git-ignored; see `ha-failover.example.json`). |
 | `npm:pi-btw` | `/btw` parallel side conversations. |
@@ -241,7 +241,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
+`pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
 
 `pi/agent/models.json` declares three providers:
 
@@ -262,7 +262,7 @@ curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
 
 Credentials live in `~/.pi/agent/auth.json`, which is git-ignored (`/auth.json` in `pi/agent/.gitignore`) and preserved by `sync_pi`. Pi selects the provider/model target configured in `models.json`. The tracked files do not verify the runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Short names such as `gemini-flash-low` are workflow-scoped aliases in `pi/agent/pi-extensible-workflows/settings.json`, not global aliases, so they resolve in workflow role/model settings and not on the Pi CLI or in the `/model` picker.
+Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` intentionally route `cheap-model` to `cliproxyapi/gpt-6-luna:high` and `reviewer-model` to `cliproxyapi/claude-opus-5-5:high`, with chained standard roles. The local Tuxevil catalog and `opencode-max` mode remain available when present but are not used by these standard aliases.
 
 ## External binaries and runtime dependencies
 

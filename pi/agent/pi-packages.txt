@@ -40,7 +40,6 @@
 #
 # --- Remote sources, in settings.json order -----------------------------------
 
-npm:pi-web-access
 git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url
 
 # Enabled with all extensions, including extensions/index.ts. Failover config is
