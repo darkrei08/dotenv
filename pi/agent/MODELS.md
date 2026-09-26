@@ -4,13 +4,13 @@ This file explains how Pi decides which model and which thinking level an agent
 uses, how to point that at your own providers, and how to choose a model and an
 effort level from measured cost, speed, and quality instead of vibes.
 
-It assumes you cloned this dotfiles repository and that its `pi/agent` directory
-is (or will be) linked to `~/.pi/agent`. See `README.md` for the link and for the
+It assumes you cloned this dotfiles repository. `setup_env.sh` mirrors an
+explicit allowlist of versioned items from `pi/agent` into `~/.pi/agent` with
+`rsync`; it does not symlink the whole tree. See `README.md` for setup and
 gateway notes, `pi-packages.txt` for the packages that install with it, and
 `../../agents/LINKING.md` for how shared skills are linked across harnesses.
 
-This file is new and `pi/agent/.gitignore` allowlists files explicitly, so it is
-currently untracked. Add `!/MODELS.md` to that allowlist if you want it committed.
+`pi/agent/.gitignore` explicitly allowlists this file with `!/MODELS.md`.
 
 Read time is about 30 minutes. Part 1 is the mechanism; Part 2 is the metric
 work. Every number in Part 2 carries a source and a read date. Anything I could
@@ -326,17 +326,19 @@ Login is still yours: without an account the gateway listens but has nothing to
 route, so run `tuxevil-rotator login` once.
 
 **An alias resolves to a real model but the provider still rejects it.** The
-target can be in the catalog and still be unusable at the provider. Verified on
-2026-09-21 with live calls: `anthropic/claude-fable-5-1:high` answers every
-request with `429`, `error_code: credits_required`,
+target can be in the catalog and still be unusable at the provider. Historical
+verification on 2026-09-21 found that `anthropic/claude-fable-5-1:high` answered
+every request with `429`, `error_code: credits_required`,
 `disabled_reason: org_level_disabled`, `exhausted_included_allowance: false`,
-and the notice "Turn on usage credits". Fable is therefore a credits-only model
-on this account, not a quota-window limit, and the "Claude Code version gate"
-cause recorded earlier was wrong. `anthropic/claude-opus-5` and
-`anthropic/claude-sonnet-5` both answered on the same day, so the provider
-itself is fine. `reviewer-model` now points at `anthropic/claude-opus-5:high`,
-which is the effort this document's own workload policy prescribes for
-adversarial review.
+and the notice "Turn on usage credits". Fable was therefore a credits-only
+model on that account, not a quota-window limit, and the "Claude Code version
+gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
+`anthropic/claude-sonnet-5` both answered on the same day. At that time,
+`reviewer-model` pointed at `anthropic/claude-opus-5:high`, which matched this
+document's workload policy for adversarial review. The current alias targets
+`anthropic/claude-opus-5-5:high`, which appeared in the 2026-09-26 Pi model
+listing; inference has not been verified. The earlier absence of CLIProxyAPI
+models applies only to the previous target.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -346,24 +348,26 @@ update, check this before editing model config.
 
 ### Aliases currently configured in this repository
 
-From `pi-extensible-workflows/settings.json`, with status checked on this machine
-on 2026-09-13.
+Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The
+previous CLIProxyAPI targets were absent from the 2026-09-26 Pi model listing;
+that historical result does not establish availability of the current targets.
+Inference for the current targets has not been verified.
 
-| Alias | Target | Status |
+| Alias | Configured target | Resolution or availability |
 |---|---|---|
-| `cheap-model` | `openai-codex/gpt-5.6-luna:high` | Works |
-| `developer-model` | `cheap-model:xhigh` | Works (resolves to luna:xhigh) |
-| `oracle-model` | `cheap-model:xhigh` | Works |
-| `researcher-model` | `cheap-model:xhigh` | Works |
-| `scout-model` | `cheap-model` | Works |
-| `tests-expert` | `cheap-model` | Works |
-| `reviewer-model` | `anthropic/claude-opus-5:high` | Works (verified 2026-09-21 with a live call). Replaced `anthropic/claude-fable-5-1:high`, which is a credits-only model here |
-| `old-reviewer-model` | `xai/grok-4.5:high` | Unusable here: no `xai` provider or credential is configured, and `grok-4.5` is not in the catalog (only `opencode-go/grok-4.6`) |
-| `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Unusable while the local gateway is down (verified down 2026-09-13) |
-| `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Same |
-| `opencode-fast` | `opencode-go/deepseek-v4.1-flash:low` | Works |
-| `opencode-balanced` | `opencode-go/deepseek-v4.1-flash:high` | Works |
-| `opencode-deep` | `opencode-go/deepseek-v4-pro:xhigh` | Works |
+| `cheap-model` | `openai-codex/gpt-5.6-luna:high` | Configured; inference not verified |
+| `developer-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
+| `oracle-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
+| `researcher-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
+| `scout-model` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
+| `tests-expert` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
+| `reviewer-model` | `anthropic/claude-opus-5-5:high` | Listed by `pi --list-models`; inference not verified |
+| `old-reviewer-model` | `opencode-go/grok-4.7:high` | Listed by `pi --list-models` only; inference not verified |
+| `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Historically unavailable while the local gateway was down (verified down 2026-09-13) |
+| `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Same historical gateway observation |
+| `opencode-fast` | `opencode-go/deepseek-v4.1-flash` | Worked in the historical check recorded above |
+| `opencode-balanced` | `opencode-go/deepseek-v4.1-flash:high` | Worked in the historical check recorded above |
+| `opencode-deep` | `opencode-go/deepseek-v4-pro:max` | Worked in the historical check recorded above |
 
 The workflow package also ships dynamic aliases with these names
 (`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic
@@ -777,14 +781,17 @@ Web sources, all read 2026-09-13:
 
 ## Claims marked UNVERIFIED
 
-1. ~~`reviewer-model` failing due to a Claude Code version gate.~~ Resolved
-   2026-09-21: the provider returns `429` with `error_code: credits_required` and
-   `disabled_reason: org_level_disabled`, so the cause was the model's credit
-   requirement, not a version gate. The alias now targets
-   `anthropic/claude-opus-5:high`, verified with a live call.
-2. `old-reviewer-model` -> `xai/grok-4.5:high`. I verified there is no `xai`
-   provider or credential on this machine and that `grok-4.5` is absent from the
-   catalog, but I did not execute the alias.
+1. ~~`reviewer-model` failing due to a Claude Code version gate.~~ Historical
+   resolution on 2026-09-21: the provider returned `429` with
+   `error_code: credits_required` and `disabled_reason: org_level_disabled`, so
+   the cause was the model's credit requirement, not a version gate. At that
+   time the alias targeted `anthropic/claude-opus-5:high`, verified with a live
+   call. Its current target is `anthropic/claude-opus-5-5:high`, which appeared
+   in Pi's model listing; inference has not been verified. The earlier absence
+   of CLIProxyAPI models applied only to the previous target.
+2. `old-reviewer-model` now targets `opencode-go/grok-4.7:high`, which appeared
+   in Pi's model listing. I did not execute the alias, so runtime compatibility
+   remains unverified.
 3. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces

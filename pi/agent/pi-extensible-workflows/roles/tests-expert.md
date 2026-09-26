@@ -1,6 +1,6 @@
 ---
 model: tests-expert
-tools: ["!*", read, find, ls, bash, edit, write, view_image]
+tools: ["!*", read, grep, find, ls, bash, edit, write, view_image]
 description: Agent focused in writing/reading tests
 ---
 
