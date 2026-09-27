@@ -10,11 +10,11 @@ Remotes: `origin` is `darkrei08/dotenv` (the fork this machine works in), `upstr
 | --- | --- |
 | OS | Linux or WSL2. `setup_env.sh` reads `/etc/os-release` and exits 1 on anything outside the Arch (`omarchy`, `arch`) and Debian (`debian`, `ubuntu`) families (lines 13-24). |
 | WSL | Detected from `/proc/version` (line 6). WSL adds `wl-clipboard`, `imagemagick`, the clipboard helpers in `.local/bin` and the Windows `.wezterm.lua` copy. |
-| Privileges | `sudo` for `apt-get`, `pacman`, installing `go` under `/usr/local`, and the Neovim tarball. `omarchy pkg add` is used instead of `pacman` when `omarchy` is on `PATH` (lines 29-36). |
-| Runtime | A POSIX shell plus `bash`. Neovim 0.12.0 or newer is required (line 216); the script installs it when missing or older. |
-| Node.js / npm | `npx` for the skills installers and `npm` for the globally installed Pi CLI and Neovim tooling. Both must already be present; the script does not install Node. |
+| Privileges | `sudo` for `apt-get`, `pacman`, installing `go` under `/usr/local`, and the Neovim tarball. `omarchy pkg add` is used instead of `pacman` when `omarchy` is on `PATH` (lines 40-55). |
+| Runtime | A POSIX shell plus `bash`. Neovim 0.12.0 or newer is required; the script installs it when missing or older (lines 299-331). |
+| Node.js / npm | `node`, `npm`, and `npx` must already be on `PATH`; Node.js >=22.19.0 is required for Pi and Copilot (the script checks this early and does not install Node). |
 | Python | `python3` and `python3-venv` (Debian installs `python3-venv` explicitly) for the `gigatoken` virtualenv. |
-| Network | Distribution mirrors, `https://go.dev/dl/`, `api.github.com` and GitHub release assets (lazygit, zellij, Neovim), the npm registry, `npx skills`, and each AI CLI's own `curl ... | bash` installer. |
+| Network | Distribution mirrors, `https://go.dev/dl/`, the Go module proxy, `api.github.com`, GitHub release assets, `https://github.com/HKUDS/CLI-Anything.git`, `https://github.com/Gentleman-Programming/gentleman-guardian-angel.git`, the npm registry and `npx skills`, `https://raw.githubusercontent.com/darkrei08/ai-memory-kit/`, `https://antigravity.google/cli/install.sh`, `https://chatgpt.com/codex/install.sh`, `https://claude.ai/install.sh`, and `https://cursor.com/install`. |
 | Git identity | `gh` and `glab` are installed but not authenticated; `gh auth login` and `glab auth login` remain manual. |
 
 External binaries required at runtime are listed in [External binaries and runtime dependencies](#external-binaries-and-runtime-dependencies).
@@ -30,12 +30,12 @@ The script is meant to be re-run. What it touches:
 
 | Target | Behaviour |
 | --- | --- |
-| `~/.pi/agent` | A real directory populated by selective rsync of versioned items from `pi/agent`; a leftover symlink is removed, and an existing non-directory target is backed up (lines 106-153). Runtime state is preserved. |
-| `~/.config/nvim` | `rsync -a --delete` from `nvim/`, excluding `node_modules/` (line 231). Anything else in the target that is not in the repository is deleted. |
-| `~/.config/herdr/config.toml`, `~/.tmux.conf` | Overwritten with `install -Dm644` (lines 232, 236). |
-| `~/.local/bin` | Overwritten with `rsync -a` on WSL only (line 240). |
-| `$USERPROFILE/.wezterm.lua` | Overwritten on WSL when `powershell.exe` and `wslpath` are available (lines 242-243). |
-| `~/.bashrc` | Appended only, one line at a time, and only when the exact line is absent (`append_once`, lines 100-104). Nothing is rewritten. |
+| `~/.pi/agent` | A real directory populated by selective rsync of versioned items from `pi/agent`; a leftover symlink is removed, and an existing non-directory target is backed up (lines 196-238). Runtime state is preserved. |
+| `~/.config/nvim` | `rsync -a --delete` from `nvim/`, excluding `node_modules/` (line 334). Anything else in the target that is not in the repository is deleted. |
+| `~/.config/herdr/config.toml`, `~/.tmux.conf` | Overwritten with `install -Dm644` (lines 335, 339). |
+| `~/.local/bin` | Overwritten with `rsync -a` on WSL only (line 343). |
+| `$USERPROFILE/.wezterm.lua` | Overwritten on WSL when `powershell.exe` and `wslpath` are available (lines 344-346). |
+| `~/.bashrc` | Appended only, one line at a time, and only when the exact line is absent (`append_once`, lines 114-118 and 272-282). Nothing is rewritten. |
 
 Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticated.
 
@@ -45,46 +45,49 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 | --- | --- |
 | 4-11 | Resolve `REPO_DIR` from `BASH_SOURCE`, detect WSL, source `/etc/os-release`. |
 | 13-24 | Gate on the distribution family, or exit 1. |
-| 26-41 | `install_package`: skip when the command already exists, otherwise `omarchy pkg add`, `pacman -S --needed --noconfirm`, or `apt-get install -y`. |
-| 43-55 | `install_release`: download the newest GitHub release asset matching a jq regex, extract, and install the binary to `~/.bin`. |
-| 57-61 | `append_once`: append a line to `~/.bashrc` only when absent. |
-| 63-110 | `sync_pi`, selectively copy the versioned Pi configuration into `~/.pi/agent` without replacing runtime state; see below. |
-| 112-125 | Package list per family (`make`, `gcc`, `g++`, `ripgrep`, `git`, `curl`, `xclip`, `jq`, `tree`, `htop`, `fd`/`fd-find`, `rsync`, `fzf`, `bat`/`batcat`, `gh`, `glab`, `python3`, `python3-venv`). |
-| 127-129 | Install every package with `install_package`. |
-| 131-134 | WSL: `wl-clipboard` and `imagemagick`. |
-| 136-145 | Create `~/.bin` and `~/.local/bin`, extend `PATH`, symlink `batcat` to `~/.bin/bat` when `bat` is missing, install `lazygit` and `zellij` (package on Arch, GitHub release otherwise). |
-| 146-156 | Append the shell additions to `~/.bashrc`: `PATH` entries, `fzf --bash`, `BAT_THEME`, `SUDO_EDITOR=nvim`, `ll`, `herdr-devbox`, and the fzf preview options. |
-| 158-169 | Install Go: the distribution package on Arch, otherwise `go1.24.4.linux-amd64` into `/usr/local`. |
-| 171-185 | Require Neovim >= 0.12.0, installing the distribution package (Arch) or the `nvim-linux-x86_64` release tarball into `/opt`. |
-| 187-193 | Sync `nvim/` into `~/.config/nvim`, install `herdr/config.toml` and `.tmux.conf`. On the host named `devbox`, insert `copy_on_select = false` under `[ui]` in the herdr config. |
-| 195-202 | WSL: sync `.local/bin/`, and copy `.wezterm.lua` to the Windows profile directory. |
-| 204-208 | Create `~/.local/share/nvim/gigatoken-venv` and `pip install gigatoken` when the venv is absent. |
-| 210-219 | **Pi, Arch only:** delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout, `mise unuse -g pi` / `mise uninstall --all pi`, then `npm install -g --ignore-scripts --prefix "$HOME/.local" @earendil-works/pi-coding-agent`. On Debian/Ubuntu this block is skipped, so `pi` must already be installed. |
-| 221 | `sync_pi`. |
-| 223-240 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
-| 242-265 | **Pi skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, run the shared `npx skills add ... --global --agent pi --copy --yes` commands for `herdrdev/herdr`, `mattpocock/skills` (`triage grill-me grilling wayfinder domain-modeling prototype research`), `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install has an unpinned fallback, and its CLI installer runs with `--no-skill`. |
-| 267-274 | AI CLIs, each installed only when missing, through its own installer: `gentle-ai`, `agy` (Antigravity), `codex`. When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`. |
-| 275 | `pi update --extensions` when `pi` is on `PATH`. |
-| 276-293 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
+| 26-38 | Create the local binary directories, extend `PATH`, and require Node.js >=22.19 plus npm/npx. |
+| 40-55 | `install_package`: skip when the command already exists, otherwise `omarchy pkg add`, `pacman -S --needed --noconfirm`, or `apt-get install -y`. |
+| 61-112 | `install_release`: download the newest GitHub release asset matching a jq regex, extract, and install the binary to `~/.bin`. |
+| 114-118 | `append_once`: append a line to `~/.bashrc` only when absent. |
+| 120-187 | Install and verify the pinned CLI-Anything Pi extension assets. |
+| 189-238 | `sync_pi`, selectively copy the versioned Pi configuration into `~/.pi/agent` without replacing runtime state; see below. |
+| 240-253 | Package list per family (`make`, `gcc`, `g++`, `ripgrep`, `git`, `curl`, `xclip`, `jq`, `tree`, `htop`, `fd`/`fd-find`, `rsync`, `fzf`, `bat`/`batcat`, `gh`, `glab`, `python3`, `python3-venv`). |
+| 255-257 | Install every package with `install_package`. |
+| 259-262 | WSL: `wl-clipboard` and `imagemagick`. |
+| 264-271 | Symlink `batcat` to `~/.bin/bat` when needed and install `lazygit` and `zellij` (package on Arch, GitHub release otherwise). |
+| 272-282 | Append the shell additions to `~/.bashrc`: `PATH` entries, `fzf --bash`, `BAT_THEME`, `SUDO_EDITOR=nvim`, aliases, and fzf preview options. |
+| 284-297 | Install Go: the distribution package on Arch, otherwise `go1.24.4.linux-amd64` into `/usr/local`. |
+| 299-331 | Require Neovim >= 0.12.0, updating the distribution package (Arch) or installing the `nvim-linux-x86_64` release tarball into `/opt`, then verify the installed version. |
+| 333-339 | Sync `nvim/` into `~/.config/nvim`, install `herdr/config.toml` and `.tmux.conf`. On the host named `devbox`, insert `copy_on_select = false` under `[ui]` in the herdr config. |
+| 341-348 | WSL: sync `.local/bin/`, and copy `.wezterm.lua` to the Windows profile directory. |
+| 350-354 | Create `~/.local/share/nvim/gigatoken-venv` and `pip install gigatoken` when the venv is absent. |
+| 356-367 | **Pi:** on Arch/Omarchy, delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout and remove its global mise selection; install `@earendil-works/pi-coding-agent` with npm when `pi` is missing on every supported distro. |
+| 369-370 | `sync_pi` and install the CLI-Anything Pi extension. |
+| 372-393 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
+| 394-420 | **Pi skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, run the shared `npx skills add ... --global --agent pi --copy --yes` commands for `herdrdev/herdr`, `mattpocock/skills` (`triage grill-me grilling wayfinder domain-modeling prototype research`), `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install has an unpinned fallback, and its CLI installer runs with `--no-skill`. |
+| 422-451 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
+| 452-457 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
+| 458-475 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
+| 477-478 | Fail if the managed Pi alias or extension configuration has drifted. |
 
 The Pi block in full:
 
-- **The `~/.pi/agent` configuration.** `sync_pi` (lines 106-153) removes a leftover symlink, creates a real directory, and selectively rsyncs the versioned allowlist from `$REPO_DIR/pi/agent`. It preserves runtime state such as `auth.json`, `sessions/`, `agents/`, `chains/`, `npm/node_modules`, and caches. The `extensions/` copy excludes `piextworkflows.ts` and `pi-ext-workflows/` (lines 136-144), which setup-ai's `pi-workflows` module owns; it verifies `pi-extensible-workflows/roles` and `settings.json` (lines 146-152).
-- **Package installs.** The Pi CLI itself comes from npm (`@earendil-works/pi-coding-agent`, line 261), `setup_env.sh` applies `pi/agent/pi-packages.txt` with `pi install` (lines 266-283), and the skill packages come from the guarded `npx skills add` blocks (lines 285-308). `@darkrei08/setup-ai`'s `pi-packages` module also consumes the manifest when orchestrated (see [Pi configuration composition](#pi-configuration-composition)).
-- **`pi` commands.** `pi install` applies each manifest entry (lines 266-283), and `pi update --extensions` runs at line 318 when `pi` is on `PATH`.
+- **The `~/.pi/agent` configuration.** `sync_pi` (lines 196-238) removes a leftover symlink, creates a real directory, and selectively rsyncs the versioned allowlist from `$REPO_DIR/pi/agent`. It preserves runtime state such as `auth.json`, `sessions/`, `agents/`, `chains/`, `npm/node_modules`, and caches. The `extensions/` copy excludes `piextworkflows.ts` and `pi-ext-workflows/` (lines 224-229), which setup-ai's `pi-workflows` module owns; it verifies `pi-extensible-workflows/roles` and `settings.json` (lines 231-238).
+- **Package installs.** The Pi CLI itself comes from npm (`@earendil-works/pi-coding-agent`, lines 365-367), `setup_env.sh` applies `pi/agent/pi-packages.txt` with `pi install` (lines 372-393), and the skill packages come from the guarded `npx skills add` blocks (lines 394-420). `@darkrei08/setup-ai`'s `pi-packages` module also consumes the manifest when orchestrated (see [Pi configuration composition](#pi-configuration-composition)).
+- **`pi` commands.** `pi install` applies each manifest entry (lines 388-391), and `pi update --extensions` runs at line 457 when `pi` is on `PATH`.
 
 ## Managed configuration
 
 | Repository path | Target | Mechanism |
 | --- | --- | --- |
-| `pi/agent` | `~/.pi/agent` | Selective `rsync` of the versioned allowlist; a leftover symlink is removed, non-directory targets are backed up, and runtime state is preserved (`sync_pi`, lines 106-153) |
-| `nvim/` | `~/.config/nvim/` | `rsync -a --delete --exclude=node_modules/` (line 231) |
-| `herdr/config.toml` | `~/.config/herdr/config.toml` | `install -Dm644`, plus a `sed` insert on the `devbox` host (lines 232-235) |
+| `pi/agent` | `~/.pi/agent` | Selective `rsync` of the versioned allowlist; a leftover symlink is removed, non-directory targets are backed up, and runtime state is preserved (`sync_pi`, lines 196-238) |
+| `nvim/` | `~/.config/nvim/` | `rsync -a --delete --exclude=node_modules/` (line 334) |
+| `herdr/config.toml` | `~/.config/herdr/config.toml` | `install -Dm644`, plus a `sed` insert on the `devbox` host (lines 335-338) |
 | `herdr/plugins/agent-notify/` | herdr plugin registry (per user, global to all sessions) | `herdr plugin link` when `herdr` is on `PATH`, inside the same `command -v herdr` block as `herdr integration install pi` |
-| `.tmux.conf` | `~/.tmux.conf` | `install -Dm644` (line 236) |
-| `.local/bin/` | `~/.local/bin/` | `rsync -a`, WSL only (line 240) |
-| `.wezterm.lua` | `$USERPROFILE/.wezterm.lua` | `install -Dm644`, WSL only, when `powershell.exe` and `wslpath` exist (lines 241-243) |
-| Shell additions (no file) | `~/.bashrc` | `append_once`, exact-match guarded (lines 189-199) |
+| `.tmux.conf` | `~/.tmux.conf` | `install -Dm644` (line 339) |
+| `.local/bin/` | `~/.local/bin/` | `rsync -a`, WSL only (line 343) |
+| `.wezterm.lua` | `$USERPROFILE/.wezterm.lua` | `install -Dm644`, WSL only, when `powershell.exe` and `wslpath` exist (lines 344-346) |
+| Shell additions (no file) | `~/.bashrc` | `append_once`, exact-match guarded (function at lines 114-118; calls at lines 272-282) |
 | `agents/skills/phantom-ui` | every existing agent skills root | `agents/install-agent-extensions.sh` (not run by `setup_env.sh`) |
 
 The allowlisted versioned items under `pi/agent` are copied to `~/.pi/agent/...` on a machine set up this way; runtime state remains in the live directory, and the repository paths remain `pi/agent/...`.
@@ -165,7 +168,7 @@ Third-party packages:
 | `~/.agents/skills/` | shared skills, one physical copy each | Machine-installed (see below) or linked |
 | `agents/skills/phantom-ui/` | `SKILL.md` written here, the MIT standalone build plus its `.d.ts`, upstream `LICENSE`, `VENDORED.md` | Repository-owned, copied into harness roots |
 
-The machine-installed skills are placed by `setup_env.sh` lines 285-308 (`herdr`, `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research`, `typescript-advanced`, `show-me`, `engineering-excellence`, `project-memory`) and by `agents/install-agent-extensions.sh` (`design-taste`, `impeccable`, `ponytail`, `phantom-ui`). They are read from the harness root that installed them, or from `~/.agents/skills` when that is the canonical root; see the next section.
+The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`, `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research`, `typescript-advanced`, `show-me`, `engineering-excellence`, `project-memory`) and by `agents/install-agent-extensions.sh` (`design-taste`, `impeccable`, `ponytail`, `phantom-ui`). They are read from the harness root that installed them, or from `~/.agents/skills` when that is the canonical root; see the next section.
 
 ### Other Pi files
 
@@ -272,9 +275,10 @@ Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` in
 | `git`, `curl`, `jq` | `setup_env.sh` release downloads, the skills CLI, various extensions | `install_release` fails on the jq parse; downloads fail. |
 | `rsync` | `setup_env.sh` nvim and WSL `.local/bin` sync | Config sync fails (the script runs under `set -e`). |
 | `sudo` | `apt-get`, `pacman`, installing Go and Neovim into system paths | Package and runtime installs fail on Debian/Arch. |
-| `npm` / `npx` | Pi CLI install, all `npx skills add` lines, Neovim tooling, `agents/link-skills.mjs` (Node) | Pi is not installed and no skill is installed. |
-| `node` | `agents/link-skills.mjs`, `pi/agent/bin/session-stats.mjs`, the OpenCode plugin edit in `install-agent-extensions.sh` | Skill linking is unavailable; the script reports `node is missing`. |
-| `pi` | `pi install` for manifest entries, `pi update --extensions`, every Pi session | Pi package/config application warns and is skipped when `pi` is absent; the update command is also guarded by `command -v pi`. |
+| `npm` / `npx` | Pi and the other npm-backed CLI installs, all `npx skills add` lines, Neovim tooling, `agents/link-skills.mjs` (Node) | Setup cannot install the required CLIs or skills. |
+| `node` (>= 22.19.0) | `setup_env.sh`, `agents/link-skills.mjs`, `pi/agent/bin/session-stats.mjs`, the OpenCode plugin edit in `install-agent-extensions.sh` | Setup exits before provisioning; Node-based tools cannot run. |
+| `pi` | `pi install` for manifest entries, `pi update --extensions`, every Pi session | Setup fails its required-CLI verification and Pi cannot run. |
+| `gentle-ai`, `gga`, `agy`, `codex`, `claude`, `gemini`, `copilot`, `opencode`, `cursor-agent` | Required coding-agent CLIs installed by `setup_env.sh` | Setup fails its final required-command verification if any is unavailable. |
 | `nvim` (>= 0.12.0) | `extensions/vim-editor.ts` (`alt+m`) | The shortcut fails to spawn the editor. |
 | `herdr` | `extensions/fork-out.ts`, `extensions/herdr-nvim-blocked/index.ts`, `bin/open-nvim.sh`, the `herdr-devbox` alias | `/fork-out` and the blocked-pane marker cannot report; `open-nvim.sh` exits 1 outside herdr. |
 | `tmux` | `extensions/tmux-progress.ts` | No tab progress; the extension is otherwise inert. |
@@ -290,12 +294,12 @@ Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` in
 
 | Upstream | Skills | Installer |
 | --- | --- | --- |
-| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi --copy --yes` (`setup_env.sh` line 290) |
-| `mattpocock/skills` | `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research` | `npx skills@latest add` (line 291) |
-| `pedronauck/skills` | `typescript-advanced` | `npx skills add` (line 292) |
-| `humanlayer/skills` | `show-me` | `npx skills add` (line 293) |
-| `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` (line 294) |
-| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | `npx skills add "...#v0.1.0"` with an unpinned fallback (lines 302-303); the `aimem` CLI installer runs with `--no-skill` (line 308) |
+| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi --copy --yes` (`setup_env.sh` line 402) |
+| `mattpocock/skills` | `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research` | `npx skills@latest add` (line 403) |
+| `pedronauck/skills` | `typescript-advanced` | `npx skills add` (line 404) |
+| `humanlayer/skills` | `show-me` | `npx skills add` (line 405) |
+| `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` (line 406) |
+| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | `npx skills add "...#v0.1.0"` with an unpinned fallback (lines 414-415); the `aimem` CLI installer runs with `--no-skill` (lines 418-420) |
 | `h3nryprod01/design-taste` | `design-taste` | `npx skills@latest add ... --global --agent <agent> --copy --yes`, per detected CLI, in `install-agent-extensions.sh` |
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
@@ -372,7 +376,7 @@ curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
 
 - `pi/agent/extensions/herdr-agent-state.ts` is produced by `herdr integration install pi` (already run by `setup_env.sh`), is machine-local, and is ignored by `pi/agent/.gitignore`. It is present on this machine. A pi session started before the integration was installed does not load it and must be restarted.
 - `pi/agent/package.json` declares `"pi-extensible-workflows": "file:../../../pi-workflows/packages/core"`. From `pi/agent` that resolves to `<repo>/../pi-workflows/packages/core`, which does not exist in this layout. Not verified: whether anything ever installs it.
-- `setup_env.sh` installs the Pi CLI only on Arch (lines 253-262). On Debian/Ubuntu the block is skipped and `pi` must already be present; the package application and later `pi update --extensions` are guarded by `command -v pi`.
+- `setup_env.sh` installs the Pi CLI with npm when it is missing on every supported distro; only the mise Pi shim cleanup is Arch/Omarchy-specific. The package application and later `pi update --extensions` remain guarded by `command -v pi`.
 - `pi/agent/settings.json` ships theme `dark`; `themes/omarchy-system.json` is not selected by any setting here. Unverified: whether it is meant to be activated on Omarchy.
 - `pi/agent/npm/node_modules` is git-ignored, preserved by `sync_pi`, and not populated by a direct `npm install` in `setup_env.sh`. Unverified: which step is expected to populate it.
 - `agents/link-skills.mjs` junction discovery is verified for Pi only. For the other harnesses the manifest records the expected root; a harness that ignores junctions in its own directory is not detected. Run `--verify` and start each harness once after `--apply`.

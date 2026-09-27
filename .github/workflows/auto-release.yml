@@ -30,14 +30,18 @@ jobs:
           set -euo pipefail
           git fetch --tags --force
 
-          current_tag="$(git tag --points-at "$GITHUB_SHA" --list 'v[0-9]*.[0-9]*.[0-9]*' | sort -V | tail -n 1)"
+          stable_tags() {
+            git tag "$@" --list 'v*' | awk '/^v[0-9]+\.[0-9]+\.[0-9]+$/'
+          }
+
+          current_tag="$(stable_tags --points-at "$GITHUB_SHA" | sort -V | tail -n 1)"
           if [[ -n "$current_tag" ]]; then
             echo "tag=$current_tag" >> "$GITHUB_OUTPUT"
             echo "Commit already has $current_tag; release creation will be idempotent."
             exit 0
           fi
 
-          latest_tag="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n 1)"
+          latest_tag="$(stable_tags | sort -V | tail -n 1)"
           latest_tag="${latest_tag:-v0.0.0}"
           version="${latest_tag#v}"
           IFS=. read -r major minor patch <<< "$version"

@@ -23,6 +23,20 @@ case "${ID:-}:${ID_LIKE:-}" in
     ;;
 esac
 
+mkdir -p "$HOME/.bin" "$HOME/.local/bin"
+export PATH="$HOME/.local/bin:$HOME/.bin:/usr/local/go/bin:/opt/nvim-linux-x86_64/bin:$PATH"
+for command_name in node npm npx; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'ERROR: %s is required; install Node.js >=22.19.0 (which provides npm and npx) and retry.\n' "$command_name" >&2
+    exit 1
+  fi
+done
+node_version=$(node --version)
+if [ "$(printf '%s\n' 22.19.0 "${node_version#v}" | sort -V | head -1)" != 22.19.0 ]; then
+  printf 'ERROR: Node.js >=22.19.0 is required; found %s.\n' "$node_version" >&2
+  exit 1
+fi
+
 install_package() {
   local command_name=$1 package_name=${2:-$1}
   command -v "$command_name" >/dev/null 2>&1 && return
@@ -79,13 +93,13 @@ install_release() {
       printf 'WARN: skipping %s: the release lookup for %s failed (curl exit %s). Continuing without it.\n' \
         "$binary" "$repository" "$rc" >&2
     fi
-    rm -rf "$workdir"
+    rm -r -- "$workdir"
     return 0
   fi
   if [ -z "$url" ]; then
     printf 'WARN: skipping %s: no release asset in %s matches %s. Continuing without %s.\n' \
       "$binary" "$repository" "$asset_pattern" "$binary" >&2
-    rm -rf "$workdir"
+    rm -r -- "$workdir"
     return 0
   fi
 
@@ -94,7 +108,7 @@ install_release() {
   # `-print -quit` stops at the first match: `| head -1` here exits 141 under
   # `pipefail` once the matches exceed the pipe buffer.
   install -Dm755 "$(find "$workdir" -type f -name "$binary" -perm -u+x -print -quit)" "$HOME/.bin/$binary"
-  rm -rf "$workdir"
+  rm -r -- "$workdir"
 }
 
 append_once() {
@@ -116,7 +130,7 @@ install_cli_anything_pi() (
 
   local workdir source extension_source plugin_source target asset resource_dir
   workdir=$(mktemp -d)
-  trap 'rm -rf "$workdir"' EXIT
+  trap 'rm -r -- "$workdir"' EXIT
   source="$workdir/source"
   git -C "$workdir" init -q source
   git -C "$source" remote add origin https://github.com/HKUDS/CLI-Anything.git
@@ -247,8 +261,6 @@ if [ "$IS_WSL" -eq 1 ]; then
   install_package convert imagemagick
 fi
 
-mkdir -p "$HOME/.bin" "$HOME/.local/bin"
-export PATH="$HOME/.local/bin:$HOME/.bin:/usr/local/go/bin:/opt/nvim-linux-x86_64/bin:$PATH"
 command -v bat >/dev/null 2>&1 || ln -sf "$(command -v batcat)" "$HOME/.bin/bat"
 if [ "$PACKAGE_MANAGER" = arch ]; then
   install_package lazygit lazygit
@@ -277,24 +289,44 @@ if ! command -v go >/dev/null 2>&1; then
   go_version=1.24.4
   archive=$(mktemp)
   curl -fsSL "https://go.dev/dl/go${go_version}.linux-amd64.tar.gz" -o "$archive"
-  sudo rm -rf /usr/local/go
+  if [ -e /usr/local/go ] || [ -L /usr/local/go ]; then
+    sudo rm -r -- /usr/local/go
+  fi
   sudo tar -C /usr/local -xzf "$archive"
   rm -f "$archive"
 fi
 
-nvim_bin=$(command -v nvim || true)
-nvim_version=$([ -n "$nvim_bin" ] && "$nvim_bin" --version | head -1 | sed 's/^NVIM v//' || true)
+if nvim_bin=$(command -v nvim); then
+  nvim_version=$("$nvim_bin" --version | sed -n '1s/^NVIM v//p')
+else
+  printf 'WARN: Neovim is not installed; setup will install it.\n' >&2
+  nvim_version=
+fi
 if [ -z "$nvim_version" ] || [ "$(printf '%s\n' 0.12.0 "$nvim_version" | sort -V | head -1)" != 0.12.0 ]; then
   if [ "$PACKAGE_MANAGER" = arch ]; then
-    install_package nvim neovim
-    nvim_bin=$(command -v nvim)
+    if command -v omarchy >/dev/null 2>&1; then
+      omarchy pkg add neovim
+    else
+      sudo pacman -S --needed --noconfirm neovim
+    fi
+    if ! nvim_bin=$(command -v nvim); then
+      printf 'ERROR: Neovim was not found after installing the package.\n' >&2
+      exit 1
+    fi
   else
-  archive=$(mktemp)
-  curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o "$archive"
-  sudo rm -rf /opt/nvim-linux-x86_64
-  sudo tar -C /opt -xzf "$archive"
-  rm -f "$archive"
+    archive=$(mktemp)
+    curl -fsSL https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz -o "$archive"
+    if [ -e /opt/nvim-linux-x86_64 ] || [ -L /opt/nvim-linux-x86_64 ]; then
+      sudo rm -r -- /opt/nvim-linux-x86_64
+    fi
+    sudo tar -C /opt -xzf "$archive"
+    rm -f "$archive"
     nvim_bin=/opt/nvim-linux-x86_64/bin/nvim
+  fi
+  nvim_version=$("$nvim_bin" --version | sed -n '1s/^NVIM v//p')
+  if [ -z "$nvim_version" ] || [ "$(printf '%s\n' 0.12.0 "$nvim_version" | sort -V | head -1)" != 0.12.0 ]; then
+    printf 'ERROR: Neovim >=0.12.0 is required after installation; found %s.\n' "${nvim_version:-unknown}" >&2
+    exit 1
   fi
 fi
 
@@ -329,7 +361,9 @@ if [ "$PACKAGE_MANAGER" = arch ]; then
     mise unuse -g pi
     mise uninstall --all pi
   fi
-  npm install -g --ignore-scripts --prefix "$HOME/.local" @earendil-works/pi-coding-agent
+fi
+if ! command -v pi >/dev/null 2>&1; then
+  npm install -g --ignore-scripts --prefix "$HOME/.local" @earendil-works/pi-coding-agent </dev/null
 fi
 
 sync_pi
@@ -351,7 +385,10 @@ elif [ -r "$pi_packages" ]; then
     # not expand a tilde inside a quoted word read from a file, so do it here.
     case "$spec" in '~/'*) spec="$HOME/${spec#\~/}" ;; esac
     case "$spec" in *pi-extensible-workflows*) continue ;; esac
-    pi install "$spec" </dev/null || printf 'WARN: pi install %s failed; continuing\n' "$spec" >&2
+    if ! pi install "$spec" </dev/null; then
+      printf 'ERROR: pi install %s failed; setup cannot continue.\n' "$spec" >&2
+      exit 1
+    fi
   done < "$pi_packages"
 fi
 # The shared agent-skill stack. When setup-ai orchestrates this script it already
@@ -383,14 +420,35 @@ command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https:/
   | AIMEM_REF="${AIMEM_REF}" bash -s -- --no-skill
 
 # AI coding CLIs — installed only when missing, via each tool's official installer.
-command -v gentle-ai >/dev/null 2>&1 || curl -fsSL https://raw.githubusercontent.com/Gentleman-Programming/gentle-ai/main/scripts/install.sh | bash
+command -v gentle-ai >/dev/null 2>&1 || GOBIN="$HOME/.local/bin" go install github.com/gentleman-programming/gentle-ai/v2/cmd/gentle-ai@latest
 if ! command -v gga >/dev/null 2>&1; then
-  printf 'ERROR: gentle-ai setup completed without the gga executable; cannot install the repository pre-commit hook.\n' >&2
+  # gentle-ai's installer only installs gentle-ai; gga has its own installer and must run from a clone.
+  (
+    GGA_TMP="$(mktemp -d)"
+    trap 'rm -r -- "$GGA_TMP"' EXIT
+    git clone --depth 1 https://github.com/Gentleman-Programming/gentleman-guardian-angel.git "$GGA_TMP"
+    (cd "$GGA_TMP" && ./install.sh </dev/null)
+  )
+fi
+if ! command -v gga >/dev/null 2>&1; then
+  printf 'ERROR: the gentleman-guardian-angel installer completed without the gga executable; cannot install the repository pre-commit hook.\n' >&2
   exit 1
 fi
 (cd "$REPO_DIR" && gga install)
 command -v agy >/dev/null 2>&1 || curl -fsSL https://antigravity.google/cli/install.sh | bash
 command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh
+command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
+command -v gemini >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" @google/gemini-cli </dev/null
+command -v copilot >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" @github/copilot </dev/null
+command -v opencode >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" opencode-ai </dev/null
+command -v cursor-agent >/dev/null 2>&1 || curl -fsSL https://cursor.com/install | bash
+
+for command_name in pi gentle-ai gga agy codex claude gemini copilot opencode cursor-agent; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    printf 'ERROR: required AI CLI %s was not found after installation; ensure its installer populated PATH and retry.\n' "$command_name" >&2
+    exit 1
+  fi
+done
 if command -v herdr >/dev/null 2>&1; then
   [ -x /usr/local/bin/bun ] || sudo "$(command -v npm)" install -g --prefix /usr/local bun
   herdr integration install pi
