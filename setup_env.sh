@@ -435,6 +435,7 @@ if ! command -v gga >/dev/null 2>&1; then
   exit 1
 fi
 (cd "$REPO_DIR" && gga install)
+"$REPO_DIR/agents/ensure-claude-root-mode.sh"
 command -v agy >/dev/null 2>&1 || curl -fsSL https://antigravity.google/cli/install.sh | bash
 command -v codex >/dev/null 2>&1 || curl -fsSL https://chatgpt.com/codex/install.sh | sh
 command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
