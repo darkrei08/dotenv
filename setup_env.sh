@@ -421,6 +421,7 @@ command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https:/
 
 # AI coding CLIs — installed only when missing, via each tool's official installer.
 command -v gentle-ai >/dev/null 2>&1 || GOBIN="$HOME/.local/bin" go install github.com/gentleman-programming/gentle-ai/v2/cmd/gentle-ai@latest
+"$REPO_DIR/agents/ensure-claude-root-mode.sh"
 if ! command -v gga >/dev/null 2>&1; then
   # gentle-ai's installer only installs gentle-ai; gga has its own installer and must run from a clone.
   (

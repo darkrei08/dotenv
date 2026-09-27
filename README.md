@@ -65,16 +65,16 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 | 369-370 | `sync_pi` and install the CLI-Anything Pi extension. |
 | 372-393 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
 | 394-420 | **Pi skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, run the shared `npx skills add ... --global --agent pi --copy --yes` commands for `herdrdev/herdr`, `mattpocock/skills` (`triage grill-me grilling wayfinder domain-modeling prototype research`), `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install has an unpinned fallback, and its CLI installer runs with `--no-skill`. |
-| 422-451 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
-| 452-457 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
-| 458-475 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
-| 477-478 | Fail if the managed Pi alias or extension configuration has drifted. |
+| 422-452 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, then (as root only) `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
+| 453-458 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
+| 459-476 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
+| 478-479 | Fail if the managed Pi alias or extension configuration has drifted. |
 
 The Pi block in full:
 
 - **The `~/.pi/agent` configuration.** `sync_pi` (lines 196-238) removes a leftover symlink, creates a real directory, and selectively rsyncs the versioned allowlist from `$REPO_DIR/pi/agent`. It preserves runtime state such as `auth.json`, `sessions/`, `agents/`, `chains/`, `npm/node_modules`, and caches. The `extensions/` copy excludes `piextworkflows.ts` and `pi-ext-workflows/` (lines 224-229), which setup-ai's `pi-workflows` module owns; it verifies `pi-extensible-workflows/roles` and `settings.json` (lines 231-238).
 - **Package installs.** The Pi CLI itself comes from npm (`@earendil-works/pi-coding-agent`, lines 365-367), `setup_env.sh` applies `pi/agent/pi-packages.txt` with `pi install` (lines 372-393), and the skill packages come from the guarded `npx skills add` blocks (lines 394-420). `@darkrei08/setup-ai`'s `pi-packages` module also consumes the manifest when orchestrated (see [Pi configuration composition](#pi-configuration-composition)).
-- **`pi` commands.** `pi install` applies each manifest entry (lines 388-391), and `pi update --extensions` runs at line 457 when `pi` is on `PATH`.
+- **`pi` commands.** `pi install` applies each manifest entry (lines 388-391), and `pi update --extensions` runs at line 458 when `pi` is on `PATH`.
 
 ## Managed configuration
 
@@ -333,7 +333,7 @@ Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` in
 
 The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, `pi`, plus `~/.agents/skills`). One failing host is logged and does not stop the run; the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
 
-Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker, never by `setup_env.sh`.
+Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker; the one exception is that `setup_env.sh`, when run as root, sets `permissions.defaultMode` to `default` in `~/.claude/settings.json` and preserves every other setting.
 
 ## Verification
 
