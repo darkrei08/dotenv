@@ -41,7 +41,6 @@ required_packages=(
   npm:pi-extensible-workflows
   npm:gentle-pi
   npm:gentle-engram
-  npm:pi-mcp-adapter
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do

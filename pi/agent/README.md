@@ -2,7 +2,7 @@
 
 The parent repository's `setup_env.sh` selectively rsyncs managed files into `~/.pi/agent` and preserves runtime state such as credentials, sessions, and installed packages. It does not replace the live directory with a symlink.
 
-The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`, `pi-mcp-adapter`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
+The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
 
 ## CLIProxyAPI
 
@@ -16,7 +16,7 @@ After upstream authentication:
 - use `/fast` for priority processing and `/pause` or `/continue` to control provider requests;
 - select live `cliproxyapi/...` models from `/model` or use the protected workflow aliases.
 
-The MCP adapter is enabled by `npm:pi-mcp-adapter`; its status can show a server as cached/not listening because idle servers connect lazily. That is expected, not a disabled server. Verify the configured catalogs with `node ~/.pi/agent/npm/node_modules/pi-mcp-adapter/cli.js doctor`.
+MCP servers in `~/.pi/agent/mcp.json` are served by Pi's built-in MCP (Pi 0.99.0 or later). Gentle AI 4.0.0 retires `pi-mcp-adapter` on sync, and an installed adapter would replace the built-in support, so neither `npm:pi-mcp-adapter` nor `-builtin:mcp` belongs in `settings.json`. Verify the servers with `pi mcp list`.
 
 The Tuxevil fallback remains optional until CLIProxyAPI returns a non-empty model catalog. Do not remove it preemptively.
 

@@ -17,11 +17,12 @@
 #     <path>                     local checkout, absolute or ~/...
 #
 # DELIBERATELY NOT LISTED
-#   * pi-extensible-workflows, gentle-pi, pi-mcp-adapter: setup-ai owns these.
+#   * pi-extensible-workflows, gentle-pi: setup-ai owns these.
 #     Its `pi-workflows` module installs pi-extensible-workflows (published
 #     release or patched local build), and its `gentle-ai` module runs
-#     `pi install npm:gentle-pi` + `npm:pi-mcp-adapter` and verifies both in
-#     settings.json. They stay OUT of this manifest so the module keeps
+#     `pi install npm:gentle-pi` and verifies it in settings.json.
+#   * pi-mcp-adapter: not installed. Gentle AI 4 retires it and Pi's built-in
+#     MCP reads ~/.pi/agent/mcp.json. They stay OUT of this manifest so the module keeps
 #     ownership, but they ARE listed in settings.json: setup_env.sh rsyncs that
 #     file over ~/.pi/agent, so an entry only the module added would be dropped
 #     by the next dotenv run (the module then fails its own verification).

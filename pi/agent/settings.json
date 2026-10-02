@@ -36,8 +36,7 @@
     {
       "source": "npm:@router-for-me/pi-cliproxyapi-provider",
       "extensions": ["-extensions/tps.ts"]
-    },
-    "npm:pi-mcp-adapter"
+    }
   ],
   "enabledModels": [
     "cliproxyapi/claude-opus-5-5",
