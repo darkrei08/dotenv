@@ -361,6 +361,8 @@ inference for current targets has not been verified.
 
 | Alias | Configured target | Resolution or availability |
 |---|---|---|
+| `cheap-model-ant` | `cliproxyapi/claude-sonnet-5-5:medium` | Optional Vekexasia-compatible target; inference not verified |
+| `cheap-model-oai` | `cliproxyapi/gpt-5.6-luna:high` | Optional Vekexasia-compatible target; inference not verified |
 | `cheap-model` | `cliproxyapi/gpt-6-luna:high` | Configured; inference not verified |
 | `developer-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
 | `oracle-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
@@ -368,6 +370,8 @@ inference for current targets has not been verified.
 | `scout-model` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
 | `tests-expert` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
 | `reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
+| `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Optional workflow aliases; gateway availability not verified |
+| `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Optional workflow aliases; gateway availability not verified |
 
 The workflow package also ships dynamic aliases with these names
 (`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic

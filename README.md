@@ -114,13 +114,16 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi`, `npm:pi-mcp-adapter` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the other two and verifies both, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `github:darkrei08/pi-cockpit-tools-sync` | Pi parses a bare `github:` source as a local path, so a manifest line cannot recreate it. |
+| `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
 
-`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The three module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` is a plain `pi-packages.txt` line: `pi install` records it in the live `~/.pi/agent/npm/package.json`, and it is not repinned here.
+`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The three module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` and `npm:@router-for-me/pi-cliproxyapi-provider` are plain `pi-packages.txt` lines: `pi install` records them in the live `~/.pi/agent/npm/package.json`, and they are not repinned here.
 
 Third-party packages:
 
 | Package | Contributes |
 | --- | --- |
+| `npm:@router-for-me/pi-cliproxyapi-provider` | Dynamic `cliproxyapi` provider: discovers models from the local CLIProxyAPI service; `extensions/tps.ts` is excluded (see above). |
+| `npm:pi-mcp-adapter` | MCP gateway (`mcp` tool) for the servers in `~/.pi/agent/mcp.json`; idle servers connect lazily. |
 | `pi/agent/extensions/light-web-search.ts` | Tracked `web_search` replacement for `pi-web-access`; tries CLIProxyAPI first and falls back to openai-codex, avoiding duplicate `web_search` registration. |
 | `git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url` | `pi-chrome-cdp`: drives the user's already-open Chrome session; `bin/cdp` points at its `scripts/cdp.mjs`. |
 | `git:github.com/vekexasia/pi-high-availability` | Automatic failover when a quota or capacity is exhausted. Enabled with `extensions/index.ts`; reads `~/.pi/agent/ha.json` (credentials, git-ignored; see `ha-failover.example.json`). |
@@ -176,7 +179,7 @@ The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`
 | --- | --- |
 | `pi/agent/settings.json` | Effective Pi settings: `defaultProvider`/`defaultModel`/`defaultThinkingLevel`, `modelThinkingLevels`, `compaction`, `theme`, the `packages` list, `hideThinkingBlock`, `showCacheMissNotices`, `tuiMode`. |
 | `pi/agent/models.json` | Provider catalog and overrides; see [Providers and credentials](#providers-and-credentials). |
-| `pi/agent/modes.json` | `advisor`: provider `opencode-go`, modelId `deepseek-v4-flash`, `thinkingLevel: xhigh`, `autostart: true`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
+| `pi/agent/modes.json` | `advisor`: provider `openrouter`, modelId `deepseek/deepseek-v4.1-flash`, `thinkingLevel: xhigh`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-extensible-workflows/settings.json` | `modelAliases`, the workflow `skills` allowlist, the workflow `extensions` allowlist, and `extensionSettings` for `herdr` and `trajectory`. |
 | `pi/agent/pi-extensible-workflows/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`. |
@@ -246,13 +249,14 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 `pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
 
-`pi/agent/models.json` declares three providers:
+`pi/agent/models.json` declares three static providers; the Pi CLIProxyAPI extension adds a fourth provider dynamically from the live catalog:
 
 | Provider | What the file adds |
 | --- | --- |
 | `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`; there are no fallback providers or quantization pins. |
 | `openai-codex` | Five models: `gpt-5.6-luna` (cost 1/6 per million), `gpt-5.6-sol` (5/30), `gpt-6-luna` (0.1/0.5), `gpt-6-sol` (2/10), and `gpt-5.6-terra` (2.5/15). All use text+image, `openai-codex-responses`, 250k context, and 128k max output. |
 | `tuxevil-rotator` | The local Gemini gateway: `baseUrl` `http://localhost:51200/v1`, `api: openai-completions`, `apiKey: tuxevil` (documented non-secret open-mode key). Five models, one per thinking effort: `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, `gemini-3.1-pro-low`, `gemini-3.1-pro-high`, each 1,000,000-token context and 65,536 max output, text+image. Each `thinkingLevelMap` maps exactly one effort level and nulls the rest. |
+| `cliproxyapi` | Dynamic OpenAI-compatible provider from the local CLIProxyAPI service. Reuse `cliproxyapi-dashboard` at `http://127.0.0.1:8318` on this machine; the standalone Compose setup uses `http://127.0.0.1:8317`. |
 
 Install, authenticate and start the local gateway before using those models:
 
@@ -263,9 +267,9 @@ tuxevil-rotator start
 curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
 ```
 
-Credentials live in `~/.pi/agent/auth.json`, which is git-ignored (`/auth.json` in `pi/agent/.gitignore`) and preserved by `sync_pi`. Pi selects the provider/model target configured in `models.json`. The tracked files do not verify the runtime credential contents or how each credential is acquired; this repository does not store or modify them.
+Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects static targets from `models.json` and live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` intentionally route `cheap-model` to `cliproxyapi/gpt-6-luna:high` and `reviewer-model` to `cliproxyapi/claude-opus-5-5:high`, with chained standard roles. The local Tuxevil catalog and `opencode-max` mode remain available when present but are not used by these standard aliases.
+Standard workflow aliases preserve the repository's protected route: `cheap-model` uses `cliproxyapi/gpt-6-luna:high`, the chained developer/oracle/researcher/scout/test roles use that route, and `reviewer-model` uses `cliproxyapi/claude-opus-5-5:high`. Vekexasia-compatible alternatives remain available as explicit `cheap-model-ant` and `cheap-model-oai` aliases; the local Tuxevil catalog and `opencode-max` mode remain available for explicit use.
 
 ## External binaries and runtime dependencies
 

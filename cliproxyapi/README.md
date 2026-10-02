@@ -2,6 +2,8 @@
 
 This Compose setup runs the official `eceasy/cli-proxy-api:latest` image. The API and Codex OAuth callback are published only on host loopback: `127.0.0.1:8317` and `127.0.0.1:1455`. The service listens on `0.0.0.0` inside Docker so the container can receive traffic; the host bindings keep it inaccessible from other machines.
 
+If this machine already runs the `cliproxyapi-dashboard` stack, do not start a second copy: that stack exposes the API on `127.0.0.1:8318` and uses the same container port `8317`. Point Pi at `http://127.0.0.1:8318` in that case.
+
 ## Configure and run
 
 From the repository root:
@@ -25,6 +27,18 @@ Stop it with:
 ```bash
 docker compose down
 ```
+
+Check the API without printing the key or response body:
+
+```bash
+CPA_KEY='paste-the-local-api-key-here'
+curl -fsS -o /dev/null -w 'HTTP %{http_code}\n' \
+  -H "Authorization: Bearer ${CPA_KEY}" \
+  'http://127.0.0.1:8317/v1/models?client_version=pi'
+unset CPA_KEY
+```
+
+For the existing dashboard stack, replace `8317` with `8318`.
 
 ## Add Codex provider authentication
 
@@ -67,4 +81,4 @@ The provider package `npm:@router-for-me/pi-cliproxyapi-provider` is declared in
 /model
 ```
 
-Use the inbound client API key from `config.yaml` when Pi requests the proxy credential. Pi's interactive login stores credentials in `~/.pi/agent/auth.json`; keep that file private (`chmod 600 ~/.pi/agent/auth.json`) and never commit it. After upstream OAuth completes, `/model` discovers the available model catalog dynamically. Workflow aliases now use CLIProxyAPI targets, including `reviewer-model=cliproxyapi/claude-opus-5-5:high` and `cheap-model=cliproxyapi/gpt-6-luna:high`; other standard role aliases chain through `cheap-model`. Pi's interactive default remains `openai-codex/gpt-5.6-luna` unless you select another model. No upstream OAuth is initiated until you explicitly complete the login above.
+Use the inbound client API key from `config.yaml` when Pi requests the proxy credential. Pi's interactive login stores credentials in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`; keep both private and never commit them. After upstream OAuth completes, `/model` discovers the available model catalog dynamically. Use `/cliproxyapi-refresh` after changing upstream accounts, `/fast` only when priority processing is wanted, and `/pause`/`/continue` to hold or resume provider requests. The protected workflow aliases use `cheap-model=cliproxyapi/gpt-6-luna:high` and `reviewer-model=cliproxyapi/claude-opus-5-5:high`; the optional `cheap-model-ant` and `cheap-model-oai` aliases are also available. Pi's interactive default remains `openai-codex/gpt-5.6-luna` unless you select another model. No upstream OAuth is initiated until you explicitly complete the login above.

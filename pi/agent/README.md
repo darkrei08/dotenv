@@ -1,8 +1,24 @@
 # Pi configuration
 
-This directory is linked to `~/.pi/agent` by the parent repository's `setup_env.sh`. Running setup replaces any existing target with this symlink.
+The parent repository's `setup_env.sh` selectively rsyncs managed files into `~/.pi/agent` and preserves runtime state such as credentials, sessions, and installed packages. It does not replace the live directory with a symlink.
 
 The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`, `pi-mcp-adapter`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
+
+## CLIProxyAPI
+
+The preferred proxy setup is [`cliproxyapi/README.md`](../../cliproxyapi/README.md). It keeps upstream OAuth and routing in CLIProxyAPI while Pi selects models through one OpenAI-compatible endpoint.
+
+This machine already runs `cliproxyapi-dashboard` on `http://127.0.0.1:8318`. Reuse it instead of starting the separate Compose stack on port `8317`. Keep CLIProxyAPI credentials in private local Pi files, never in this repository.
+
+After upstream authentication:
+
+- run `/cliproxyapi-refresh` after account or routing changes;
+- use `/fast` for priority processing and `/pause` or `/continue` to control provider requests;
+- select live `cliproxyapi/...` models from `/model` or use the protected workflow aliases.
+
+The MCP adapter is enabled by `npm:pi-mcp-adapter`; its status can show a server as cached/not listening because idle servers connect lazily. That is expected, not a disabled server. Verify the configured catalogs with `node ~/.pi/agent/npm/node_modules/pi-mcp-adapter/cli.js doctor`.
+
+The Tuxevil fallback remains optional until CLIProxyAPI returns a non-empty model catalog. Do not remove it preemptively.
 
 ## Tuxevil Gemini gateway
 
@@ -34,7 +50,7 @@ pi --model tuxevil-rotator/gemini-3.1-pro-low
 pi --model tuxevil-rotator/gemini-3.1-pro-high
 ```
 
-The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemini-pro-low`, and `gemini-pro-high` names are **workflow-scoped aliases** defined in `pi-extensible-workflows/settings.json`. They resolve only where the workflow extension accepts model aliases (workflow role/model settings), not on the Pi CLI or in the native `/model` picker, until a global alias mechanism is verified. Selecting a model does not change the active workflow role. Existing `cheap-model` and role aliases remain unchanged.
+The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemini-pro-low`, and `gemini-pro-high` names are workflow-scoped aliases defined in `pi-extensible-workflows/settings.json`. They resolve only where the workflow extension accepts model aliases, not in the Pi CLI or native `/model` picker. Selecting a model does not change the active workflow role. The standard role aliases remain on the protected CLIProxyAPI route; the Gemini aliases are optional Tuxevil fallbacks.
 
 `cockpit-tools` is separate: it is the GUI/account manager and Codex sidecar, not the Gemini gateway. Use `tuxevil-rotator` for the Gemini-compatible endpoint above. `~/.pi/agent/auth.json` and tuxevil account tokens remain local and untracked; this repository does not store or modify them.
 

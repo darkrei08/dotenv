@@ -45,7 +45,7 @@
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-astra",
     "cliproxyapi/gpt-6-luna",
-    "openai-codex/deepseek-v4.1-flash"
+    "opencode-go/deepseek-v4.1-flash"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,
