@@ -1,6 +1,6 @@
 # Pi configuration
 
-This directory is linked to `~/.pi/agent` by the parent repository's `setup_env.sh`. Running setup replaces any existing target with this symlink.
+The parent repository's `setup_env.sh` selectively synchronizes this directory into `~/.pi/agent`, preserving runtime state such as credentials, sessions, and installed packages. It removes a legacy symlink before creating the managed directory.
 
 The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`, `pi-mcp-adapter`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
 
@@ -47,3 +47,11 @@ The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemin
 - `/cockpit-proxy`: inspect or manage the local proxy.
 
 It does not commit tokens; OAuth data remains in the user profile and is never stored in this repository.
+
+## Context budget and compaction
+
+Pi compacts when the reported context exceeds `contextWindow - reserveTokens`, not at a fixed percentage. With Pi's default `reserveTokens: 16384` and `keepRecentTokens: 20000`, the approximate trigger is 87.50% for a 131,072-token window, 91.81% for 200,000, and 98.36% for 1,000,000. `keepRecentTokens` controls the retained tail after compaction; it does not change the trigger.
+
+Measure the effective limit for the exact `provider/model` before changing settings: use `pi --list-models`, `/session`, or the RPC session stats, and treat a gateway's `/v1/models` catalog as authoritative for that gateway. For long, tool-heavy sessions prefer a measured reserve that leaves room for the verified output budget rather than disabling compaction. The repository's `pi-codex-context` package adds session windows and history tools; it must remain the sole compaction provider for managed sessions.
+
+See the setup-ai [context-budget policy](https://github.com/darkrei08/setup-ai/blob/main/docs/context-budget.md) for the calculation, tuning examples, and verification record.
