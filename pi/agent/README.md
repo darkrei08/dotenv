@@ -1,65 +1,46 @@
 # Pi configuration
 
-The parent repository's `setup_env.sh` selectively rsyncs managed files into `~/.pi/agent` and preserves runtime state such as credentials, sessions, and installed packages. It does not replace the live directory with a symlink.
+The parent repository's `setup_env.sh` selectively rsyncs managed files into
+`~/.pi/agent` and preserves runtime state such as credentials, sessions, and
+installed packages. It does not replace the live directory with a symlink.
 
-The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
+The module-owned package entries in `settings.json` (`pi-extensible-workflows`,
+`gentle-pi`) are installed and verified by `@darkrei08/setup-ai`'s
+`pi-workflows` and `gentle-ai` modules. `npm:gentle-engram` is a plain
+`pi-packages.txt` line kept in both files for consistency.
 
 ## CLIProxyAPI
 
-The preferred proxy setup is [`cliproxyapi/README.md`](../../cliproxyapi/README.md). It keeps upstream OAuth and routing in CLIProxyAPI while Pi selects models through one OpenAI-compatible endpoint.
+The only configured model gateway is [CLIProxyAPI + CPA Usage Keeper](../../cliproxyapi/README.md).
+CPA manages OAuth provider accounts and dynamically exposes models to Pi.
+Keeper is the local usage, cost and quota dashboard:
 
-This machine already runs `cliproxyapi-dashboard` on `http://127.0.0.1:8318`. Reuse it instead of starting the separate Compose stack on port `8317`. Keep CLIProxyAPI credentials in private local Pi files, never in this repository.
+- CPA management: `http://127.0.0.1:8317/management.html`
+- Keeper dashboard: `http://127.0.0.1:8080`
 
-After upstream authentication:
+After authenticating an account in CPA:
 
 - run `/cliproxyapi-refresh` after account or routing changes;
-- use `/fast` for priority processing and `/pause` or `/continue` to control provider requests;
-- select live `cliproxyapi/...` models from `/model` or use the protected workflow aliases.
+- use `/fast` for priority processing and `/pause` or `/continue` to control requests;
+- select a live `cliproxyapi/...` model from `/model` or use the protected workflow aliases.
 
-MCP servers in `~/.pi/agent/mcp.json` are served by Pi's built-in MCP (Pi 0.99.0 or later). Gentle AI 4.0.0 retires `pi-mcp-adapter` on sync, and an installed adapter would replace the built-in support, so neither `npm:pi-mcp-adapter` nor `-builtin:mcp` belongs in `settings.json`. Verify the servers with `pi mcp list`.
-
-The Tuxevil fallback remains optional until CLIProxyAPI returns a non-empty model catalog. Do not remove it preemptively.
-
-## Tuxevil Gemini gateway
-
-The `tuxevil-rotator` provider sends Pi's OpenAI-compatible requests to `http://localhost:51200/v1` with the documented non-secret open-mode key `tuxevil`. The configured Gemini variants (Flash 3.8 and Pro 3.1, one model per thinking effort) share the documented 1,000,000-token context and 65,536-token output limits and accept text and image input. The gateway exposes Flash at low/medium/high and Pro at low/high only.
-
-Install, authenticate, and start the local gateway before using the aliases:
+Pi's built-in MCP reads `~/.pi/agent/mcp.json` on Pi 0.99.0 and later. Gentle
+AI 4.0.0 retires `pi-mcp-adapter` on sync, and an installed adapter replaces
+Pi's built-in MCP, so neither `npm:pi-mcp-adapter` nor `-builtin:mcp` belongs
+in `settings.json`. Verify the configured servers with:
 
 ```bash
-npm install -g tuxevil-rotator
-tuxevil-rotator login
-tuxevil-rotator start
+pi mcp list
 ```
 
-Verify the gateway and its model catalog locally:
+The standard workflow route is CLIProxyAPI only:
+`cheap-model=cliproxyapi/gpt-6-luna:high` and
+`reviewer-model=cliproxyapi/claude-opus-5-5:high`. The optional
+`cheap-model-ant` and `cheap-model-oai` aliases also use CLIProxyAPI.
 
-```bash
-curl http://localhost:51200/v1/models \
-  -H 'Authorization: Bearer tuxevil'
-```
+## Credentials and local files
 
-The configured Gemini IDs are exposed by `/v1/models`: the Flash effort variants `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, and the Pro effort variants `gemini-3.1-pro-low`, `gemini-3.1-pro-high`. Re-check `/v1/models` when the gateway catalog changes; the effort set mirrors what the gateway exposes. Account rotation happens inside `tuxevil-rotator`; Pi only selects the exact provider/model target configured here.
-
-Select a variant. For the Pi CLI and the native `/model` picker, use the full `provider/model` target (an optional thinking suffix maps to the configured level):
-
-```bash
-pi --model tuxevil-rotator/gemini-3.8-flash-low
-pi --model tuxevil-rotator/gemini-3.8-flash-high
-pi --model tuxevil-rotator/gemini-3.1-pro-low
-pi --model tuxevil-rotator/gemini-3.1-pro-high
-```
-
-The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemini-pro-low`, and `gemini-pro-high` names are workflow-scoped aliases defined in `pi-extensible-workflows/settings.json`. They resolve only where the workflow extension accepts model aliases, not in the Pi CLI or native `/model` picker. Selecting a model does not change the active workflow role. The standard role aliases remain on the protected CLIProxyAPI route; the Gemini aliases are optional Tuxevil fallbacks.
-
-`cockpit-tools` is separate: it is the GUI/account manager and Codex sidecar, not the Gemini gateway. Use `tuxevil-rotator` for the Gemini-compatible endpoint above. `~/.pi/agent/auth.json` and tuxevil account tokens remain local and untracked; this repository does not store or modify them.
-
-## Cockpit account sync extension
-
-`settings.json` installs `github:darkrei08/pi-cockpit-tools-sync` as a Pi extension. When setup-ai provisions the optional rotator module, it installs the same extension with `pi install`. The extension reads local cockpit-tools account markers and provides:
-
-- `/cockpit-sync`: sync the active cockpit account to Pi auth.
-- `/cockpit-provision`: provision cockpit accounts into a local rotator.
-- `/cockpit-proxy`: inspect or manage the local proxy.
-
-It does not commit tokens; OAuth data remains in the user profile and is never stored in this repository.
+Pi keeps provider credentials under ignored files in `~/.pi/agent/`. This
+repository never stores OAuth tokens, API keys, Keeper passwords, or CPA
+management keys. The local CPA and Keeper setup is described in
+`cliproxyapi/README.md`.

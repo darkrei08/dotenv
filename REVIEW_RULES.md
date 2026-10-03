@@ -17,8 +17,8 @@ A change that drops or alters any of these without an explicit instruction is a
 defect:
 
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
-  `gpt-6-luna` and `gpt-6-sol`. The local Tuxevil catalog is retained only when
-  it is still present and is not a standard workflow route.
+  `gpt-6-luna` and `gpt-6-sol`. Do not reintroduce a Tuxevil/rotator provider;
+  CLIProxyAPI is the sole local model gateway.
 - `pi/agent/pi-extensible-workflows/settings.json`: exact Vekexasia standard
   workflow routing is intentional: `cheap-model=cliproxyapi/gpt-6-luna:high`,
   `reviewer-model=cliproxyapi/claude-opus-5-5:high`, and chained standard roles.
@@ -28,7 +28,7 @@ defect:
   `skills` list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
   openai-codex`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: xhigh`,
-  `modelThinkingLevels`, and the `pi-cockpit-tools-sync` package.
+  and `modelThinkingLevels`.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.

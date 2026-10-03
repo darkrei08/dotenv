@@ -234,9 +234,9 @@ Two caveats that bite in practice:
 
 - `thinkingLevelMap` on a model declares which levels it supports. A `null`
   entry means the level is hidden or clamped away (`docs/models.md` lines 261
-  to 298). The `tuxevil-rotator` Gemini models in this repository encode the
-  effort in the model id itself (`gemini-3.8-flash-low`, `-medium`, `-high`),
-  so on that provider you pick the variant and cannot also pick a level.
+  to 298). CLIProxyAPI models are discovered dynamically, so verify the live
+  provider catalog after authenticating accounts instead of assuming every
+  configured alias is available.
 - gentle-pi's validator knows only `off` through `xhigh`
   (`THINKING_LEVEL` in `agents-config.ts` lines 16 to 23). It has no `max`.
   `effort: "max"` in `subagents.json` is silently dropped to no override, and
@@ -304,31 +304,20 @@ comes back.
 **An alias works in a workflow but not in SDD.** That is the trap above. The
 workflow resolver and the SDD resolver are different code paths.
 
-**Every alias pointing at one provider fails at once.** The provider is not
-running. The `tuxevil-rotator` aliases point at `http://localhost:51200/v1`. On
-2026-09-13 that gateway was down:
+**Every alias pointing at one provider fails at once.** Check the provider
+service before changing model names. CLIProxyAPI and CPA Usage Keeper run from
+the dotenv Compose stack:
 
 ```bash
-curl -sS -m 6 http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
-# curl: (7) Failed to connect to localhost:51200
+cd ~/git/personale/dotenv/cliproxyapi
+docker compose ps
+curl -sS -m 6 http://127.0.0.1:8317/v1/models
+# Keeper dashboard: http://127.0.0.1:8080
 ```
 
-The failure surfaces as a launch error per agent, not as a startup warning, so
-it looks like a model problem when it is a process problem. Start the gateway
-before blaming the alias. The same applies to any local proxy or rotator.
-
-Since 2026-09-13 two things start that gateway for you, so a down gateway is
-now the exception: `setup-ai`'s `rotator` module starts it in the background (and
-registers a `systemd --user` unit or a logon scheduled task), and the
-`rotator-autostart` Pi extension in `pi/agent/extensions/` starts it on session
-start when the port is dead. Concurrent sessions coordinate through one start
-claim, so opening several Pi instances produces one start, not one per session.
-A start that never comes up is reported once per session with a warning naming
-`~/.tuxevil-rotator/gateway.log`, which is where the detached process writes; when
-systemd owns the gateway, its output is in `journalctl --user -u tuxevil-rotator`.
-Login is still yours: without an account the gateway listens but has nothing to
-route, so run `tuxevil-rotator login` once.
-
+The response is empty until at least one provider account is authenticated in
+CLIProxyAPI. After adding or changing accounts, run `/cliproxyapi-refresh` in
+Pi and select a model from the refreshed dynamic catalog.
 **An alias resolves to a real model but the provider still rejects it.** The
 target can be in the catalog and still be unusable at the provider. Historical
 verification on 2026-09-21 found that `anthropic/claude-fable-5-1:high` answered
@@ -365,13 +354,11 @@ inference for current targets has not been verified.
 | `cheap-model-oai` | `cliproxyapi/gpt-5.6-luna:high` | Optional Vekexasia-compatible target; inference not verified |
 | `cheap-model` | `cliproxyapi/gpt-6-luna:high` | Configured; inference not verified |
 | `developer-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `oracle-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
+| `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
 | `researcher-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
 | `scout-model` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
 | `tests-expert` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
 | `reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
-| `gemini-flash-low|medium|high` | `tuxevil-rotator/gemini-3.8-flash-*` | Optional workflow aliases; gateway availability not verified |
-| `gemini-pro-low|high` | `tuxevil-rotator/gemini-3.1-pro-*` | Optional workflow aliases; gateway availability not verified |
 
 The workflow package also ships dynamic aliases with these names
 (`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic
@@ -408,7 +395,6 @@ from Pi's own cached catalogs in `~/.pi/agent/models-store.json` (catalog
 | `opencode-go/deepseek-v4-pro` | 0.66 | 1.98 | 0.022 | 0 |
 | `opencode-go/glm-5.3` | 1.40 | 4.40 | 0.26 | 0 |
 | `opencode-go/grok-4.6` | 2.00 | 6.00 | 0.50 | 0 |
-| `tuxevil-rotator/gemini-*` | 0 | 0 | 0 | 0 |
 
 Two things to take from that table.
 
@@ -420,11 +406,9 @@ custom entries replace a built-in model entry with the same id (Pi
 provider's pricing page, your measured costs are wrong even though your token
 counts are right.
 
-Second, **the gateway models record $0**. The `tuxevil-rotator` entries in
-`models.json` declare no `cost` block, so Pi defaults every rate to zero and the
-session accounting is free money that never existed. If you route through a
-gateway and want honest cost numbers, fill in the `cost` block from the
-gateway's own rates, or read the gateway's metering.
+Second, **dynamic gateway pricing is not implied by the model id**. If you
+want honest cost numbers for CLIProxyAPI routes, use CPA Usage Keeper's metering
+rather than treating Pi's static catalog as authoritative.
 
 For a public cross-check, OpenRouter publishes live per-endpoint pricing. Same
 model ids, first-party endpoint, USD per million (read 2026-09-13 from

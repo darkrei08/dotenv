@@ -1,8 +1,17 @@
-# CLIProxyAPI
+# CLIProxyAPI + CPA Usage Keeper
 
-This Compose setup runs the official `eceasy/cli-proxy-api:latest` image. The API and Codex OAuth callback are published only on host loopback: `127.0.0.1:8317` and `127.0.0.1:1455`. The service listens on `0.0.0.0` inside Docker so the container can receive traffic; the host bindings keep it inaccessible from other machines.
+This is the only local model gateway in this setup. The Compose stack runs the
+official CLIProxyAPI image and [CPA Usage Keeper](https://github.com/Willxup/cpa-usage-keeper).
+The API and OAuth callback are bound to loopback only:
 
-If this machine already runs the `cliproxyapi-dashboard` stack, do not start a second copy: that stack exposes the API on `127.0.0.1:8318` and uses the same container port `8317`. Point Pi at `http://127.0.0.1:8318` in that case.
+- CLIProxyAPI: `http://127.0.0.1:8317`
+- CPA management panel: `http://127.0.0.1:8317/management.html`
+- Keeper usage dashboard: `http://127.0.0.1:8080`
+- OAuth callback: `127.0.0.1:1455`
+
+CLIProxyAPI manages provider OAuth accounts and serves models. Keeper reads CPA
+usage, cost, request and quota data. Keeper is the usage interface; it does not
+replace CPA's management panel for adding OAuth accounts.
 
 ## Configure and run
 
@@ -11,24 +20,60 @@ From the repository root:
 ```bash
 cd cliproxyapi
 cp config.example.yaml config.yaml
+cp keeper.env.example keeper.env
+chmod 600 config.yaml keeper.env
 ```
 
-Edit `config.yaml` and replace `REPLACE_WITH_A_LONG_RANDOM_CLIENT_KEY` with a private random key for clients that call the proxy. This is an **inbound client API key**, not a credential for Codex or another upstream provider. Keep the ignored local file private; do not commit it. The Compose mount persists upstream OAuth credentials under the ignored `auths/` directory.
+Set these values before starting:
 
-Start the service and follow its logs:
+- `config.yaml`: a private inbound `api-keys` value and a private
+  `remote-management.secret-key`.
+- `keeper.env`: the same plaintext management key as
+  `CPA_MANAGEMENT_KEY`, plus a private `LOGIN_PASSWORD`.
+
+`remote-management.allow-remote: true` is required because Keeper calls CPA
+from another container. Host ports remain bound to `127.0.0.1`. CPA hashes the
+management key in `config.yaml` after startup; keep the plaintext copy only in
+the ignored `keeper.env` file.
+
+Start and inspect the stack:
 
 ```bash
 docker compose up -d
+docker compose ps
 docker compose logs -f cli-proxy-api
 ```
 
-Stop it with:
+Stop it without deleting local OAuth or Keeper data:
 
 ```bash
 docker compose down
 ```
 
-Check the API without printing the key or response body:
+Do not use `docker compose down -v` unless you deliberately want to delete
+Docker-managed volumes from an older deployment.
+
+## Add provider accounts
+
+The provider credentials are separate from the inbound API key. Use the CPA
+management panel, or start an OAuth flow in the running container:
+
+```bash
+docker compose exec cli-proxy-api \
+  /CLIProxyAPI/CLIProxyAPI -config /CLIProxyAPI/config.yaml -codex-login -no-browser
+
+docker compose exec cli-proxy-api \
+  /CLIProxyAPI/CLIProxyAPI -config /CLIProxyAPI/config.yaml -claude-login -no-browser
+
+docker compose exec cli-proxy-api \
+  /CLIProxyAPI/CLIProxyAPI -config /CLIProxyAPI/config.yaml -antigravity-login -no-browser
+```
+
+Open the URL printed by the command and complete the OAuth flow. Credentials
+are stored under the ignored `auths/` directory. No Pi credentials are copied
+automatically.
+
+Check the dynamic catalog without printing the API key:
 
 ```bash
 CPA_KEY='paste-the-local-api-key-here'
@@ -38,47 +83,38 @@ curl -fsS -o /dev/null -w 'HTTP %{http_code}\n' \
 unset CPA_KEY
 ```
 
-For the existing dashboard stack, replace `8317` with `8318`.
-
-## Add Codex provider authentication
-
-Upstream provider credentials are separate from the inbound `api-keys` value. To start Codex OAuth from the running service, execute:
-
-```bash
-docker compose exec cli-proxy-api cli-proxy-api --config /CLIProxyAPI/config.yaml --codex-login --no-browser
-```
-
-Open the URL printed by the command and explicitly complete the upstream OAuth flow. The OAuth callback uses port 1455, published on host loopback and forwarded to the container. The resulting provider credentials are stored in `auths/`; no existing Pi credentials are copied or used automatically.
-
-## Use Gemini CLI accounts
-
-CLIProxyAPI and `tuxevil-rotator` are separate gateways with separate OAuth credentials and quotas. Tuxevil remains a separate static provider/catalog and is not part of the standard workflow aliases. See the [Tuxevil setup](../pi/agent/README.md) for its Antigravity/Gemini account pool and existing Pi aliases.
-
-The official [Gemini CLI provider plugin](https://github.com/router-for-me/cpa-plugin-gemini-cli) supports OAuth login. Run this once for each Google account, completing the browser flow with the intended account:
-
-```bash
-docker compose exec cli-proxy-api cli-proxy-api \
-  --config /CLIProxyAPI/config.yaml --geminicli-login --no-browser
-```
-
-The OAuth credentials are stored under the mounted `auths/` directory. They are independent of the inbound client key in `config.yaml` and are not copied from Tuxevil or Pi. A saved credential can include multiple `project_ids`; CLIProxyAPI exposes those as virtual project credentials, not as additional Google accounts.
-
-After login, Pi's `/model` picker discovers the models exposed by CLIProxyAPI. Pi chooses the provider/model; CLIProxyAPI chooses an eligible credential. The documented [`routing.strategy`](https://github.com/router-for-me/CLIProxyAPIDocs/blob/main/docs/en/configuration/basic.md) supports `round-robin` (the default) or `fill-first`; you can set it explicitly in the ignored local `config.yaml`:
-
-```yaml
-routing:
-  strategy: "round-robin"
-```
-
-`quota-exceeded.switch-project` can try another project attached to a credential; it does not create accounts. Gemini CLI quota failover can vary by CLIProxyAPI release, so do not assume a rate-limited credential is always skipped immediately ([upstream issue #1756](https://github.com/router-for-me/CLIProxyAPI/issues/1756)). Tuxevil separately documents quota/health-aware routing for its own Antigravity account pool; account rotation can carry provider terms-of-service risk ([Tuxevil Rotator](https://github.com/tuxevil/tuxevil-rotator)).
+The response is empty until at least one provider account is authenticated.
+Keeper will then collect new usage records and refresh quota metadata.
 
 ## Connect Pi
 
-The provider package `npm:@router-for-me/pi-cliproxyapi-provider` is declared in both `pi/agent/settings.json` and `pi/agent/pi-packages.txt`. After syncing the repository's Pi configuration and installing packages (or run `pi install npm:@router-for-me/pi-cliproxyapi-provider` if it is not installed yet), restart Pi and use:
+The provider package `npm:@router-for-me/pi-cliproxyapi-provider` is declared
+in `pi/agent/settings.json` and `pi/agent/pi-packages.txt`. After syncing and
+installing the repository's Pi configuration, restart Pi and run:
 
 ```text
 /login CLIProxyAPI
 /model
 ```
 
-Use the inbound client API key from `config.yaml` when Pi requests the proxy credential. Pi's interactive login stores credentials in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`; keep both private and never commit them. After upstream OAuth completes, `/model` discovers the available model catalog dynamically. Use `/cliproxyapi-refresh` after changing upstream accounts, `/fast` only when priority processing is wanted, and `/pause`/`/continue` to hold or resume provider requests. The protected workflow aliases use `cheap-model=cliproxyapi/gpt-6-luna:high` and `reviewer-model=cliproxyapi/claude-opus-5-5:high`; the optional `cheap-model-ant` and `cheap-model-oai` aliases are also available. Pi's interactive default remains `openai-codex/gpt-5.6-luna` unless you select another model. No upstream OAuth is initiated until you explicitly complete the login above.
+Use the inbound `api-keys` value from `config.yaml`. Pi stores its local
+provider credentials in ignored files under `~/.pi/agent/`. After accounts are
+authenticated, use `/cliproxyapi-refresh` and select a live `cliproxyapi/...`
+model. The protected workflow aliases use:
+
+- `cheap-model=cliproxyapi/gpt-6-luna:high`
+- `reviewer-model=cliproxyapi/claude-opus-5-5:high`
+
+The optional `cheap-model-ant` and `cheap-model-oai` aliases also use
+CLIProxyAPI. No second dashboard is required.
+
+## Keeper login and data
+
+Open `http://127.0.0.1:8080` and use the `LOGIN_PASSWORD` from `keeper.env`.
+Keeper stores its SQLite database and backups in the ignored `keeper/` directory.
+Keep the dashboard loopback-only unless you deliberately put it behind an
+authenticated reverse proxy.
+
+The old `cliproxyapi-dashboard` deployment is not part of this stack. Stop an
+old deployment with its own Compose file before starting this one, but preserve
+its volumes until you have confirmed that the migration is complete.

@@ -12,10 +12,16 @@ api-keys:
 # Keep debug logging disabled.
 debug: false
 
-# An empty management key disables the Management API; remote access stays off.
+# The Management API serves the /management.html panel and CPA Usage Keeper.
+# allow-remote is required because Keeper calls from another container; the
+# host ports stay bound to 127.0.0.1. Use the same key as CPA_MANAGEMENT_KEY in
+# keeper.env. CPA replaces the plaintext key with its hash on first start.
 remote-management:
-  allow-remote: false
-  secret-key: ""
+  allow-remote: true
+  secret-key: "REPLACE_WITH_A_LONG_RANDOM_MANAGEMENT_KEY"
+
+# Keeper reads usage records from this queue.
+usage-statistics-enabled: true
 
 # Require authentication for WebSocket API clients.
 ws-auth: true

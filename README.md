@@ -113,7 +113,6 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
-| `github:darkrei08/pi-cockpit-tools-sync` | Pi parses a bare `github:` source as a local path, so a manifest line cannot recreate it. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
 
 `pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The two module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` and `npm:@router-for-me/pi-cliproxyapi-provider` are plain `pi-packages.txt` lines: `pi install` records them in the live `~/.pi/agent/npm/package.json`, and they are not repinned here.
@@ -138,7 +137,6 @@ Third-party packages:
 | `npm dependency: @sting8k/pi-vcc` | Loaded for workflow children through the `pi-extensible-workflows` extensions glob; it is not a Pi package because its second `session_before_compact` provider conflicts with `pi-codex-context`, which requires sole compaction ownership. |
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
 | `pi/agent/packages/pi-codex-context` | In-repo session context-management and compaction provider; its `TODO.md` lists known limitations. |
-| `github:darkrei08/pi-cockpit-tools-sync` | Cockpit account sync: `/cockpit-sync`, `/cockpit-provision`, `/cockpit-proxy`. Reads local cockpit-tools markers; stores no tokens here. |
 
 ### In-repo extensions
 
@@ -150,7 +148,6 @@ Third-party packages:
 | `extensions/compact-tools.ts` | When opted in with `PI_ENABLE_COMPACT_TOOLS=1` (off by default), registers `/compact-tools-status` and patches `ToolExecutionComponent.prototype.updateDisplay` for compact `read`/`edit`/`write`/`bash` rendering | none |
 | `extensions/deep-think.ts` | `think` tool; `session_start`, `thinking_level_select` handlers | none |
 | `extensions/fork-out.ts` | `/fork-out` command: copy the current root-to-leaf path into a new session file and open it in a herdr split | `herdr` |
-| `extensions/rotator-autostart/index.ts` | `session_start` handler: probes the local tuxevil-rotator gateway and starts it when unavailable, with concurrent-session coordination and a warning if it stays unreachable | `tuxevil-rotator` |
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
@@ -248,27 +245,26 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 `pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
 
-`pi/agent/models.json` declares three static providers; the Pi CLIProxyAPI extension adds a fourth provider dynamically from the live catalog:
+`pi/agent/models.json` declares two static providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
 | Provider | What the file adds |
 | --- | --- |
-| `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`; there are no fallback providers or quantization pins. |
-| `openai-codex` | Five models: `gpt-5.6-luna` (cost 1/6 per million), `gpt-5.6-sol` (5/30), `gpt-6-luna` (0.1/0.5), `gpt-6-sol` (2/10), and `gpt-5.6-terra` (2.5/15). All use text+image, `openai-codex-responses`, 250k context, and 128k max output. |
-| `tuxevil-rotator` | The local Gemini gateway: `baseUrl` `http://localhost:51200/v1`, `api: openai-completions`, `apiKey: tuxevil` (documented non-secret open-mode key). Five models, one per thinking effort: `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, `gemini-3.1-pro-low`, `gemini-3.1-pro-high`, each 1,000,000-token context and 65,536 max output, text+image. Each `thinkingLevelMap` maps exactly one effort level and nulls the rest. |
-| `cliproxyapi` | Dynamic OpenAI-compatible provider from the local CLIProxyAPI service. Reuse `cliproxyapi-dashboard` at `http://127.0.0.1:8318` on this machine; the standalone Compose setup uses `http://127.0.0.1:8317`. |
+| `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`. |
+| `openai-codex` | Five text+image models: `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-6-luna`, `gpt-6-sol`, and `gpt-5.6-terra`, with a 250k context and 128k maximum output. |
+| `cliproxyapi` | Dynamic OpenAI-compatible models from CLIProxyAPI. CPA Usage Keeper provides the local usage, cost and quota dashboard. |
 
-Install, authenticate and start the local gateway before using those models:
+Use the single local stack documented in [`cliproxyapi/README.md`](cliproxyapi/README.md):
 
 ```bash
-npm install -g tuxevil-rotator
-tuxevil-rotator login
-tuxevil-rotator start
-curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
+cd cliproxyapi
+docker compose up -d
+# CPA management: http://127.0.0.1:8317/management.html
+# Keeper dashboard: http://127.0.0.1:8080
 ```
 
-Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects static targets from `models.json` and live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
+Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases preserve the repository's protected route: `cheap-model` uses `cliproxyapi/gpt-6-luna:high`, the chained developer/oracle/researcher/scout/test roles use that route, and `reviewer-model` uses `cliproxyapi/claude-opus-5-5:high`. Vekexasia-compatible alternatives remain available as explicit `cheap-model-ant` and `cheap-model-oai` aliases; the local Tuxevil catalog and `opencode-max` mode remain available for explicit use.
+Standard workflow aliases use only CLIProxyAPI: `cheap-model` uses `cliproxyapi/gpt-6-luna:high`, the developer/researcher/scout/test roles use that route, and the Oracle and reviewer roles use `cliproxyapi/claude-opus-5-5:high`. The explicit `cheap-model-ant` and `cheap-model-oai` aliases also use CLIProxyAPI.
 
 ## External binaries and runtime dependencies
 
@@ -290,7 +286,6 @@ Standard workflow aliases preserve the repository's protected route: `cheap-mode
 | `python3` | The `gigatoken` virtualenv | The venv is not created. |
 | `go` | Go development | Installed by the script when missing (1.24.4). |
 | `aimem` | The ai-memory-kit CLI | Installed by the script when missing; the `project-memory` skill still installs. |
-| `tuxevil-rotator` | The `tuxevil-rotator` provider in `models.json` | Those five models are unreachable. |
 | `curl`/`wget` + a shell | `install-agent-extensions.sh` `npx` steps | `design-taste` and `impeccable` are skipped with a `SKIP` line. |
 
 ## Skill provenance
@@ -369,8 +364,9 @@ nvim --version | head -1                      # >= NVIM v0.12.0
 node agents/link-skills.mjs --verify          # expect: verify: OK
 ls -l ~/.claude/skills ~/.codex/skills        # entries are junctions/symlinks
 
-# The local Gemini gateway, when configured
-curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
+# The local CPA + Keeper stack
+curl -fsS 'http://127.0.0.1:8317/v1/models?client_version=pi'
+# Open http://127.0.0.1:8080 for CPA Usage Keeper
 ```
 
 `setup_env.sh` has no `--dry-run`; `agents/link-skills.mjs` is dry-run by default.

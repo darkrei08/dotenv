@@ -5,6 +5,23 @@ services:
       - "127.0.0.1:8317:8317"
       - "127.0.0.1:1455:1455"
     volumes:
-      - ./config.yaml:/CLIProxyAPI/config.yaml:ro
+      # Writable so the management panel can save settings.
+      - ./config.yaml:/CLIProxyAPI/config.yaml
       - ./auths:/root/.cli-proxy-api
+    restart: unless-stopped
+
+  # CPA Usage Keeper: usage, cost, request and quota dashboard for this proxy.
+  cpa-usage-keeper:
+    image: ghcr.io/willxup/cpa-usage-keeper:latest
+    depends_on:
+      - cli-proxy-api
+    ports:
+      - "127.0.0.1:8080:8080"
+    env_file:
+      - ./keeper.env
+    environment:
+      CPA_BASE_URL: http://cli-proxy-api:8317
+      REDIS_QUEUE_ADDR: cli-proxy-api:8317
+    volumes:
+      - ./keeper:/data
     restart: unless-stopped

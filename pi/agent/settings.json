@@ -23,7 +23,6 @@
     "npm:pi-tool-display",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",
-    "git:github.com/darkrei08/pi-cockpit-tools-sync",
     "npm:pi-extensible-workflows",
     {
       "source": "npm:gentle-pi",
@@ -35,7 +34,9 @@
     "npm:gentle-engram",
     {
       "source": "npm:@router-for-me/pi-cliproxyapi-provider",
-      "extensions": ["-extensions/tps.ts"]
+      "extensions": [
+        "-extensions/tps.ts"
+      ]
     }
   ],
   "enabledModels": [
