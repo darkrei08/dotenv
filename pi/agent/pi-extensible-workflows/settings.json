@@ -1,14 +1,16 @@
 {
   "modelAliases": {
-    "reviewer-model": "cliproxyapi/claude-opus-5-5:high",
-    "cheap-model-ant": "cliproxyapi/claude-sonnet-5-5:medium",
-    "cheap-model-oai": "cliproxyapi/gpt-5.6-luna:high",
-    "cheap-model": "cliproxyapi/gpt-6-luna:high",
+    "native-cheap-model": "openai-codex/gpt-5.6-luna:high",
+    "native-reviewer-model": "anthropic/claude-opus-5-5:high",
+    "cliproxy-cheap-model": "cliproxyapi/gpt-6-luna:high",
+    "cliproxy-reviewer-model": "cliproxyapi/claude-opus-5-5:high",
+    "cheap-model": "native-cheap-model",
     "scout-model": "cheap-model",
     "tests-expert": "cheap-model",
     "developer-model": "cheap-model:xhigh",
-    "oracle-model": "cliproxyapi/claude-opus-5-5:high",
-    "researcher-model": "cheap-model:xhigh"
+    "oracle-model": "reviewer-model",
+    "researcher-model": "cheap-model:xhigh",
+    "reviewer-model": "native-reviewer-model"
   },
   "skills": [
     "!*",

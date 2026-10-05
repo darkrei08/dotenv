@@ -33,10 +33,12 @@ in `settings.json`. Verify the configured servers with:
 pi mcp list
 ```
 
-The standard workflow route is CLIProxyAPI only:
-`cheap-model=cliproxyapi/gpt-6-luna:high` and
-`reviewer-model=cliproxyapi/claude-opus-5-5:high`. The optional
-`cheap-model-ant` and `cheap-model-oai` aliases also use CLIProxyAPI.
+The standard workflow route uses native providers by default:
+`cheap-model` resolves to `openai-codex/gpt-5.6-luna:high` and
+`reviewer-model` resolves to `anthropic/claude-opus-5-5:high`. The explicit
+`cliproxy-cheap-model` and `cliproxy-reviewer-model` aliases target
+`cliproxyapi/gpt-6-luna:high` and `cliproxyapi/claude-opus-5-5:high` when
+CLIProxyAPI is authenticated.
 
 ## Credentials and local files
 

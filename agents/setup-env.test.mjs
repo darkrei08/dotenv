@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -45,7 +45,10 @@ exec ${JSON.stringify(jq)} "${'${@}'}"
 
 function runAsNonRoot(home) {
   if (process.getuid?.() !== 0) return run(home);
-  return spawnSync('runuser', ['-u', 'nobody', '--', 'env', `HOME=${home}`, `USERPROFILE=${home}`, script], {
+  const accessibleScript = join(home, 'ensure-claude-root-mode.sh');
+  copyFileSync(script, accessibleScript);
+  chmodSync(accessibleScript, 0o755);
+  return spawnSync('runuser', ['-u', 'nobody', '--', 'env', `HOME=${home}`, `USERPROFILE=${home}`, accessibleScript], {
     encoding: 'utf8',
   });
 }

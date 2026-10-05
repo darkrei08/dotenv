@@ -328,11 +328,12 @@ model on that account, not a quota-window limit, and the "Claude Code version
 gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
 `anthropic/claude-sonnet-5` both answered on the same day. That historical
 configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
-this document's workload policy for adversarial review. Current workflow
-settings use `cliproxyapi/claude-opus-5-5:high`; `old-reviewer-model` is no
-longer configured. CLIProxyAPI discovery is dynamic. The earlier model-list
-absence is historical and does not establish current availability; inference
-has not been verified.
+this document's workload policy for adversarial review. The current
+`reviewer-model` uses native `anthropic/claude-opus-5-5:high`; the explicit
+`cliproxy-reviewer-model` alias uses `cliproxyapi/claude-opus-5-5:high`.
+`old-reviewer-model` is no longer configured. CLIProxyAPI discovery is dynamic;
+the earlier model-list absence is historical and does not establish current
+availability. Inference has not been verified.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -342,23 +343,24 @@ update, check this before editing model config.
 
 ### Aliases currently configured in this repository
 
-Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The
-previous CLIProxyAPI targets were absent from the 2026-09-26 Pi model listing.
-That historical listing does not establish availability or absence under current
-dynamic discovery. `old-reviewer-model` is no longer in workflow settings, and
-inference for current targets has not been verified.
+Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. Native
+providers are the default route; explicit CLIProxyAPI aliases remain available
+for authenticated dynamic discovery. Inference for all current targets has not
+been verified.
 
 | Alias | Configured target | Resolution or availability |
 |---|---|---|
-| `cheap-model-ant` | `cliproxyapi/claude-sonnet-5-5:medium` | Optional Vekexasia-compatible target; inference not verified |
-| `cheap-model-oai` | `cliproxyapi/gpt-5.6-luna:high` | Optional Vekexasia-compatible target; inference not verified |
-| `cheap-model` | `cliproxyapi/gpt-6-luna:high` | Configured; inference not verified |
-| `developer-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
-| `researcher-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `scout-model` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
-| `tests-expert` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
-| `reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
+| `native-cheap-model` | `openai-codex/gpt-5.6-luna:high` | Native default; inference not verified |
+| `native-reviewer-model` | `anthropic/claude-opus-5-5:high` | Native default; inference not verified |
+| `cliproxy-cheap-model` | `cliproxyapi/gpt-6-luna:high` | Explicit CLIProxyAPI target; inference not verified |
+| `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Explicit CLIProxyAPI target; inference not verified |
+| `cheap-model` | `native-cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
+| `developer-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
+| `oracle-model` | `reviewer-model` | Resolves to `anthropic/claude-opus-5-5:high`; inference not verified |
+| `researcher-model` | `cheap-model:xhigh` | Resolves to `openai-codex/gpt-5.6-luna:xhigh`; inference not verified |
+| `scout-model` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
+| `tests-expert` | `cheap-model` | Resolves to `openai-codex/gpt-5.6-luna:high`; inference not verified |
+| `reviewer-model` | `native-reviewer-model` | Resolves to `anthropic/claude-opus-5-5:high`; inference not verified |
 
 The workflow package also ships dynamic aliases with these names
 (`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic
@@ -774,10 +776,11 @@ Web sources, all read 2026-09-13:
    `error_code: credits_required` and `disabled_reason: org_level_disabled`, so
    the cause was the model's credit requirement, not a version gate. At that
    time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
-   a live call. Current workflow settings target
-   `cliproxyapi/claude-opus-5-5:high`; inference has not been verified. The
-   earlier CLIProxyAPI model-list absence is historical and does not establish
-   availability under current dynamic discovery.
+   a live call. Current `reviewer-model` targets native
+   `anthropic/claude-opus-5-5:high`; the explicit `cliproxy-reviewer-model`
+   alias targets `cliproxyapi/claude-opus-5-5:high`. Inference has not been
+   verified, and the earlier CLIProxyAPI model-list absence is historical and
+   does not establish availability under current dynamic discovery.
 2. `old-reviewer-model` is no longer in workflow settings. Its former
    `opencode-go/grok-4.7:high` target was listed by Pi, but the alias was not
    executed and its runtime compatibility remains unverified.

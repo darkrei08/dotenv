@@ -264,7 +264,7 @@ docker compose up -d
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases use only CLIProxyAPI: `cheap-model` uses `cliproxyapi/gpt-6-luna:high`, the developer/researcher/scout/test roles use that route, and the Oracle and reviewer roles use `cliproxyapi/claude-opus-5-5:high`. The explicit `cheap-model-ant` and `cheap-model-oai` aliases also use CLIProxyAPI.
+Standard workflow aliases use the native providers by default: `cheap-model` resolves to `openai-codex/gpt-5.6-luna:high`, while `reviewer-model` resolves to `anthropic/claude-opus-5-5:high`; the developer/researcher/scout/test roles chain from `cheap-model`, and Oracle chains from `reviewer-model`. The explicit `cliproxy-cheap-model` and `cliproxy-reviewer-model` aliases target `cliproxyapi/gpt-6-luna:high` and `cliproxyapi/claude-opus-5-5:high` for authenticated CLIProxyAPI runs.
 
 ## External binaries and runtime dependencies
 

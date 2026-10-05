@@ -19,13 +19,15 @@ defect:
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. Do not reintroduce a Tuxevil/rotator provider;
   CLIProxyAPI is the sole local model gateway.
-- `pi/agent/pi-extensible-workflows/settings.json`: exact Vekexasia standard
-  workflow routing is intentional: `cheap-model=cliproxyapi/gpt-6-luna:high`,
-  `reviewer-model=cliproxyapi/claude-opus-5-5:high`, and chained standard roles.
-  `enabledModels` may contain the upstream exact dynamic/forward-compatible list
-  even when current discovery is empty. The `opencode-max` mode, if still
-  present, is not used by standard workflow aliases. Preserve the expanded
-  `skills` list.
+- `pi/agent/pi-extensible-workflows/settings.json`: standard workflow routing
+  uses native providers by default: `cheap-model` resolves to
+  `openai-codex/gpt-5.6-luna:high`, `reviewer-model` resolves to
+  `anthropic/claude-opus-5-5:high`, and the standard roles chain from those
+  aliases. Explicit `cliproxy-cheap-model` and `cliproxy-reviewer-model`
+  aliases retain the CLIProxyAPI targets. `enabledModels` may contain the
+  upstream exact dynamic/forward-compatible list even when current discovery
+  is empty. The `opencode-max` mode, if still present, is not used by standard
+  workflow aliases. Preserve the expanded `skills` list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
   openai-codex`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: xhigh`,
   and `modelThinkingLevels`.
