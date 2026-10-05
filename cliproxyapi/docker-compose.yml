@@ -21,7 +21,6 @@ services:
       - ./keeper.env
     environment:
       CPA_BASE_URL: http://cli-proxy-api:8317
-      REDIS_QUEUE_ADDR: cli-proxy-api:8317
     volumes:
       - ./keeper:/data
     restart: unless-stopped
