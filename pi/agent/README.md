@@ -1,52 +1,115 @@
 # Pi configuration
 
-The parent repository's `setup_env.sh` selectively synchronizes this directory into `~/.pi/agent`, preserving runtime state such as credentials, sessions, and installed packages. It removes a legacy symlink before creating the managed directory.
+The parent repository's `setup_env.sh` selectively rsyncs managed files into
+`~/.pi/agent` and preserves runtime state such as credentials, sessions, and
+installed packages. It does not replace the live directory with a symlink.
 
-The module-owned package entries in `settings.json` (`pi-extensible-workflows`, `gentle-pi`, `pi-mcp-adapter`) are installed and verified by `@darkrei08/setup-ai`'s `pi-workflows` and `gentle-ai` modules, which keep ownership of them instead of listing them in `pi-packages.txt`. They are registered here because `setup_env.sh`'s `sync_pi` rsyncs this file over `~/.pi/agent` on every run and would otherwise undo what a module added. `npm:gentle-engram` is a plain `pi-packages.txt` line, kept in both files for consistency.
+The module-owned package entries in `settings.json` (`pi-extensible-workflows`,
+`gentle-pi`) are installed and verified by `@darkrei08/setup-ai`'s
+`pi-workflows` and `gentle-ai` modules. `npm:gentle-engram` is a plain
+`pi-packages.txt` line kept in both files for consistency.
 
-## Tuxevil Gemini gateway
+## Model Gateways
 
-The `tuxevil-rotator` provider sends Pi's OpenAI-compatible requests to `http://localhost:51200/v1` with the documented non-secret open-mode key `tuxevil`. The configured Gemini variants (Flash 3.8 and Pro 3.1, one model per thinking effort) share the documented 1,000,000-token context and 65,536-token output limits and accept text and image input. The gateway exposes Flash at low/medium/high and Pro at low/high only.
+### Native providers (default)
 
-Install, authenticate, and start the local gateway before using the aliases:
+This setup targets Claude Pro and ChatGPT Plus, so only models included in those
+plans are used (Claude Pro includes Opus, Sonnet and Haiku; Fable runs on paid
+usage credits and is not used. ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and
+GPT-6 Luna, plus GPT-6 Astra with a small allowance). Sources:
+<https://claude.com/pricing>, <https://learn.chatgpt.com/docs/pricing>.
 
+The role mapping follows `vekexasia/dotenv`. Workflows use native providers by default:
+
+| Role alias | Resolves to | Used by |
+| --- | --- | --- |
+| `cheap-model` | `anthropic/claude-sonnet-5-5:medium` | summarizer, qa, release, sre |
+| `scout-model`, `developer-model` | `cheap-model` | scout, developer |
+| `tests-expert` | `native-luna` = `openai-codex/gpt-6-luna:high` | tests-expert |
+| `researcher-model` | `native-luna:xhigh` | researcher |
+| `reviewer-model`, `oracle-model` | `anthropic/claude-opus-5-5:high` | reviewer, oracle, architect, security |
+
+Interactive Pi defaults to `anthropic/claude-sonnet-5-5` at `medium`, as do the
+subagents (`subagents.json`, review lenses at `high`). The `advisor` mode uses
+`openai-codex/gpt-6-luna` at `high`. GGA pre-commit review uses Claude Sonnet 5.5
+at `high` effort through Pi (`.gga` and the `agents/gga-pi/` bridge, see
+[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)): Sonnet 5.5 is the fast,
+low-cost reviewer for every commit, while Opus 5.5 stays reserved for the reviewer
+role on high-risk work.
+
+### CLIProxyAPI (opt-in)
+
+[CLIProxyAPI + CPA Usage Keeper](../../cliproxyapi/README.md) manages OAuth provider accounts and dynamically exposes models to Pi.
+
+- CPA management: `http://127.0.0.1:8317/management.html`
+- Keeper dashboard: `http://127.0.0.1:8080`
+
+After authenticating an account in CPA:
+- run `/cliproxyapi-refresh` after account or routing changes;
+- use `/fast` for priority processing and `/pause` or `/continue` to control requests;
+- select a live `cliproxyapi/...` model from `/model` or use the explicit workflow aliases.
+
+Every native alias has a CLIProxyAPI mirror that targets the same model through the gateway:
+
+| Native | CLIProxyAPI |
+| --- | --- |
+| `native-cheap-model` (Sonnet 5.5 medium) | `cliproxy-cheap-model` → `cliproxyapi/claude-sonnet-5-5:medium` |
+| `native-luna` (GPT-6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-6-luna:high` |
+| `native-reviewer-model` (Opus 5.5 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-5-5:high` |
+| `native-sol` (GPT-6.1 Sol medium) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:medium` |
+| `native-astra` (GPT-6 Astra high) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:high` |
+
+`check-config.sh` fails when a native alias, an enabled model or a startup thinking
+level has no `cliproxyapi` mirror on the same model and effort, so the two routes
+cannot drift apart. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
+as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
+Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
+models, which is why the native route stays the default.
+
+### tuxevil-rotator (opt-in)
+
+[tuxevil-rotator](https://github.com/tuxevil/tuxevil-rotator) is a local OpenAI-compatible gateway for multi-account Google Gemini routing. It is **opt-in only** and requires separate setup.
+
+**⚠️ Provider ToS/Account Risk Warning:** Using this proxy may violate provider Terms of Service and put connected accounts at risk of restriction, suspension, or permanent bans. Use at your own risk.
+
+**Requirements:**
+- Node.js >=22
+- `npm install -g tuxevil-rotator`
+- `tuxevil-rotator login` to configure accounts
+- Gateway runs at `http://localhost:51200/v1`; provide its bearer key through `TUXEVIL_ROTATOR_API_KEY`
+
+The rotator-autostart extension is opt-in. Export `TUXEVIL_ROTATOR_API_KEY` and set `TUXEVIL_ROTATOR_AUTOSTART=1` before starting Pi to start the gateway on session open. If it fails to start, run:
 ```bash
-npm install -g tuxevil-rotator
-tuxevil-rotator login
-tuxevil-rotator start
+tuxevil-rotator login  # one-time account setup
+tuxevil-rotator start  # manual start
 ```
 
-Verify the gateway and its model catalog locally:
+Optional Gemini 3.8 Flash aliases (require rotator availability):
+- `rotator-gemini-low` → `tuxevil-rotator/gemini-3.8-flash-low:low`
+- `rotator-gemini-medium` → `tuxevil-rotator/gemini-3.8-flash-medium:medium`
+- `rotator-gemini-high` → `tuxevil-rotator/gemini-3.8-flash-high:high`
+
+Pass one as a per-agent `model` override when the gateway is authenticated and running.
+
+**Model-proxy caveat:** The model IDs exposed by tuxevil-rotator (e.g., `gemini-3.8-flash-low`) are proxy identifiers, not official Google API model IDs. The gateway translates them to upstream provider models.
+
+## MCP
+
+Pi's built-in MCP reads `~/.pi/agent/mcp.json` on Pi 0.99.0 and later. Gentle
+AI 4.0.0 retires `pi-mcp-adapter` on sync, and an installed adapter replaces
+Pi's built-in MCP, so neither `npm:pi-mcp-adapter` nor `-builtin:mcp` belongs
+in `settings.json`. Verify the configured servers with:
 
 ```bash
-curl http://localhost:51200/v1/models \
-  -H 'Authorization: Bearer tuxevil'
+pi mcp list
 ```
 
-The configured Gemini IDs are exposed by `/v1/models`: the Flash effort variants `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, and the Pro effort variants `gemini-3.1-pro-low`, `gemini-3.1-pro-high`. Re-check `/v1/models` when the gateway catalog changes; the effort set mirrors what the gateway exposes. Account rotation happens inside `tuxevil-rotator`; Pi only selects the exact provider/model target configured here.
+## Credentials and local files
 
-Select a variant. For the Pi CLI and the native `/model` picker, use the full `provider/model` target (an optional thinking suffix maps to the configured level):
-
-```bash
-pi --model tuxevil-rotator/gemini-3.8-flash-low
-pi --model tuxevil-rotator/gemini-3.8-flash-high
-pi --model tuxevil-rotator/gemini-3.1-pro-low
-pi --model tuxevil-rotator/gemini-3.1-pro-high
-```
-
-The short `gemini-flash-low`, `gemini-flash-medium`, `gemini-flash-high`, `gemini-pro-low`, and `gemini-pro-high` names are **workflow-scoped aliases** defined in `pi-extensible-workflows/settings.json`. They resolve only where the workflow extension accepts model aliases (workflow role/model settings), not on the Pi CLI or in the native `/model` picker, until a global alias mechanism is verified. Selecting a model does not change the active workflow role. Existing `cheap-model` and role aliases remain unchanged.
-
-`cockpit-tools` is separate: it is the GUI/account manager and Codex sidecar, not the Gemini gateway. Use `tuxevil-rotator` for the Gemini-compatible endpoint above. `~/.pi/agent/auth.json` and tuxevil account tokens remain local and untracked; this repository does not store or modify them.
-
-## Cockpit account sync extension
-
-`settings.json` installs `github:darkrei08/pi-cockpit-tools-sync` as a Pi extension. When setup-ai provisions the optional rotator module, it installs the same extension with `pi install`. The extension reads local cockpit-tools account markers and provides:
-
-- `/cockpit-sync`: sync the active cockpit account to Pi auth.
-- `/cockpit-provision`: provision cockpit accounts into a local rotator.
-- `/cockpit-proxy`: inspect or manage the local proxy.
-
-It does not commit tokens; OAuth data remains in the user profile and is never stored in this repository.
+Pi keeps provider credentials under ignored files in `~/.pi/agent/`. This
+repository never stores OAuth tokens, API keys, Keeper passwords, or CPA
+management keys. The local CPA and Keeper setup is described in
+`cliproxyapi/README.md`.
 
 ## Context budget and compaction
 

@@ -1,8 +1,7 @@
 # Project-scoped Codex config for this repository.
 #
-# The gga pre-commit hook runs `codex exec` from this working tree, so reviews
-# use Pi's tracked default model at the highest reasoning effort. Interactive
-# Codex sessions started here inherit these values too; override with `-m` or
-# `-c model_reasoning_effort=...` when you want something else.
-model = "gpt-5.6-luna"
-model_reasoning_effort = "xhigh"
+# The gga pre-commit hook reviews through Pi (see `.gga`); this file applies
+# to interactive Codex sessions started
+# here. Override with `-m` or `-c model_reasoning_effort=...` when needed.
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"

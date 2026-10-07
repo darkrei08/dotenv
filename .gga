@@ -1,14 +1,16 @@
 # Gentleman Guardian Angel Configuration
 # https://github.com/Gentleman-Programming/gga
 
-# AI provider. Reviews use this repository's project-scoped `.codex/config.toml`:
-# its model follows Pi's tracked `defaultModel` (gpt-5.6-luna), with xhigh effort.
-PROVIDER="codex"
-# GGA's Codex path keeps only the final assistant message
-# (`codex exec --output-last-message`), so the verdict line is the first thing the
-# parser sees. The earlier OpenCode setup returned the whole transcript, and a
-# tool-heavy review pushed `STATUS:` past the 30-line scan window, which is why
-# this file used to tolerate an unparsed verdict.
+# AI provider. GGA has no Pi provider, so reviews go through the repo-owned bridge
+# `agents/gga-pi/bin/kilo`, which GGA runs as its `kilo` provider and which answers
+# with `pi --print` using the Claude Pro / ChatGPT Plus logins Pi already holds.
+# The value after `kilo:` is a Pi model pattern with an effort suffix. Sonnet 5.5 at
+# `high` is the fast, low-cost reviewer for every commit; see docs/gentle-ai-gga.md.
+# Start GGA through `agents/gga-pi/run-gga.sh`; the pre-commit hook block in
+# docs/gentle-ai-gga.md does this and falls back to plain `gga run` elsewhere.
+# One-off override without editing this file:
+#   GGA_PROVIDER=kilo:openai-codex/gpt-6.1-sol:high git commit ...
+PROVIDER="kilo:anthropic/claude-sonnet-5-5:high"
 
 # This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
 # Markdown directives. The generated npm lockfile is excluded (huge, machine
@@ -19,9 +21,8 @@ EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
 # Dedicated review rules for this repo (not the pi agent AGENTS.md).
 RULES_FILE="REVIEW_RULES.md"
 
-# The Codex path returns only the final assistant message, so the verdict is the
-# first line the parser sees. Strict mode is the fail-closed default: an
-# unparseable verdict blocks the commit instead of passing it.
+# Strict mode is the fail-closed default: an unparseable verdict blocks the
+# commit instead of passing it.
 STRICT_MODE="true"
 
 # Larger changesets (upstream syncs) need a longer window.

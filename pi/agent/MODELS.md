@@ -43,8 +43,9 @@ default.
 Effort resolves the same way, independently of the model. You can pin the model
 from one layer and the effort from another.
 
-This repository's interactive default is `openai-codex/gpt-5.6-luna` at
-`xhigh`. The CLIProxyAPI provider dynamically discovers its model catalog;
+This repository's interactive default is `anthropic/claude-sonnet-5-5` at
+`medium`; `subagents.json` and the GGA reviewer (`.gga`, through Pi) use
+the same model. The CLIProxyAPI provider dynamically discovers its model catalog;
 configuration or discovery does not establish that inference succeeds.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
@@ -234,9 +235,9 @@ Two caveats that bite in practice:
 
 - `thinkingLevelMap` on a model declares which levels it supports. A `null`
   entry means the level is hidden or clamped away (`docs/models.md` lines 261
-  to 298). The `tuxevil-rotator` Gemini models in this repository encode the
-  effort in the model id itself (`gemini-3.8-flash-low`, `-medium`, `-high`),
-  so on that provider you pick the variant and cannot also pick a level.
+  to 298). CLIProxyAPI models are discovered dynamically, so verify the live
+  provider catalog after authenticating accounts instead of assuming every
+  configured alias is available.
 - gentle-pi's validator knows only `off` through `xhigh`
   (`THINKING_LEVEL` in `agents-config.ts` lines 16 to 23). It has no `max`.
   `effort: "max"` in `subagents.json` is silently dropped to no override, and
@@ -304,31 +305,23 @@ comes back.
 **An alias works in a workflow but not in SDD.** That is the trap above. The
 workflow resolver and the SDD resolver are different code paths.
 
-**Every alias pointing at one provider fails at once.** The provider is not
-running. The `tuxevil-rotator` aliases point at `http://localhost:51200/v1`. On
-2026-09-13 that gateway was down:
+**Every alias pointing at one provider fails at once.** Check the provider
+service before changing model names. CLIProxyAPI and CPA Usage Keeper run from
+the dotenv Compose stack:
 
 ```bash
-curl -sS -m 6 http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
-# curl: (7) Failed to connect to localhost:51200
+cd ~/git/personale/dotenv/cliproxyapi
+docker compose ps
+CPA_KEY='paste-the-local-api-key-here'
+curl -sS -m 6 -H "Authorization: Bearer ${CPA_KEY}" \
+  http://127.0.0.1:8317/v1/models
+unset CPA_KEY
+# Keeper dashboard: http://127.0.0.1:8080
 ```
 
-The failure surfaces as a launch error per agent, not as a startup warning, so
-it looks like a model problem when it is a process problem. Start the gateway
-before blaming the alias. The same applies to any local proxy or rotator.
-
-Since 2026-09-13 two things start that gateway for you, so a down gateway is
-now the exception: `setup-ai`'s `rotator` module starts it in the background (and
-registers a `systemd --user` unit or a logon scheduled task), and the
-`rotator-autostart` Pi extension in `pi/agent/extensions/` starts it on session
-start when the port is dead. Concurrent sessions coordinate through one start
-claim, so opening several Pi instances produces one start, not one per session.
-A start that never comes up is reported once per session with a warning naming
-`~/.tuxevil-rotator/gateway.log`, which is where the detached process writes; when
-systemd owns the gateway, its output is in `journalctl --user -u tuxevil-rotator`.
-Login is still yours: without an account the gateway listens but has nothing to
-route, so run `tuxevil-rotator login` once.
-
+The response is empty until at least one provider account is authenticated in
+CLIProxyAPI. After adding or changing accounts, run `/cliproxyapi-refresh` in
+Pi and select a model from the refreshed dynamic catalog.
 **An alias resolves to a real model but the provider still rejects it.** The
 target can be in the catalog and still be unusable at the provider. Historical
 verification on 2026-09-21 found that `anthropic/claude-fable-5-1:high` answered
@@ -340,10 +333,9 @@ gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
 `anthropic/claude-sonnet-5` both answered on the same day. That historical
 configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
 this document's workload policy for adversarial review. Current workflow
-settings use `cliproxyapi/claude-opus-5-5:high`; `old-reviewer-model` is no
-longer configured. CLIProxyAPI discovery is dynamic. The earlier model-list
-absence is historical and does not establish current availability; inference
-has not been verified.
+settings use native providers by default and keep explicit CLIProxyAPI aliases
+for authenticated gateway use. CLIProxyAPI discovery is dynamic, so gateway
+aliases are validated only after the local catalog is available.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -353,25 +345,69 @@ update, check this before editing model config.
 
 ### Aliases currently configured in this repository
 
-Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The
-previous CLIProxyAPI targets were absent from the 2026-09-26 Pi model listing.
-That historical listing does not establish availability or absence under current
-dynamic discovery. `old-reviewer-model` is no longer in workflow settings, and
-inference for current targets has not been verified.
+Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The set
+targets Claude Pro and ChatGPT Plus and follows the role mapping of
+`vekexasia/dotenv`. Native aliases are the default path; CLIProxyAPI and
+tuxevil-rotator aliases are explicit opt-in alternatives.
 
-| Alias | Configured target | Resolution or availability |
+| Alias | Configured target | Use |
 |---|---|---|
-| `cheap-model` | `cliproxyapi/gpt-6-luna:high` | Configured; inference not verified |
-| `developer-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `oracle-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `researcher-model` | `cheap-model:xhigh` | Resolves to `cliproxyapi/gpt-6-luna:xhigh`; inference not verified |
-| `scout-model` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
-| `tests-expert` | `cheap-model` | Resolves to `cliproxyapi/gpt-6-luna:high`; inference not verified |
-| `reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | Configured; inference not verified |
+| `native-cheap-model` | `anthropic/claude-sonnet-5-5:medium` | Sonnet: cheap, scout, developer, summarizer, qa, release, sre |
+| `native-luna` | `openai-codex/gpt-6-luna:high` | GPT-6 Luna: tests, research |
+| `native-reviewer-model` | `anthropic/claude-opus-5-5:high` | Opus: reviewer, oracle, architect, security |
+| `native-sol` | `openai-codex/gpt-6.1-sol:medium` | GPT-6.1 Sol, manual override |
+| `native-astra` | `openai-codex/gpt-6-astra:high` | GPT-6 Astra, manual override (Plus allowance is small) |
+| `cliproxy-cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | CLIProxyAPI mirror of `native-cheap-model` |
+| `cliproxy-luna` | `cliproxyapi/gpt-6-luna:high` | CLIProxyAPI mirror of `native-luna` |
+| `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of `native-reviewer-model` |
+| `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
+| `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
+| `rotator-gemini-low` | `tuxevil-rotator/gemini-3.8-flash-low:low` | Opt-in tuxevil-rotator Gemini 3.8 Flash (low effort) |
+| `rotator-gemini-medium` | `tuxevil-rotator/gemini-3.8-flash-medium:medium` | Opt-in tuxevil-rotator Gemini 3.8 Flash (medium effort) |
+| `rotator-gemini-high` | `tuxevil-rotator/gemini-3.8-flash-high:high` | Opt-in tuxevil-rotator Gemini 3.8 Flash (high effort) |
+| `cheap-model` | `native-cheap-model` | Standard cheap alias |
+| `scout-model` | `cheap-model` | Scout role |
+| `developer-model` | `cheap-model` | Developer role |
+| `tests-expert` | `native-luna` | Tests role |
+| `researcher-model` | `native-luna:xhigh` | Research role |
+| `reviewer-model` | `native-reviewer-model` | Reviewer role |
+| `oracle-model` | `reviewer-model` | Oracle role |
 
-The workflow package also ships dynamic aliases with these names
-(`docs/llm.md` line 19). Static entries in `settings.json` shadow the dynamic
-ones, which is why this repository's versions win.
+**Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
+Fable 5 and 5.1 run on paid usage credits, so none is configured
+(<https://claude.com/pricing>,
+<https://support.claude.com/en/articles/15424964-claude-fable-models-on-your-plan>).
+ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and GPT-6 Luna; its estimated local
+messages per five hours are Astra 5-45, GPT-6.1 Sol 15-160, GPT-6 Sol 15-150 and
+GPT-6 Luna 350-3,000 (<https://learn.chatgpt.com/docs/pricing>). That is why Luna
+takes the high-volume tests and research roles and Astra stays a manual override.
+`gpt-5.5` retires from Codex on 2026-10-14 and is not configured.
+
+**Review model and effort (GGA and the reviewer role).** For a gate that runs on
+every commit, speed and cost per review matter. CodeRabbit measured Sonnet 5.5 at
+about 5.5 minutes and $0.47 per review against 6/13 known bugs caught and 41%
+precision, with Opus 5.5 catching 8/13 at standard effort and 10/13 at max
+(<https://www.coderabbit.ai/blog/sonnet-5-5-model-review>). Independent reasoning
+curves show medium to high as the useful step and xhigh as much costlier for a
+small gain (<https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve>).
+GGA therefore runs Sonnet 5.5 at `high` through Pi
+(`PROVIDER="kilo:anthropic/claude-sonnet-5-5:high"`); the OpenAI fallback is
+`GGA_PROVIDER=kilo:openai-codex/gpt-6.1-sol:high`. Reserve Opus 5.5
+(`reviewer-model`) for high-risk changes. Setup and alternatives:
+[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
+
+**Role routing policy:**
+- Developer, scout and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort.
+- Tests and research use GPT-6 Luna so that high-volume work draws on the largest Plus allowance.
+- Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort.
+
+**Gateway usage:**
+- CLIProxyAPI: pass a `cliproxy-*` alias as a call-level `model` override. Requires an authenticated dynamic catalog.
+- tuxevil-rotator: Pass `rotator-gemini-low`, `rotator-gemini-medium`, or `rotator-gemini-high` as a call-level `model` override. Requires `tuxevil-rotator login`, `TUXEVIL_ROTATOR_API_KEY`, and a running gateway at `http://localhost:51200/v1`. Autostart is opt-in via `TUXEVIL_ROTATOR_AUTOSTART=1`.
+
+**Model-proxy caveat:** The tuxevil-rotator model IDs (e.g., `gemini-3.8-flash-low`) are proxy identifiers maintained by the gateway, not official Google API model IDs. The gateway translates requests to upstream provider models. See the [tuxevil-rotator documentation](https://github.com/tuxevil/tuxevil-rotator) for current model catalog and setup.
+
+Do not replace the standard aliases with unavailable gateway targets. Native providers remain the working default.
 
 ---
 
@@ -395,7 +431,7 @@ from Pi's own cached catalogs in `~/.pi/agent/models-store.json` (catalog
 |---|---|---|---|---|
 | `openai-codex/gpt-5.6-luna` (built-in) | 0.20 | 1.20 | 0.02 | 0.25 |
 | `openai-codex/gpt-5.6-luna` (this repo's `models.json` override) | 1.00 | 6.00 | 0.10 | 1.25 |
-| `openai-codex/gpt-5.6-terra` | 2.00 | 12.00 | 0.20 | 2.50 |
+| `openai-codex/gpt-5.6-terra` | 2.50 | 15.00 | 0.25 | 3.125 |
 | `openai-codex/gpt-5.6-sol` | 5.00 | 30.00 | 0.50 | 6.25 |
 | `openai-codex/gpt-5.3-codex-spark` | 1.75 | 14.00 | 0.175 | 0 |
 | `anthropic/claude-fable-5` | 10.00 | 50.00 | 1.00 | 12.50 |
@@ -404,7 +440,6 @@ from Pi's own cached catalogs in `~/.pi/agent/models-store.json` (catalog
 | `opencode-go/deepseek-v4-pro` | 0.66 | 1.98 | 0.022 | 0 |
 | `opencode-go/glm-5.3` | 1.40 | 4.40 | 0.26 | 0 |
 | `opencode-go/grok-4.6` | 2.00 | 6.00 | 0.50 | 0 |
-| `tuxevil-rotator/gemini-*` | 0 | 0 | 0 | 0 |
 
 Two things to take from that table.
 
@@ -416,11 +451,9 @@ custom entries replace a built-in model entry with the same id (Pi
 provider's pricing page, your measured costs are wrong even though your token
 counts are right.
 
-Second, **the gateway models record $0**. The `tuxevil-rotator` entries in
-`models.json` declare no `cost` block, so Pi defaults every rate to zero and the
-session accounting is free money that never existed. If you route through a
-gateway and want honest cost numbers, fill in the `cost` block from the
-gateway's own rates, or read the gateway's metering.
+Second, **dynamic gateway pricing is not implied by the model id**. If you
+want honest cost numbers for CLIProxyAPI routes, use CPA Usage Keeper's metering
+rather than treating Pi's static catalog as authoritative.
 
 For a public cross-check, OpenRouter publishes live per-endpoint pricing. Same
 model ids, first-party endpoint, USD per million (read 2026-09-13 from
@@ -786,22 +819,18 @@ Web sources, all read 2026-09-13:
    `error_code: credits_required` and `disabled_reason: org_level_disabled`, so
    the cause was the model's credit requirement, not a version gate. At that
    time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
-   a live call. Current workflow settings target
-   `cliproxyapi/claude-opus-5-5:high`; inference has not been verified. The
-   earlier CLIProxyAPI model-list absence is historical and does not establish
-   availability under current dynamic discovery.
-2. `old-reviewer-model` is no longer in workflow settings. Its former
-   `opencode-go/grok-4.7:high` target was listed by Pi, but the alias was not
-   executed and its runtime compatibility remains unverified.
-3. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
+   a live call. The current native reviewer target is
+   `anthropic/claude-opus-5-5:high`; the CLIProxyAPI reviewer target is explicit
+   and requires dynamic catalog discovery before inference.
+2. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces
    the built-in, but I did not make a billed call to confirm which value Pi
    applies.
-4. Whether gentle-pi rejects `effort: "max"` at runtime. Verified by reading
+3. Whether gentle-pi rejects `effort: "max"` at runtime. Verified by reading
    `agents-config.ts` (its `THINKING_LEVEL` list stops at `xhigh`); not exercised
    with a live run.
-5. Artificial Analysis intelligence-index scores and any per-model speed figure
+4. Artificial Analysis intelligence-index scores and any per-model speed figure
    other than the OpenRouter 133 tok/s P50 for `openai/gpt-5.6-luna`. Its data
    API requires a key, so I cite the site as a source rather than quote numbers I
    could not read.

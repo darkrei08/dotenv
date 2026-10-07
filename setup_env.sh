@@ -391,19 +391,26 @@ elif [ -r "$pi_packages" ]; then
     fi
   done < "$pi_packages"
 fi
-# The shared agent-skill stack. When setup-ai orchestrates this script it already
-# installs these for EVERY detected agent (not just pi), so it sets
-# SETUP_AI_SKIP_SKILLS=1 to avoid running the same `npx skills add` twice. A
-# standalone dotenv run leaves the flag unset and installs them for pi as before.
+# The shared agent-skill stack. The explicit `cline` target makes skills-cli
+# materialize one canonical copy under ~/.agents/skills, which Pi reads directly;
+# setup-ai installs the same stack for every detected agent and sets
+# SETUP_AI_SKIP_SKILLS=1 to avoid running these commands twice. A standalone
+# dotenv run leaves the flag unset and still provisions Pi.
 # Every `skills` call gets an explicit </dev/null: with a closed or non-TTY stdin
 # its readline interface aborts the whole run with `EBADF: bad file descriptor,
 # read`, which is exactly the path a CI, `ssh -T` or scripted install takes.
 if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
-  npx skills add herdrdev/herdr --skill herdr --global --agent pi --copy --yes </dev/null
-  npx skills@latest add mattpocock/skills --skill triage grill-me grilling wayfinder domain-modeling prototype research --global --agent pi --copy --yes </dev/null
-  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi --copy --yes </dev/null
-  npx skills add humanlayer/skills --skill show-me --global --agent pi --copy --yes </dev/null
-  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi --copy --yes </dev/null
+  npx skills add herdrdev/herdr --skill herdr --global --agent pi cline --yes </dev/null
+  matt_skills=(
+    ask-matt code-review codebase-design diagnosing-bugs domain-modeling grill-with-docs
+    implement implement-spec improve-codebase-architecture pr prototype research retro
+    setup-matt-pocock-skills tdd to-spec to-tickets triage wayfinder wizard grill-me
+    grilling handoff teach to-questionnaire wait-what writing-for-agents
+  )
+  npx skills@latest add mattpocock/skills --skill "${matt_skills[@]}" --global --agent pi cline --yes </dev/null
+  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi cline --yes </dev/null
+  npx skills add humanlayer/skills --skill show-me --global --agent pi cline --yes </dev/null
+  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi cline --yes </dev/null
 fi
 
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
@@ -411,8 +418,10 @@ fi
 # the CLI installer is invoked with --no-skill to avoid installing the skill twice.
 # Pinned to a stable release tag (AIMEM_REF) instead of a moving branch.
 AIMEM_REF=v0.1.0
-npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi --copy --yes </dev/null \
-  || npx skills add darkrei08/ai-memory-kit --skill project-memory --global --agent pi --copy --yes </dev/null
+if ! npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi cline --yes </dev/null; then
+  printf 'ERROR: pinned ai-memory-kit skill %s could not be installed; refusing an unpinned fallback.\n' "$AIMEM_REF" >&2
+  exit 1
+fi
 # ai-memory-kit v0.1.0 used GitHub's refs/heads codeload URL for tags.
 # Rewrite it in the streamed installer until the upstream installer is fixed.
 command -v aimem >/dev/null 2>&1 || AIMEM_REF="${AIMEM_REF}" curl -fsSL "https://raw.githubusercontent.com/darkrei08/ai-memory-kit/${AIMEM_REF}/install.sh" \

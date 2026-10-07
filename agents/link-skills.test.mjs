@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -88,6 +88,16 @@ test('skill and harness filters compose', (t) => {
   const verified = run(['--verify', ...args], paths);
   assert.equal(verified.status, 0, verified.stderr);
   assert.match(verified.stdout, /verify: OK, 1 link\(s\) checked/);
+});
+
+test('dangling harness links are reported as conflicts', (t) => {
+  const paths = fixture(t);
+  symlinkSync(join(paths.home, 'missing'), join(paths.claude, 'humanizer'), 'dir');
+
+  const result = run(['--root', paths.canonical, '--only', 'claude', '--skill', 'humanizer'], paths);
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /conflict\s+humanizer/);
+  assert.doesNotMatch(result.stderr, /ENOENT|realpathSync/);
 });
 
 test('skill filter rejects names absent from the manifest', (t) => {

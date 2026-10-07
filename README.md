@@ -1,6 +1,13 @@
 # dotenv
 
-Personal Linux/WSL dotfiles plus the Pi coding-agent configuration that ships with them. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here. For the optional localhost-only CLIProxyAPI setup, see [the setup guide](cliproxyapi/README.md).
+Personal Linux/WSL dotfiles plus a ready-to-use configuration for the Pi coding agent and the other AI coding CLIs. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here.
+
+What it gives you:
+
+- **Models and roles** tuned for Claude Pro and ChatGPT Plus, with the role mapping of `vekexasia/dotenv`: Sonnet 5.5 as the daily driver, Opus 5.5 for review, GPT-6 Luna for tests and research. Native providers are the default and CLIProxyAPI mirrors the same models. See [`pi/agent/MODELS.md`](pi/agent/MODELS.md).
+- **A commit review gate**: GGA reviews staged files through Pi with Sonnet 5.5 at high effort. See [`docs/gentle-ai-gga.md`](docs/gentle-ai-gga.md), which also covers Gentle AI and gentle-pi for Pi and the other agents.
+- **Shared skills** installed once and linked into every agent ([`agents/LINKING.md`](agents/LINKING.md)).
+- **An optional localhost-only CLIProxyAPI + usage dashboard** ([setup guide](cliproxyapi/README.md)).
 
 Remotes: `origin` is `darkrei08/dotenv` (the fork this machine works in), `upstream` is `vekexasia/dotenv`.
 
@@ -64,7 +71,7 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 | 356-367 | **Pi:** on Arch/Omarchy, delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout and remove its global mise selection; install `@earendil-works/pi-coding-agent` with npm when `pi` is missing on every supported distro. |
 | 369-370 | `sync_pi` and install the CLI-Anything Pi extension. |
 | 372-393 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
-| 394-420 | **Pi skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, run the shared `npx skills add ... --global --agent pi --copy --yes` commands for `herdrdev/herdr`, `mattpocock/skills` (`triage grill-me grilling wayfinder domain-modeling prototype research`), `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install has an unpinned fallback, and its CLI installer runs with `--no-skill`. |
+| 394-420 | **Shared skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, install the full first-party engineering set from `mattpocock/skills` (including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, and the existing planning/research skills), plus `herdrdev/herdr`, `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). Each command targets `pi cline` so skills-cli keeps one canonical copy under `~/.agents/skills`, which Pi reads directly. The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install fails closed if the pinned tag cannot be fetched, and its CLI installer runs with `--no-skill`. |
 | 422-452 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, then (as root only) `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
 | 453-458 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
 | 459-476 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
@@ -112,15 +119,16 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts` and `extensions/pi-pretty.ts`, the same two exclusions `setup-ai`'s `handle_quiet_tools_conflict` applies at runtime. `npm:pi-tool-display` registers `read`/`bash`/`find`/`grep`/`ls`, and both of those gentle-pi files register the same built-in tool names, which makes `pi` abort at startup with `Tool "read" conflicts with ...`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
-| `npm:pi-extensible-workflows`, `npm:gentle-pi`, `npm:pi-mcp-adapter` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the other two and verifies both, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
-| `github:darkrei08/pi-cockpit-tools-sync` | Pi parses a bare `github:` source as a local path, so a manifest line cannot recreate it. |
+| `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
+| `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
 
-`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The three module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` is a plain `pi-packages.txt` line: `pi install` records it in the live `~/.pi/agent/npm/package.json`, and it is not repinned here.
+`pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The two module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` and `npm:@router-for-me/pi-cliproxyapi-provider` are plain `pi-packages.txt` lines: `pi install` records them in the live `~/.pi/agent/npm/package.json`, and they are not repinned here.
 
 Third-party packages:
 
 | Package | Contributes |
 | --- | --- |
+| `npm:@router-for-me/pi-cliproxyapi-provider` | Dynamic `cliproxyapi` provider: discovers models from the local CLIProxyAPI service; `extensions/tps.ts` is excluded (see above). |
 | `pi/agent/extensions/light-web-search.ts` | Tracked `web_search` replacement for `pi-web-access`; tries CLIProxyAPI first and falls back to openai-codex, avoiding duplicate `web_search` registration. |
 | `git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url` | `pi-chrome-cdp`: drives the user's already-open Chrome session; `bin/cdp` points at its `scripts/cdp.mjs`. |
 | `git:github.com/vekexasia/pi-high-availability` | Automatic failover when a quota or capacity is exhausted. Enabled with `extensions/index.ts`; reads `~/.pi/agent/ha.json` (credentials, git-ignored; see `ha-failover.example.json`). |
@@ -136,7 +144,6 @@ Third-party packages:
 | `npm dependency: @sting8k/pi-vcc` | Loaded for workflow children through the `pi-extensible-workflows` extensions glob; it is not a Pi package because its second `session_before_compact` provider conflicts with `pi-codex-context`, which requires sole compaction ownership. |
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
 | `pi/agent/packages/pi-codex-context` | In-repo session context-management and compaction provider; its `TODO.md` lists known limitations. |
-| `github:darkrei08/pi-cockpit-tools-sync` | Cockpit account sync: `/cockpit-sync`, `/cockpit-provision`, `/cockpit-proxy`. Reads local cockpit-tools markers; stores no tokens here. |
 
 ### In-repo extensions
 
@@ -148,7 +155,6 @@ Third-party packages:
 | `extensions/compact-tools.ts` | When opted in with `PI_ENABLE_COMPACT_TOOLS=1` (off by default), registers `/compact-tools-status` and patches `ToolExecutionComponent.prototype.updateDisplay` for compact `read`/`edit`/`write`/`bash` rendering | none |
 | `extensions/deep-think.ts` | `think` tool; `session_start`, `thinking_level_select` handlers | none |
 | `extensions/fork-out.ts` | `/fork-out` command: copy the current root-to-leaf path into a new session file and open it in a herdr split | `herdr` |
-| `extensions/rotator-autostart/index.ts` | `session_start` handler: probes the local tuxevil-rotator gateway and starts it when unavailable, with concurrent-session coordination and a warning if it stays unreachable | `tuxevil-rotator` |
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
@@ -156,6 +162,7 @@ Third-party packages:
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
 | `extensions/show-system-prompt.ts` | `/system-prompt` command: writes the current system prompt to `/tmp/system-prompt.md` | none |
 | `extensions/tmux-progress.ts` | `agent_start` / `agent_end` handlers that set the tmux per-window option `@pi_status` | `tmux`, and the format lines documented in the file (not managed by this repository) |
+| `extensions/rotator-autostart/index.ts` | Opt-in `session_start` gateway probe/start when `TUXEVIL_ROTATOR_AUTOSTART=1` | `tuxevil-rotator` |
 | `extensions/vim-editor.ts` | `alt+m` shortcut: open the current editor buffer in Neovim | `nvim` |
 
 `extensions/herdr-nvim-blocked/index.ts` describes the blocked state as coming from a `herdr:blocked` event in `extensions/herdr-agent-state.ts`, which is not tracked; see [Known gaps](#known-gaps).
@@ -168,7 +175,7 @@ Third-party packages:
 | `~/.agents/skills/` | shared skills, one physical copy each | Machine-installed (see below) or linked |
 | `agents/skills/phantom-ui/` | `SKILL.md` written here, the MIT standalone build plus its `.d.ts`, upstream `LICENSE`, `VENDORED.md` | Repository-owned, copied into harness roots |
 
-The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`, `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research`, `typescript-advanced`, `show-me`, `engineering-excellence`, `project-memory`) and by `agents/install-agent-extensions.sh` (`design-taste`, `impeccable`, `ponytail`, `phantom-ui`). They are read from the harness root that installed them, or from `~/.agents/skills` when that is the canonical root; see the next section.
+The machine-installed skills are placed by `setup_env.sh` lines 402-424 (the first-party `mattpocock/skills` engineering set, `herdr`, `typescript-advanced`, `show-me`, `engineering-excellence`, and `project-memory`) in the canonical `~/.agents/skills` root, which Pi reads directly. `agents/install-agent-extensions.sh` manages `design-taste`, `impeccable`, `ponytail`, and `phantom-ui` separately; see the next section.
 
 ### Other Pi files
 
@@ -176,10 +183,10 @@ The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`
 | --- | --- |
 | `pi/agent/settings.json` | Effective Pi settings: `defaultProvider`/`defaultModel`/`defaultThinkingLevel`, `modelThinkingLevels`, `compaction`, `theme`, the `packages` list, `hideThinkingBlock`, `showCacheMissNotices`, `tuiMode`. |
 | `pi/agent/models.json` | Provider catalog and overrides; see [Providers and credentials](#providers-and-credentials). |
-| `pi/agent/modes.json` | `advisor`: provider `opencode-go`, modelId `deepseek-v4-flash`, `thinkingLevel: xhigh`, `autostart: true`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
+| `pi/agent/modes.json` | `advisor`: provider `openai-codex`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-extensible-workflows/settings.json` | `modelAliases`, the workflow `skills` allowlist, the workflow `extensions` allowlist, and `extensionSettings` for `herdr` and `trajectory`. |
-| `pi/agent/pi-extensible-workflows/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`. |
+| `pi/agent/pi-extensible-workflows/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `qa`, `release`, `sre`. |
 | `pi/agent/prompts/` | Prompt templates: `fixissues.md` (drives the `devIssuesInBatches` workflow from `ready-for-agent` issues) and `spawn-pi-pane.md` (spawns a sibling Pi in a herdr pane). |
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
 | `pi/agent/AGENTS.md` | Project instructions Pi loads for this repository. |
@@ -244,28 +251,29 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
+`pi/agent/settings.json` sets `defaultProvider: anthropic`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` and the GGA pre-commit reviewer use the same Sonnet 5.5 default: GGA reviews through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md).
 
-`pi/agent/models.json` declares three providers:
+`pi/agent/models.json` declares the static `openrouter`, `openai-codex`, and opt-in `tuxevil-rotator` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
 | Provider | What the file adds |
 | --- | --- |
-| `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`; there are no fallback providers or quantization pins. |
-| `openai-codex` | Five models: `gpt-5.6-luna` (cost 1/6 per million), `gpt-5.6-sol` (5/30), `gpt-6-luna` (0.1/0.5), `gpt-6-sol` (2/10), and `gpt-5.6-terra` (2.5/15). All use text+image, `openai-codex-responses`, 250k context, and 128k max output. |
-| `tuxevil-rotator` | The local Gemini gateway: `baseUrl` `http://localhost:51200/v1`, `api: openai-completions`, `apiKey: tuxevil` (documented non-secret open-mode key). Five models, one per thinking effort: `gemini-3.8-flash-low`, `gemini-3.8-flash-medium`, `gemini-3.8-flash-high`, `gemini-3.1-pro-low`, `gemini-3.1-pro-high`, each 1,000,000-token context and 65,536 max output, text+image. Each `thinkingLevelMap` maps exactly one effort level and nulls the rest. |
+| `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`. |
+| `openai-codex` | Five text+image models: `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-6-luna`, `gpt-6-sol`, and `gpt-5.6-terra`, with a 250k context and 128k maximum output. |
+| `cliproxyapi` | Dynamic OpenAI-compatible models from CLIProxyAPI. CPA Usage Keeper provides the local usage, cost and quota dashboard. |
+| `tuxevil-rotator` | Opt-in local OpenAI-compatible Gemini gateway at `localhost:51200`; autostart requires `TUXEVIL_ROTATOR_AUTOSTART=1`. |
 
-Install, authenticate and start the local gateway before using those models:
+Use the CLIProxyAPI stack documented in [`cliproxyapi/README.md`](cliproxyapi/README.md):
 
 ```bash
-npm install -g tuxevil-rotator
-tuxevil-rotator login
-tuxevil-rotator start
-curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
+cd cliproxyapi
+docker compose up -d
+# CPA management: http://127.0.0.1:8317/management.html
+# Keeper dashboard: http://127.0.0.1:8080
 ```
 
-Credentials live in `~/.pi/agent/auth.json`, which is git-ignored (`/auth.json` in `pi/agent/.gitignore`) and preserved by `sync_pi`. Pi selects the provider/model target configured in `models.json`. The tracked files do not verify the runtime credential contents or how each credential is acquired; this repository does not store or modify them.
+Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` intentionally route `cheap-model` to `cliproxyapi/gpt-6-luna:high` and `reviewer-model` to `cliproxyapi/claude-opus-5-5:high`, with chained standard roles. The local Tuxevil catalog and `opencode-max` mode remain available when present but are not used by these standard aliases.
+Standard workflow aliases use native providers by default and follow the `vekexasia/dotenv` role mapping on Claude Pro and ChatGPT Plus models: `cheap-model`, scout and developer use `anthropic/claude-sonnet-5-5:medium`; tests and research use `openai-codex/gpt-6-luna`; reviewer and Oracle use `anthropic/claude-opus-5-5:high`. Each native alias has a `cliproxy-*` mirror that targets the same model through CLIProxyAPI and can be supplied as a per-agent `model` override after the dynamic catalog is authenticated. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
 
 ## External binaries and runtime dependencies
 
@@ -287,23 +295,22 @@ Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` in
 | `python3` | The `gigatoken` virtualenv | The venv is not created. |
 | `go` | Go development | Installed by the script when missing (1.24.4). |
 | `aimem` | The ai-memory-kit CLI | Installed by the script when missing; the `project-memory` skill still installs. |
-| `tuxevil-rotator` | The `tuxevil-rotator` provider in `models.json` | Those five models are unreachable. |
 | `curl`/`wget` + a shell | `install-agent-extensions.sh` `npx` steps | `design-taste` and `impeccable` are skipped with a `SKIP` line. |
 
 ## Skill provenance
 
 | Upstream | Skills | Installer |
 | --- | --- | --- |
-| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi --copy --yes` (`setup_env.sh` line 402) |
-| `mattpocock/skills` | `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research` | `npx skills@latest add` (line 403) |
+| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi cline --yes` (`setup_env.sh` line 402) |
+| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent pi cline --yes` (line 403) |
 | `pedronauck/skills` | `typescript-advanced` | `npx skills add` (line 404) |
 | `humanlayer/skills` | `show-me` | `npx skills add` (line 405) |
 | `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` (line 406) |
-| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | `npx skills add "...#v0.1.0"` with an unpinned fallback (lines 414-415); the `aimem` CLI installer runs with `--no-skill` (lines 418-420) |
+| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | Pinned `npx skills add "...#v0.1.0"`; setup fails closed if the tag cannot be fetched. The `aimem` CLI installer runs with `--no-skill` (lines 418-420) |
 | `h3nryprod01/design-taste` | `design-taste` | `npx skills@latest add ... --global --agent <agent> --copy --yes`, per detected CLI, in `install-agent-extensions.sh` |
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
-| this repository | `phantom-ui` (`agents/skills/phantom-ui`, MIT build, provenance in `VENDORED.md`) | `agents/install-agent-extensions.sh` copies it into every existing harness root |
+| this repository | `phantom-ui` (`agents/skills/phantom-ui`, MIT build, provenance in `VENDORED.md`) | `agents/install-agent-extensions.sh` copies it into every existing non-Pi harness root and the shared canonical root |
 | this repository | `issue-ops`, `learning-opportunities`, `orient`, `tigerstyle` | Tracked directly under `pi/agent/skills/`, Pi-only |
 | `pi` examples | `questionnaire` tool | Copied into `pi/agent/extensions/questionnaire.ts` |
 
@@ -331,7 +338,7 @@ Standard workflow aliases in `pi/agent/pi-extensible-workflows/settings.json` in
 | Claude Code | Not scriptable: the script prints the two interactive `/plugin` commands as a manual step |
 | pi | Not handled here; Pi installs ponytail from `pi/agent/pi-packages.txt` |
 
-The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, `pi`, plus `~/.agents/skills`). One failing host is logged and does not stop the run; the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
+The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing non-Pi harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, plus `~/.agents/skills`). Pi reads the canonical root. Differing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
 
 Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker; the one exception is that `setup_env.sh`, when run as root, sets `permissions.defaultMode` to `default` in `~/.claude/settings.json` and preserves every other setting.
 
@@ -341,7 +348,8 @@ Run these on the machine, after `setup_env.sh`:
 
 ```bash
 # This checkout's own config invariants: settings.json parses, carries the
-# module-owned packages and the gentle-pi exclusions, has no ../../ path, and
+# module-owned packages and gentle-pi exclusions, enforces native/default and
+# explicit CLIProxyAPI aliases plus enabledModels, has no ../../ path, and
 # setup_env.sh never writes GENTLE_PI_QUIET_TOOLS=0
 bash check-config.sh
 
@@ -362,12 +370,16 @@ grep -c 'export BAT_THEME' ~/.bashrc
 cmp ~/.tmux.conf <repo>/.tmux.conf && echo tmux ok
 nvim --version | head -1                      # >= NVIM v0.12.0
 
-# The single-copy skills layout
+# The single-copy skills layout (after the skill installer has run)
 node agents/link-skills.mjs --verify          # expect: verify: OK
 ls -l ~/.claude/skills ~/.codex/skills        # entries are junctions/symlinks
 
-# The local Gemini gateway, when configured
-curl http://localhost:51200/v1/models -H 'Authorization: Bearer tuxevil'
+# The local CPA + Keeper stack
+CPA_KEY='paste-the-local-api-key-here'
+curl -fsS -H "Authorization: Bearer ${CPA_KEY}" \
+  'http://127.0.0.1:8317/v1/models?client_version=pi'
+unset CPA_KEY
+# Open http://127.0.0.1:8080 for CPA Usage Keeper
 ```
 
 `setup_env.sh` has no `--dry-run`; `agents/link-skills.mjs` is dry-run by default.

@@ -8,3 +8,7 @@
 /cliproxyapi/*.json
 /cliproxyapi/auths/
 /cliproxyapi/logs/
+
+# CPA Usage Keeper local credentials and SQLite data
+/cliproxyapi/keeper.env
+/cliproxyapi/keeper/
