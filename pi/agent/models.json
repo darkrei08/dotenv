@@ -12,6 +12,7 @@
           "input": ["text", "image"],
           "contextWindow": 1000000,
           "maxTokens": 65536,
+          "cost": { "input": 0.75, "output": 3.75, "cacheRead": 0.075, "cacheWrite": 0 },
           "thinkingLevelMap": {
             "minimal": null,
             "low": "low",
@@ -28,6 +29,7 @@
           "input": ["text", "image"],
           "contextWindow": 1000000,
           "maxTokens": 65536,
+          "cost": { "input": 0.75, "output": 3.75, "cacheRead": 0.075, "cacheWrite": 0 },
           "thinkingLevelMap": {
             "minimal": null,
             "low": null,
@@ -44,6 +46,7 @@
           "input": ["text", "image"],
           "contextWindow": 1000000,
           "maxTokens": 65536,
+          "cost": { "input": 0.75, "output": 3.75, "cacheRead": 0.075, "cacheWrite": 0 },
           "thinkingLevelMap": {
             "minimal": null,
             "low": null,

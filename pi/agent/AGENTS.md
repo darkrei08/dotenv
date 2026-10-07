@@ -108,3 +108,14 @@ harness roots that need it. Non-negotiable:
   duplicate that the linker removes, because Pi also reads the canonical root.
 - The layout, the conflict rules and the refresh procedure are in
   `agents/LINKING.md`.
+
+## Gentle-AI suite, CodeGraph and Engram
+
+- Every commit or code change goes through the Gentle AI suite (`gentle-ai`, `gentle-ai-work-unit-commits`,
+  `gentle-ai-branch-pr`, `gentle-ai-judgment-day`, `gentle_review`), in addition to the skills above.
+- Use `codegraph` (query/explore) to locate symbols and call paths before reading or editing code.
+- Use Engram: `mem_search`/`mem_context` before starting work, `mem_save` after decisions, fixes and
+  conventions worth persisting.
+- Skills used most often (from session history): issue-ops, engineering-excellence, container-test-matrix,
+  pi-extensible-workflows, gentle-ai, ponytail, work-unit-commits, tigerstyle, typescript-advanced.
+  Subagent roles must carry the ones relevant to their task (see `pi-extensible-workflows/roles/`).
