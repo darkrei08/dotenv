@@ -10,9 +10,6 @@
     "cliproxy-reviewer-model": "cliproxyapi/claude-opus-5-5:high",
     "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
     "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",
-    "rotator-gemini-low": "tuxevil-rotator/gemini-3.8-flash-low:low",
-    "rotator-gemini-medium": "tuxevil-rotator/gemini-3.8-flash-medium:medium",
-    "rotator-gemini-high": "tuxevil-rotator/gemini-3.8-flash-high:high",
     "cheap-model": "native-cheap-model",
     "scout-model": "cheap-model",
     "developer-model": "cheap-model",
@@ -40,8 +37,7 @@
     "**/pi-omplike-advisor/**",
     "**/pi-cliproxyapi-provider/extensions/index.ts",
     "**/light-web-search.ts",
-    "**/ponytail/**",
-    "**/extensions/rotator-autostart/**"
+    "**/ponytail/**"
   ],
   "extensionSettings": {
     "herdr": {

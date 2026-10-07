@@ -118,9 +118,6 @@ if ! jq -e '
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
-  $aliases["rotator-gemini-low"] == "tuxevil-rotator/gemini-3.8-flash-low:low" and
-  $aliases["rotator-gemini-medium"] == "tuxevil-rotator/gemini-3.8-flash-medium:medium" and
-  $aliases["rotator-gemini-high"] == "tuxevil-rotator/gemini-3.8-flash-high:high" and
   $aliases["cheap-model"] == "native-cheap-model" and
   $aliases["scout-model"] == "cheap-model" and
   $aliases["developer-model"] == "cheap-model" and
@@ -130,7 +127,7 @@ if ! jq -e '
   $aliases["oracle-model"] == "reviewer-model" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
-  printf '%s: workflow aliases are not the native-default/CLIProxyAPI-explicit/rotator-opt-in policy\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: workflow aliases are not the native-default/CLIProxyAPI-explicit policy\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
@@ -162,16 +159,6 @@ if ! jq -e '
     ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native), v: .value}] | sort_by(.k))
 ' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: native and CLIProxyAPI aliases, enabledModels or thinking levels do not mirror each other\n' "$WORKFLOWS_SETTINGS"
-  failures=1
-fi
-
-if ! jq -e '.providers["tuxevil-rotator"] as $provider |
-  $provider.baseUrl == "http://localhost:51200/v1" and
-  $provider.api == "openai-completions" and
-  $provider.apiKey == "$TUXEVIL_ROTATOR_API_KEY" and
-  ([$provider.models[]?.id] | sort) == ["gemini-3.8-flash-high", "gemini-3.8-flash-low", "gemini-3.8-flash-medium"]' \
-  "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
-  printf '%s: tuxevil-rotator catalog is missing or changed\n' "$ROOT/pi/agent/models.json"
   failures=1
 fi
 
