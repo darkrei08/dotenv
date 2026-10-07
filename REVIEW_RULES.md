@@ -17,17 +17,16 @@ A change that drops or alters any of these without an explicit instruction is a
 defect:
 
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
-  `gpt-6-luna` and `gpt-6-sol`. The `tuxevil-rotator` provider is an explicit
-  opt-in gateway for Gemini 3.8 Flash models; it must remain opt-in only and never
-  become a workflow default. Do not reintroduce obsolete OpenCode workflow targets.
+  `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
+  return. Do not reintroduce obsolete OpenCode workflow targets.
 - `pi/agent/pi-extensible-workflows/settings.json`: native providers are the
   working default and follow the `vekexasia/dotenv` role mapping on Claude Pro
   and ChatGPT Plus models: `cheap-model` (also scout and developer) resolves to
-  `anthropic/claude-sonnet-5-5:medium`, `tests-expert` and `researcher-model`
-  to `native-luna` (`openai-codex/gpt-6-luna:high`), and `reviewer-model`
+  `anthropic/claude-sonnet-5-5:medium`, `tests-expert` to `native-luna`
+  (`openai-codex/gpt-6-luna:high`) and `researcher-model` to `native-luna:xhigh`, and `reviewer-model`
   (also oracle) to `anthropic/claude-opus-5-5:high`. Every native alias has a
-  `cliproxy-*` mirror, and `rotator-gemini-*` stays opt-in; none may become a
-  default or let an unavailable gateway model block native workflows. Do not
+  `cliproxy-*` mirror, which stays opt-in and must never let an unavailable
+  gateway model block native workflows. Do not
   configure Fable (not included in Claude Pro). Preserve the expanded `skills`
   list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:

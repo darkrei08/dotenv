@@ -66,32 +66,14 @@ as the per-agent `model` override to run a workflow through CLIProxyAPI. With on
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
 models, which is why the native route stays the default.
 
-### tuxevil-rotator (opt-in)
+### Gemini
 
-[tuxevil-rotator](https://github.com/tuxevil/tuxevil-rotator) is a local OpenAI-compatible gateway for multi-account Google Gemini routing. It is **opt-in only** and requires separate setup.
-
-**⚠️ Provider ToS/Account Risk Warning:** Using this proxy may violate provider Terms of Service and put connected accounts at risk of restriction, suspension, or permanent bans. Use at your own risk.
-
-**Requirements:**
-- Node.js >=22
-- `npm install -g tuxevil-rotator`
-- `tuxevil-rotator login` to configure accounts
-- Gateway runs at `http://localhost:51200/v1`; provide its bearer key through `TUXEVIL_ROTATOR_API_KEY`
-
-The rotator-autostart extension is opt-in. Export `TUXEVIL_ROTATOR_API_KEY` and set `TUXEVIL_ROTATOR_AUTOSTART=1` before starting Pi to start the gateway on session open. If it fails to start, run:
-```bash
-tuxevil-rotator login  # one-time account setup
-tuxevil-rotator start  # manual start
-```
-
-Optional Gemini 3.8 Flash aliases (require rotator availability):
-- `rotator-gemini-low` → `tuxevil-rotator/gemini-3.8-flash-low:low`
-- `rotator-gemini-medium` → `tuxevil-rotator/gemini-3.8-flash-medium:medium`
-- `rotator-gemini-high` → `tuxevil-rotator/gemini-3.8-flash-high:high`
-
-Pass one as a per-agent `model` override when the gateway is authenticated and running.
-
-**Model-proxy caveat:** The model IDs exposed by tuxevil-rotator (e.g., `gemini-3.8-flash-low`) are proxy identifiers, not official Google API model IDs. The gateway translates them to upstream provider models.
+The standalone `tuxevil-rotator` gateway was retired. Gemini models, when wanted, come
+through CLIProxyAPI: authenticate a Google account with the `-antigravity-login`
+flow in [`cliproxyapi/README.md`](../../cliproxyapi/README.md) and pass the model the
+dynamic `cliproxyapi` catalog lists as a per-agent `model` override. Check the catalog
+first; the available Gemini IDs depend on the authenticated account. Using such an
+account through a proxy may violate the provider's terms of service.
 
 ## MCP
 

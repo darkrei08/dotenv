@@ -162,7 +162,6 @@ Third-party packages:
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
 | `extensions/show-system-prompt.ts` | `/system-prompt` command: writes the current system prompt to `/tmp/system-prompt.md` | none |
 | `extensions/tmux-progress.ts` | `agent_start` / `agent_end` handlers that set the tmux per-window option `@pi_status` | `tmux`, and the format lines documented in the file (not managed by this repository) |
-| `extensions/rotator-autostart/index.ts` | Opt-in `session_start` gateway probe/start when `TUXEVIL_ROTATOR_AUTOSTART=1` | `tuxevil-rotator` |
 | `extensions/vim-editor.ts` | `alt+m` shortcut: open the current editor buffer in Neovim | `nvim` |
 
 `extensions/herdr-nvim-blocked/index.ts` describes the blocked state as coming from a `herdr:blocked` event in `extensions/herdr-agent-state.ts`, which is not tracked; see [Known gaps](#known-gaps).
@@ -253,14 +252,13 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 `pi/agent/settings.json` sets `defaultProvider: anthropic`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` and the GGA pre-commit reviewer use the same Sonnet 5.5 default: GGA reviews through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md).
 
-`pi/agent/models.json` declares the static `openrouter`, `openai-codex`, and opt-in `tuxevil-rotator` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
+`pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
 | Provider | What the file adds |
 | --- | --- |
 | `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`. |
 | `openai-codex` | Five text+image models: `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-6-luna`, `gpt-6-sol`, and `gpt-5.6-terra`, with a 250k context and 128k maximum output. |
 | `cliproxyapi` | Dynamic OpenAI-compatible models from CLIProxyAPI. CPA Usage Keeper provides the local usage, cost and quota dashboard. |
-| `tuxevil-rotator` | Opt-in local OpenAI-compatible Gemini gateway at `localhost:51200`; autostart requires `TUXEVIL_ROTATOR_AUTOSTART=1`. |
 
 Use the CLIProxyAPI stack documented in [`cliproxyapi/README.md`](cliproxyapi/README.md):
 

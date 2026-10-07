@@ -1,7 +1,6 @@
 # CLIProxyAPI + CPA Usage Keeper
 
-This is the CLIProxyAPI local model gateway in this setup. An optional
-`tuxevil-rotator` gateway is documented in `../pi/agent/README.md`. The Compose stack runs the
+This is the CLIProxyAPI local model gateway in this setup. The Compose stack runs the
 official CLIProxyAPI image and [CPA Usage Keeper](https://github.com/Willxup/cpa-usage-keeper).
 The API and OAuth callback are bound to loopback only:
 

@@ -347,8 +347,8 @@ update, check this before editing model config.
 
 Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The set
 targets Claude Pro and ChatGPT Plus and follows the role mapping of
-`vekexasia/dotenv`. Native aliases are the default path; CLIProxyAPI and
-tuxevil-rotator aliases are explicit opt-in alternatives.
+`vekexasia/dotenv`. Native aliases are the default path; CLIProxyAPI
+aliases are an explicit opt-in alternative.
 
 | Alias | Configured target | Use |
 |---|---|---|
@@ -362,9 +362,6 @@ tuxevil-rotator aliases are explicit opt-in alternatives.
 | `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of `native-reviewer-model` |
 | `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
 | `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
-| `rotator-gemini-low` | `tuxevil-rotator/gemini-3.8-flash-low:low` | Opt-in tuxevil-rotator Gemini 3.8 Flash (low effort) |
-| `rotator-gemini-medium` | `tuxevil-rotator/gemini-3.8-flash-medium:medium` | Opt-in tuxevil-rotator Gemini 3.8 Flash (medium effort) |
-| `rotator-gemini-high` | `tuxevil-rotator/gemini-3.8-flash-high:high` | Opt-in tuxevil-rotator Gemini 3.8 Flash (high effort) |
 | `cheap-model` | `native-cheap-model` | Standard cheap alias |
 | `scout-model` | `cheap-model` | Scout role |
 | `developer-model` | `cheap-model` | Developer role |
@@ -403,9 +400,6 @@ GGA therefore runs Sonnet 5.5 at `high` through Pi
 
 **Gateway usage:**
 - CLIProxyAPI: pass a `cliproxy-*` alias as a call-level `model` override. Requires an authenticated dynamic catalog.
-- tuxevil-rotator: Pass `rotator-gemini-low`, `rotator-gemini-medium`, or `rotator-gemini-high` as a call-level `model` override. Requires `tuxevil-rotator login`, `TUXEVIL_ROTATOR_API_KEY`, and a running gateway at `http://localhost:51200/v1`. Autostart is opt-in via `TUXEVIL_ROTATOR_AUTOSTART=1`.
-
-**Model-proxy caveat:** The tuxevil-rotator model IDs (e.g., `gemini-3.8-flash-low`) are proxy identifiers maintained by the gateway, not official Google API model IDs. The gateway translates requests to upstream provider models. See the [tuxevil-rotator documentation](https://github.com/tuxevil/tuxevil-rotator) for current model catalog and setup.
 
 Do not replace the standard aliases with unavailable gateway targets. Native providers remain the working default.
 
