@@ -29,6 +29,7 @@
     "issue-creation": { "default": true },
     "judgment-day": { "default": true },
     "phantom-ui": { "default": true, "except": ["antigravity"] },
+    "pi-herdr-orchestrator": { "default": true, "except": ["opencode", "gemini"] },
     "prototype": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
     "rdd-defect-workflow": { "default": true },
     "research": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
