@@ -1,9 +1,9 @@
 {
   "modes": {
     "advisor": {
-      "provider": "openrouter",
-      "modelId": "deepseek/deepseek-v4.1-flash",
-      "thinkingLevel": "xhigh",
+      "provider": "openai-codex",
+      "modelId": "gpt-6-luna",
+      "thinkingLevel": "high",
       "autostart": false
     },
     "opencode-max": {

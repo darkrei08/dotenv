@@ -17,20 +17,25 @@ A change that drops or alters any of these without an explicit instruction is a
 defect:
 
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
-  `gpt-6-luna` and `gpt-6-sol`. Do not reintroduce a Tuxevil/rotator provider;
-  CLIProxyAPI is the sole local model gateway.
-- `pi/agent/pi-extensible-workflows/settings.json`: standard workflow routing
-  uses native providers by default: `cheap-model` resolves to
-  `openai-codex/gpt-5.6-luna:high`, `reviewer-model` resolves to
-  `anthropic/claude-opus-5-5:high`, and the standard roles chain from those
-  aliases. Explicit `cliproxy-cheap-model` and `cliproxy-reviewer-model`
-  aliases retain the CLIProxyAPI targets. `enabledModels` may contain the
-  upstream exact dynamic/forward-compatible list even when current discovery
-  is empty. The `opencode-max` mode, if still present, is not used by standard
-  workflow aliases. Preserve the expanded `skills` list.
+  `gpt-6-luna` and `gpt-6-sol`. The `tuxevil-rotator` provider is an explicit
+  opt-in gateway for Gemini 3.8 Flash models; it must remain opt-in only and never
+  become a workflow default. Do not reintroduce obsolete OpenCode workflow targets.
+- `pi/agent/pi-extensible-workflows/settings.json`: native providers are the
+  working default and follow the `vekexasia/dotenv` role mapping on Claude Pro
+  and ChatGPT Plus models: `cheap-model` (also scout and developer) resolves to
+  `anthropic/claude-sonnet-5-5:medium`, `tests-expert` and `researcher-model`
+  to `native-luna` (`openai-codex/gpt-6-luna:high`), and `reviewer-model`
+  (also oracle) to `anthropic/claude-opus-5-5:high`. Every native alias has a
+  `cliproxy-*` mirror, and `rotator-gemini-*` stays opt-in; none may become a
+  default or let an unavailable gateway model block native workflows. Do not
+  configure Fable (not included in Claude Pro). Preserve the expanded `skills`
+  list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
-  openai-codex`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: xhigh`,
-  and `modelThinkingLevels`.
+  anthropic`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
+  and `modelThinkingLevels`. `enabledModels` lists only Anthropic, OpenAI Codex
+  and their CLIProxyAPI mirrors. `.gga` (GGA reviewing through the Pi bridge in
+  `agents/gga-pi/`, Sonnet 5.5 at `high` effort) and `pi/agent/subagents.json`
+  follow the same Sonnet 5.5 default.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.
@@ -44,8 +49,9 @@ defect:
   reflected in the other (or justified as pi-managed vs npm-managed).
 - Workflow `extensions` globs in `pi-extensible-workflows/settings.json` must
   reference packages that are actually installed (settings packages or npm deps).
-- Model aliases must dereference a provider/model that exists in `models.json`
-  or a known built-in provider.
+- Standard model aliases must dereference an available built-in provider;
+  explicit CLIProxyAPI aliases may target the dynamic catalog and are validated
+  when the provider is authenticated.
 
 ## JSON
 

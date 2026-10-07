@@ -1,6 +1,13 @@
 # dotenv
 
-Personal Linux/WSL dotfiles plus the Pi coding-agent configuration that ships with them. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here. For the optional localhost-only CLIProxyAPI setup, see [the setup guide](cliproxyapi/README.md).
+Personal Linux/WSL dotfiles plus a ready-to-use configuration for the Pi coding agent and the other AI coding CLIs. This checkout is the source of truth: `./setup_env.sh` installs the required tools and overwrites managed configuration from here.
+
+What it gives you:
+
+- **Models and roles** tuned for Claude Pro and ChatGPT Plus, with the role mapping of `vekexasia/dotenv`: Sonnet 5.5 as the daily driver, Opus 5.5 for review, GPT-6 Luna for tests and research. Native providers are the default and CLIProxyAPI mirrors the same models. See [`pi/agent/MODELS.md`](pi/agent/MODELS.md).
+- **A commit review gate**: GGA reviews staged files through Pi with Sonnet 5.5 at high effort. See [`docs/gentle-ai-gga.md`](docs/gentle-ai-gga.md), which also covers Gentle AI and gentle-pi for Pi and the other agents.
+- **Shared skills** installed once and linked into every agent ([`agents/LINKING.md`](agents/LINKING.md)).
+- **An optional localhost-only CLIProxyAPI + usage dashboard** ([setup guide](cliproxyapi/README.md)).
 
 Remotes: `origin` is `darkrei08/dotenv` (the fork this machine works in), `upstream` is `vekexasia/dotenv`.
 
@@ -155,6 +162,7 @@ Third-party packages:
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
 | `extensions/show-system-prompt.ts` | `/system-prompt` command: writes the current system prompt to `/tmp/system-prompt.md` | none |
 | `extensions/tmux-progress.ts` | `agent_start` / `agent_end` handlers that set the tmux per-window option `@pi_status` | `tmux`, and the format lines documented in the file (not managed by this repository) |
+| `extensions/rotator-autostart/index.ts` | Opt-in `session_start` gateway probe/start when `TUXEVIL_ROTATOR_AUTOSTART=1` | `tuxevil-rotator` |
 | `extensions/vim-editor.ts` | `alt+m` shortcut: open the current editor buffer in Neovim | `nvim` |
 
 `extensions/herdr-nvim-blocked/index.ts` describes the blocked state as coming from a `herdr:blocked` event in `extensions/herdr-agent-state.ts`, which is not tracked; see [Known gaps](#known-gaps).
@@ -175,10 +183,10 @@ The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`
 | --- | --- |
 | `pi/agent/settings.json` | Effective Pi settings: `defaultProvider`/`defaultModel`/`defaultThinkingLevel`, `modelThinkingLevels`, `compaction`, `theme`, the `packages` list, `hideThinkingBlock`, `showCacheMissNotices`, `tuiMode`. |
 | `pi/agent/models.json` | Provider catalog and overrides; see [Providers and credentials](#providers-and-credentials). |
-| `pi/agent/modes.json` | `advisor`: provider `openrouter`, modelId `deepseek/deepseek-v4.1-flash`, `thinkingLevel: xhigh`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
+| `pi/agent/modes.json` | `advisor`: provider `openai-codex`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-extensible-workflows/settings.json` | `modelAliases`, the workflow `skills` allowlist, the workflow `extensions` allowlist, and `extensionSettings` for `herdr` and `trajectory`. |
-| `pi/agent/pi-extensible-workflows/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`. |
+| `pi/agent/pi-extensible-workflows/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `qa`, `release`, `sre`. |
 | `pi/agent/prompts/` | Prompt templates: `fixissues.md` (drives the `devIssuesInBatches` workflow from `ready-for-agent` issues) and `spawn-pi-pane.md` (spawns a sibling Pi in a herdr pane). |
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
 | `pi/agent/AGENTS.md` | Project instructions Pi loads for this repository. |
@@ -243,17 +251,18 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: openai-codex`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: xhigh`. All three `modelThinkingLevels` entries are `xhigh`, and compaction is enabled with `compaction.enabled: true`.
+`pi/agent/settings.json` sets `defaultProvider: anthropic`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` and the GGA pre-commit reviewer use the same Sonnet 5.5 default: GGA reviews through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md).
 
-`pi/agent/models.json` declares two static providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
+`pi/agent/models.json` declares the static `openrouter`, `openai-codex`, and opt-in `tuxevil-rotator` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
 | Provider | What the file adds |
 | --- | --- |
 | `openrouter` | A `modelOverrides` entry for `deepseek/deepseek-v4.1-flash` with OpenRouter routing restricted to `only: ["deepseek"]` and `allow_fallbacks: false`. |
 | `openai-codex` | Five text+image models: `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-6-luna`, `gpt-6-sol`, and `gpt-5.6-terra`, with a 250k context and 128k maximum output. |
 | `cliproxyapi` | Dynamic OpenAI-compatible models from CLIProxyAPI. CPA Usage Keeper provides the local usage, cost and quota dashboard. |
+| `tuxevil-rotator` | Opt-in local OpenAI-compatible Gemini gateway at `localhost:51200`; autostart requires `TUXEVIL_ROTATOR_AUTOSTART=1`. |
 
-Use the single local stack documented in [`cliproxyapi/README.md`](cliproxyapi/README.md):
+Use the CLIProxyAPI stack documented in [`cliproxyapi/README.md`](cliproxyapi/README.md):
 
 ```bash
 cd cliproxyapi
@@ -264,7 +273,7 @@ docker compose up -d
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases use the native providers by default: `cheap-model` resolves to `openai-codex/gpt-5.6-luna:high`, while `reviewer-model` resolves to `anthropic/claude-opus-5-5:high`; the developer/researcher/scout/test roles chain from `cheap-model`, and Oracle chains from `reviewer-model`. The explicit `cliproxy-cheap-model` and `cliproxy-reviewer-model` aliases target `cliproxyapi/gpt-6-luna:high` and `cliproxyapi/claude-opus-5-5:high` for authenticated CLIProxyAPI runs.
+Standard workflow aliases use native providers by default and follow the `vekexasia/dotenv` role mapping on Claude Pro and ChatGPT Plus models: `cheap-model`, scout and developer use `anthropic/claude-sonnet-5-5:medium`; tests and research use `openai-codex/gpt-6-luna`; reviewer and Oracle use `anthropic/claude-opus-5-5:high`. Each native alias has a `cliproxy-*` mirror that targets the same model through CLIProxyAPI and can be supplied as a per-agent `model` override after the dynamic catalog is authenticated. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
 
 ## External binaries and runtime dependencies
 
@@ -339,7 +348,8 @@ Run these on the machine, after `setup_env.sh`:
 
 ```bash
 # This checkout's own config invariants: settings.json parses, carries the
-# module-owned packages and the gentle-pi exclusions, has no ../../ path, and
+# module-owned packages and gentle-pi exclusions, enforces native/default and
+# explicit CLIProxyAPI aliases plus enabledModels, has no ../../ path, and
 # setup_env.sh never writes GENTLE_PI_QUIET_TOOLS=0
 bash check-config.sh
 
@@ -365,7 +375,10 @@ node agents/link-skills.mjs --verify          # expect: verify: OK
 ls -l ~/.claude/skills ~/.codex/skills        # entries are junctions/symlinks
 
 # The local CPA + Keeper stack
-curl -fsS 'http://127.0.0.1:8317/v1/models?client_version=pi'
+CPA_KEY='paste-the-local-api-key-here'
+curl -fsS -H "Authorization: Bearer ${CPA_KEY}" \
+  'http://127.0.0.1:8317/v1/models?client_version=pi'
+unset CPA_KEY
 # Open http://127.0.0.1:8080 for CPA Usage Keeper
 ```
 

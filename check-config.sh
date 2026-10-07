@@ -3,7 +3,7 @@ set -uo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
-CODEX_CONFIG="$ROOT/.codex/config.toml"
+GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-extensible-workflows/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
@@ -30,12 +30,19 @@ if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
 fi
 
 pi_default_model=$(jq -r '.defaultModel // empty' "$SETTINGS" 2>/dev/null)
-codex_default_model=$(sed -nE 's/^[[:space:]]*model[[:space:]]*=[[:space:]]*"([^"]*)"[[:space:]]*(#.*)?$/\1/p' "$CODEX_CONFIG" 2>/dev/null)
-if [[ -z "$pi_default_model" || -z "$codex_default_model" || "$pi_default_model" != "$codex_default_model" ]]; then
-  printf '%s: model must match %s defaultModel (Codex: %s, Pi: %s)\n' \
-    "$CODEX_CONFIG" "$SETTINGS" "${codex_default_model:-missing}" "${pi_default_model:-missing}"
+pi_default_provider=$(jq -r '.defaultProvider // empty' "$SETTINGS" 2>/dev/null)
+gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
+if [[ -z "$pi_default_provider" || -z "$pi_default_model" || "$gga_provider" != "kilo:$pi_default_provider/$pi_default_model:"* ]]; then
+  printf '%s: PROVIDER must be the Pi bridge for the Pi default model (kilo:%s/%s:<effort>, found: %s)\n' \
+    "$GGA_CONFIG" "${pi_default_provider:-missing}" "${pi_default_model:-missing}" "${gga_provider:-missing}"
   failures=1
 fi
+for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
+  if [[ ! -x "$ROOT/$bridge" ]]; then
+    printf '%s: GGA Pi bridge file is missing or not executable\n' "$ROOT/$bridge"
+    failures=1
+  fi
+done
 
 required_packages=(
   npm:pi-extensible-workflows
@@ -97,6 +104,77 @@ if ((versioned_workflows_ok && live_workflows_ok)) &&
   failures=1
 fi
 
+# Plan-tier routing (Claude Pro + ChatGPT Plus), aligned with vekexasia/dotenv roles:
+# native providers are the default, cliproxy-* mirror the same models explicitly.
+if ! jq -e '
+  .modelAliases as $aliases |
+  $aliases["native-cheap-model"] == "anthropic/claude-sonnet-5-5:medium" and
+  $aliases["native-luna"] == "openai-codex/gpt-6-luna:high" and
+  $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
+  $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:medium" and
+  $aliases["native-astra"] == "openai-codex/gpt-6-astra:high" and
+  $aliases["cliproxy-cheap-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-6-luna:high" and
+  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
+  $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
+  $aliases["rotator-gemini-low"] == "tuxevil-rotator/gemini-3.8-flash-low:low" and
+  $aliases["rotator-gemini-medium"] == "tuxevil-rotator/gemini-3.8-flash-medium:medium" and
+  $aliases["rotator-gemini-high"] == "tuxevil-rotator/gemini-3.8-flash-high:high" and
+  $aliases["cheap-model"] == "native-cheap-model" and
+  $aliases["scout-model"] == "cheap-model" and
+  $aliases["developer-model"] == "cheap-model" and
+  $aliases["tests-expert"] == "native-luna" and
+  $aliases["researcher-model"] == "native-luna:xhigh" and
+  $aliases["reviewer-model"] == "native-reviewer-model" and
+  $aliases["oracle-model"] == "reviewer-model" and
+  all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
+' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow aliases are not the native-default/CLIProxyAPI-explicit/rotator-opt-in policy\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '
+  .defaultProvider == "anthropic" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
+  (.enabledModels | all(.[]; startswith("anthropic/") or startswith("openai-codex/") or startswith("cliproxyapi/"))) and
+  (.enabledModels | index("anthropic/claude-sonnet-5-5") != null) and
+  (.enabledModels | index("openai-codex/gpt-6.1-sol") != null)
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: defaults must be Sonnet 5.5 medium with enabledModels limited to Anthropic, OpenAI and CLIProxyAPI mirrors\n' "$SETTINGS"
+  failures=1
+fi
+
+# Native and CLIProxyAPI must coincide: every native alias, enabled model and startup
+# thinking level has a cliproxyapi mirror on the same model and effort.
+if ! jq -e '
+  def native: sub("^(anthropic|openai-codex)/"; "");
+  def mirror: sub("^cliproxyapi/"; "");
+  .modelAliases as $aliases |
+  all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
+      ($aliases["native-" + .] | native) == ($aliases["cliproxy-" + .] | mirror))
+' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
+  ! jq -e '
+  def native: sub("^(anthropic|openai-codex)/"; "");
+  def mirror: sub("^cliproxyapi/"; "");
+  ([.enabledModels[] | select(startswith("cliproxyapi/")) | mirror] | sort) ==
+    ([.enabledModels[] | select(startswith("anthropic/") or startswith("openai-codex/")) | native] | sort) and
+  ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror), v: .value}] | sort_by(.k)) ==
+    ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native), v: .value}] | sort_by(.k))
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: native and CLIProxyAPI aliases, enabledModels or thinking levels do not mirror each other\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '.providers["tuxevil-rotator"] as $provider |
+  $provider.baseUrl == "http://localhost:51200/v1" and
+  $provider.api == "openai-completions" and
+  $provider.apiKey == "$TUXEVIL_ROTATOR_API_KEY" and
+  ([$provider.models[]?.id] | sort) == ["gemini-3.8-flash-high", "gemini-3.8-flash-low", "gemini-3.8-flash-medium"]' \
+  "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
+  printf '%s: tuxevil-rotator catalog is missing or changed\n' "$ROOT/pi/agent/models.json"
+  failures=1
+fi
+
 if ((live_settings_ok)); then
   if ! diff -u \
       <(jq -S '[.packages? // [] | .[]? | select(type == "object") | {source, extensions: (.extensions? // [])}] | sort_by(.source)' "$SETTINGS") \
@@ -109,6 +187,32 @@ fi
 
 if grep -Fq -- '../../' "$SETTINGS"; then
   printf '%s: contains a ../../ relative package path\n' "$SETTINGS"
+  failures=1
+fi
+
+ROLES_DIR="$ROOT/pi/agent/pi-extensible-workflows/roles"
+required_roles=(
+  developer.md
+  oracle.md
+  researcher.md
+  reviewer.md
+  scout.md
+  summarizer.md
+  tests-expert.md
+  architect.md
+  security.md
+  qa.md
+  release.md
+  sre.md
+)
+missing_roles=()
+for role in "${required_roles[@]}"; do
+  if [[ ! -f "$ROLES_DIR/$role" ]]; then
+    missing_roles+=("$role")
+  fi
+done
+if ((${#missing_roles[@]})); then
+  printf '%s: missing required role file(s): %s\n' "$ROLES_DIR" "${missing_roles[*]}"
   failures=1
 fi
 

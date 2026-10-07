@@ -1,6 +1,7 @@
 # CLIProxyAPI + CPA Usage Keeper
 
-This is the only local model gateway in this setup. The Compose stack runs the
+This is the CLIProxyAPI local model gateway in this setup. An optional
+`tuxevil-rotator` gateway is documented in `../pi/agent/README.md`. The Compose stack runs the
 official CLIProxyAPI image and [CPA Usage Keeper](https://github.com/Willxup/cpa-usage-keeper).
 The API and OAuth callback are bound to loopback only:
 
@@ -100,13 +101,18 @@ installing the repository's Pi configuration, restart Pi and run:
 Use the inbound `api-keys` value from `config.yaml`. Pi stores its local
 provider credentials in ignored files under `~/.pi/agent/`. After accounts are
 authenticated, use `/cliproxyapi-refresh` and select a live `cliproxyapi/...`
-model. The protected workflow aliases use:
+model. The standard workflow aliases use native providers by default, so
+workflows do not stop when this gateway is offline. To route a child agent
+through CLIProxyAPI, use these explicit aliases as its per-agent model override:
 
-- `cheap-model=cliproxyapi/gpt-6-luna:high`
-- `reviewer-model=cliproxyapi/claude-opus-5-5:high`
+- `cliproxy-cheap-model=cliproxyapi/claude-sonnet-5-5:medium`
+- `cliproxy-luna=cliproxyapi/gpt-6-luna:high`
+- `cliproxy-reviewer-model=cliproxyapi/claude-opus-5-5:high`
+- `cliproxy-sol=cliproxyapi/gpt-6.1-sol:medium`
+- `cliproxy-astra=cliproxyapi/gpt-6-astra:high`
 
-The optional `cheap-model-ant` and `cheap-model-oai` aliases also use
-CLIProxyAPI. No second dashboard is required.
+These aliases resolve only after the CLIProxyAPI catalog is authenticated. No
+second dashboard is required.
 
 ## Keeper login and data
 
