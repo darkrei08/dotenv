@@ -5,8 +5,9 @@
 // notification, and a gateway that never comes up is reported once per session instead
 // of failing silently at the first rotator-gemini call. Concurrent sessions coordinate
 // through one start claim, so N sessions opening at once produce one start, not N.
-// TUXEVIL_ROTATOR_URL and TUXEVIL_ROTATOR_BIN override the probe and the binary, which
-// is how the test exercises the loop without a real gateway.
+// TUXEVIL_ROTATOR_URL, TUXEVIL_ROTATOR_BIN and TUXEVIL_ROTATOR_LOCK override the probe,
+// the binary and the start-claim file, which is how the test exercises the loop without
+// a real gateway and without touching a live claim.
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -20,7 +21,7 @@ const API_KEY = process.env.TUXEVIL_ROTATOR_API_KEY ?? "";
 const PROBE_TIMEOUT_MS = 1500;
 const READY_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 500;
-export const LOCK_PATH = join(tmpdir(), "pi-tuxevil-rotator-autostart.lock");
+export const LOCK_PATH = process.env.TUXEVIL_ROTATOR_LOCK ?? join(tmpdir(), "pi-tuxevil-rotator-autostart.lock");
 const GATEWAY_LOG = join(homedir(), ".tuxevil-rotator", "gateway.log");
 
 export type GatewayOutcome = "already-up" | "started" | "unreachable" | "start-failed";

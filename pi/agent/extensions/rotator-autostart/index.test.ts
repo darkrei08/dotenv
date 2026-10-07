@@ -1,6 +1,13 @@
 import { expect, test } from "bun:test";
-import { rmSync, writeFileSync } from "node:fs";
-import { acquireStart, ensureGateway, LOCK_PATH, startDetached } from "./index";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// The lock path is read at import time, so point it at a private directory first: the
+// stale-lock test must never touch a live start claim in the shared temp directory.
+const lockDir = mkdtempSync(join(tmpdir(), "rotator-lock-test-"));
+process.env.TUXEVIL_ROTATOR_LOCK = join(lockDir, "claim.lock");
+const { acquireStart, ensureGateway, LOCK_PATH, startDetached } = await import("./index");
 
 // A fake clock keeps the readiness loop instant and makes the timeout observable.
 function fakeClock() {
