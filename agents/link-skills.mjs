@@ -97,10 +97,20 @@ function isLink(path) {
 }
 
 // Windows junctions and POSIX symlinks can carry different casing; compare the
-// resolved targets through one normal form.
+// resolved targets through one normal form. A dangling link is a conflict, not a
+// crash: callers need to finish planning so they can report every problem.
+function resolvedTarget(path) {
+  try {
+    return realpathSync(path);
+  } catch {
+    return null;
+  }
+}
+
 function sameTarget(a, b) {
-  const left = realpathSync(a);
-  const right = realpathSync(b);
+  const left = resolvedTarget(a);
+  const right = resolvedTarget(b);
+  if (left === null || right === null) return false;
   return (IS_WINDOWS ? left.toLowerCase() : left) === (IS_WINDOWS ? right.toLowerCase() : right);
 }
 
@@ -170,10 +180,12 @@ function planCanonical(manifest, canonicalRoot, selectedSkills) {
     if (!exists(path)) {
       entries.push({ action: 'conflict', name: skill, detail: `missing from the canonical root: ${path}` });
     } else if (isLink(path)) {
-      const target = realpathSync(path);
-      entries.push(isInside(canonicalRoot, target)
-        ? { action: 'skip', name: skill, detail: `canonical entry is a link inside the canonical root: ${target}` }
-        : { action: 'fold-in', name: skill, detail: `${target} -> ${path}` });
+      const target = resolvedTarget(path);
+      entries.push(target === null
+        ? { action: 'conflict', name: skill, detail: 'canonical entry is a dangling link' }
+        : isInside(canonicalRoot, target)
+          ? { action: 'skip', name: skill, detail: `canonical entry is a link inside the canonical root: ${target}` }
+          : { action: 'fold-in', name: skill, detail: `${target} -> ${path}` });
     }
   }
   return entries;

@@ -71,7 +71,7 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 | 356-367 | **Pi:** on Arch/Omarchy, delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout and remove its global mise selection; install `@earendil-works/pi-coding-agent` with npm when `pi` is missing on every supported distro. |
 | 369-370 | `sync_pi` and install the CLI-Anything Pi extension. |
 | 372-393 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
-| 394-420 | **Pi skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, run the shared `npx skills add ... --global --agent pi --copy --yes` commands for `herdrdev/herdr`, `mattpocock/skills` (`triage grill-me grilling wayfinder domain-modeling prototype research`), `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install has an unpinned fallback, and its CLI installer runs with `--no-skill`. |
+| 394-420 | **Shared skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, install the full first-party engineering set from `mattpocock/skills` (including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, and the existing planning/research skills), plus `herdrdev/herdr`, `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). Each command targets `pi cline` so skills-cli keeps one canonical copy under `~/.agents/skills`, which Pi reads directly. The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install fails closed if the pinned tag cannot be fetched, and its CLI installer runs with `--no-skill`. |
 | 422-452 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, then (as root only) `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
 | 453-458 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
 | 459-476 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
@@ -175,7 +175,7 @@ Third-party packages:
 | `~/.agents/skills/` | shared skills, one physical copy each | Machine-installed (see below) or linked |
 | `agents/skills/phantom-ui/` | `SKILL.md` written here, the MIT standalone build plus its `.d.ts`, upstream `LICENSE`, `VENDORED.md` | Repository-owned, copied into harness roots |
 
-The machine-installed skills are placed by `setup_env.sh` lines 401-420 (`herdr`, `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research`, `typescript-advanced`, `show-me`, `engineering-excellence`, `project-memory`) and by `agents/install-agent-extensions.sh` (`design-taste`, `impeccable`, `ponytail`, `phantom-ui`). They are read from the harness root that installed them, or from `~/.agents/skills` when that is the canonical root; see the next section.
+The machine-installed skills are placed by `setup_env.sh` lines 402-424 (the first-party `mattpocock/skills` engineering set, `herdr`, `typescript-advanced`, `show-me`, `engineering-excellence`, and `project-memory`) in the canonical `~/.agents/skills` root, which Pi reads directly. `agents/install-agent-extensions.sh` manages `design-taste`, `impeccable`, `ponytail`, and `phantom-ui` separately; see the next section.
 
 ### Other Pi files
 
@@ -301,16 +301,16 @@ Standard workflow aliases use native providers by default and follow the `vekexa
 
 | Upstream | Skills | Installer |
 | --- | --- | --- |
-| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi --copy --yes` (`setup_env.sh` line 402) |
-| `mattpocock/skills` | `triage`, `grill-me`, `grilling`, `wayfinder`, `domain-modeling`, `prototype`, `research` | `npx skills@latest add` (line 403) |
+| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi cline --yes` (`setup_env.sh` line 402) |
+| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent pi cline --yes` (line 403) |
 | `pedronauck/skills` | `typescript-advanced` | `npx skills add` (line 404) |
 | `humanlayer/skills` | `show-me` | `npx skills add` (line 405) |
 | `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` (line 406) |
-| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | `npx skills add "...#v0.1.0"` with an unpinned fallback (lines 414-415); the `aimem` CLI installer runs with `--no-skill` (lines 418-420) |
+| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | Pinned `npx skills add "...#v0.1.0"`; setup fails closed if the tag cannot be fetched. The `aimem` CLI installer runs with `--no-skill` (lines 418-420) |
 | `h3nryprod01/design-taste` | `design-taste` | `npx skills@latest add ... --global --agent <agent> --copy --yes`, per detected CLI, in `install-agent-extensions.sh` |
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
-| this repository | `phantom-ui` (`agents/skills/phantom-ui`, MIT build, provenance in `VENDORED.md`) | `agents/install-agent-extensions.sh` copies it into every existing harness root |
+| this repository | `phantom-ui` (`agents/skills/phantom-ui`, MIT build, provenance in `VENDORED.md`) | `agents/install-agent-extensions.sh` copies it into every existing non-Pi harness root and the shared canonical root |
 | this repository | `issue-ops`, `learning-opportunities`, `orient`, `tigerstyle` | Tracked directly under `pi/agent/skills/`, Pi-only |
 | `pi` examples | `questionnaire` tool | Copied into `pi/agent/extensions/questionnaire.ts` |
 
@@ -338,7 +338,7 @@ Standard workflow aliases use native providers by default and follow the `vekexa
 | Claude Code | Not scriptable: the script prints the two interactive `/plugin` commands as a manual step |
 | pi | Not handled here; Pi installs ponytail from `pi/agent/pi-packages.txt` |
 
-The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, `pi`, plus `~/.agents/skills`). One failing host is logged and does not stop the run; the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
+The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing non-Pi harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, plus `~/.agents/skills`). Pi reads the canonical root. Differing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
 
 Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker; the one exception is that `setup_env.sh`, when run as root, sets `permissions.defaultMode` to `default` in `~/.claude/settings.json` and preserves every other setting.
 
@@ -370,7 +370,7 @@ grep -c 'export BAT_THEME' ~/.bashrc
 cmp ~/.tmux.conf <repo>/.tmux.conf && echo tmux ok
 nvim --version | head -1                      # >= NVIM v0.12.0
 
-# The single-copy skills layout
+# The single-copy skills layout (after the skill installer has run)
 node agents/link-skills.mjs --verify          # expect: verify: OK
 ls -l ~/.claude/skills ~/.codex/skills        # entries are junctions/symlinks
 

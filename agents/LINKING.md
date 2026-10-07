@@ -8,9 +8,9 @@ linked skill cannot drift from its brothers, because there is only one file.
 - `~/.agents/skills` is the canonical root: the single physical copy of every
   shared skill.
 - `~/.claude/skills`, `~/.codex/skills`, `~/.config/opencode/skills`,
-  `~/.gemini/skills` and `~/.gemini/antigravity-cli/skills` hold one directory
-  junction (Windows) or symlink (POSIX) per skill, pointing at the canonical
-  entry. `mklink /J` needs no elevation.
+  `~/.gemini/skills`, `~/.gemini/antigravity-cli/skills`, and
+  `~/.cursor/skills` hold one directory junction (Windows) or symlink (POSIX)
+  per skill, pointing at the canonical entry. `mklink /J` needs no elevation.
 - `~/.pi/agent/skills` is the exception. Pi reads the canonical root as well as
   its own, so its own root keeps only skills that must not be shared. A shared
   skill that appears there is a duplicate and Pi would list it twice.

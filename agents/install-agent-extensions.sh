@@ -30,10 +30,10 @@
 #                    It writes its project hook manifest for the current directory, so it
 #                    runs in a scratch directory: project hooks belong to a project.
 #
-# Local skills this repository ships as files, copied into every agent skills root:
+# Local skills this repository ships as files, copied into the non-Pi agent roots:
 #   phantom-ui       agents/skills/phantom-ui (skill plus the MIT standalone build,
 #                    provenance in its VENDORED.md), because it is a component library
-#                    with no upstream skill to install.
+#                    with no upstream skill to install. Pi reads the canonical root.
 #
 # Behavior:
 #   * Idempotent. Where a host can list what it already has, an existing ponytail
@@ -250,18 +250,18 @@ agent_config_dir() {
     codex) printf '%s/.codex' "${HOME}" ;;
     gemini-cli) printf '%s/.gemini' "${HOME}" ;;
     cursor) printf '%s/.cursor' "${HOME}" ;;
-    antigravity) printf '%s/.antigravity' "${HOME}" ;;
+    antigravity) printf '%s/.gemini/antigravity-cli' "${HOME}" ;;
     opencode) opencode_config_dir ;;
     pi) printf '%s/.pi/agent' "${HOME}" ;;
     *) return 1 ;;
   esac
 }
 
-# Every skills root this script writes to: one per installed agent, plus the shared root
-# the upstream skills CLI uses as well.
+# Every non-Pi skills root this script writes to, plus the shared root used by the
+# upstream skills CLI. Pi reads the shared root and is intentionally not copied.
 local_skill_roots() {
   local agent config
-  for agent in claude-code codex gemini-cli cursor antigravity opencode pi; do
+  for agent in claude-code codex gemini-cli cursor antigravity opencode; do
     config="$(agent_config_dir "${agent}")" || continue
     if [[ -d "${config}" ]]; then
       printf '%s/skills\n' "${config}"
@@ -289,8 +289,20 @@ install_local_skill() {
       log "OK   ${skill} already current in ${root}"
       continue
     fi
-    # Replace only on a difference, so a stale copy cannot survive a refresh.
-    if ! mkdir -p "${root}" || ! rm -rf "${dest}" || ! cp -R "${src}" "${dest}"; then
+    # Preserve a differing user copy before replacing it. Backups live outside every
+    # skills root (as with agents/link-skills.mjs) so no harness loads them twice.
+    if [[ -e "${dest}" || -L "${dest}" ]]; then
+      local backup
+      if ! mkdir -p "${HOME}/.pi/backups" \
+        || ! backup="$(mktemp -d "${HOME}/.pi/backups/install-agent-extensions.XXXXXX")/${skill}" \
+        || ! mv -- "${dest}" "${backup}"; then
+        log "FAIL ${skill}: could not back up ${dest}"
+        failures=$(( failures + 1 ))
+        continue
+      fi
+      log "BACKUP ${dest} -> ${backup}"
+    fi
+    if ! mkdir -p "${root}" || ! cp -R "${src}" "${dest}"; then
       log "FAIL ${skill}: could not install into ${root}"
       failures=$(( failures + 1 ))
       continue
@@ -319,7 +331,7 @@ skill_agent_for_cli() {
     claude) printf 'claude-code' ;;
     codex) printf 'codex' ;;
     gemini) printf 'gemini-cli' ;;
-    agy) printf 'antigravity' ;;
+    agy) printf 'antigravity-cli' ;;
     cursor) printf 'cursor' ;;
     opencode) printf 'opencode' ;;
     pi) printf 'pi' ;;
