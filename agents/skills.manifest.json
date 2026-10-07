@@ -40,6 +40,7 @@
     "judgment-day": { "default": true },
     "phantom-ui": { "default": true, "except": ["antigravity"] },
     "pi-herdr-orchestrator": { "default": true, "except": ["opencode", "gemini"] },
+    "pi-model-fit": { "default": true, "except": ["opencode", "gemini"] },
     "pr": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
     "prototype": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
     "rdd-defect-workflow": { "managed": false, "reason": "owned by the Gentle AI package, not the shared canonical skill tree" },
