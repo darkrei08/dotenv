@@ -29,12 +29,30 @@ if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   failures=1
 fi
 
-pi_default_model=$(jq -r '.defaultModel // empty' "$SETTINGS" 2>/dev/null)
-pi_default_provider=$(jq -r '.defaultProvider // empty' "$SETTINGS" 2>/dev/null)
+reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-extensible-workflows/roles/reviewer.md")
+gga_expected=$(jq -er --arg ref "$reviewer_role_model" '
+  .modelAliases as $aliases |
+  def splitref: if test(":.*$") then [sub(":.*$"; ""), match(":([^:]+)$").captures[0].string] else [., null] end;
+  def resolve($ref; $effort; $depth):
+    if $depth > 10 then error("model alias chain exceeds 10 steps") else
+      ($ref | splitref) as $parts |
+      ($effort // $parts[1]) as $resolved_effort |
+      if $aliases[$parts[0]] then resolve($aliases[$parts[0]]; $resolved_effort; $depth + 1)
+      elif ($parts[0] | contains("/")) and ($resolved_effort != null) then {model: $parts[0], effort: $resolved_effort}
+      else error("unresolved model alias or effort") end
+    end;
+  resolve($ref; null; 0) | .model + ":" + .effort | sub("^(anthropic|openai-codex)/"; "cliproxyapi/")
+' "$WORKFLOWS_SETTINGS" 2>/dev/null) || gga_expected=""
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
-if [[ -z "$pi_default_provider" || -z "$pi_default_model" || "$gga_provider" != "kilo:$pi_default_provider/$pi_default_model:"* ]]; then
-  printf '%s: PROVIDER must be the Pi bridge for the Pi default model (kilo:%s/%s:<effort>, found: %s)\n' \
-    "$GGA_CONFIG" "${pi_default_provider:-missing}" "${pi_default_model:-missing}" "${gga_provider:-missing}"
+gga_model=${gga_expected%:*}
+gga_effort=${gga_expected##*:}
+if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
+  failures=1
+fi
+if [[ -z "$reviewer_role_model" || -z "$gga_expected" || "$gga_provider" != "kilo:$gga_expected" ]]; then
+  printf '%s: PROVIDER must match the Pi workflow reviewer role (kilo:%s, found: %s)\n' \
+    "$GGA_CONFIG" "${gga_expected:-unresolved-model-or-effort}" "${gga_provider:-missing}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -158,7 +176,7 @@ if ! jq -e '
   ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror), v: .value}] | sort_by(.k)) ==
     ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native), v: .value}] | sort_by(.k))
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: native and CLIProxyAPI aliases, enabledModels or thinking levels do not mirror each other\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: native and CLIProxyAPI aliases, enabledModels or thinking levels do not mirror each other\n' "$WORKFLOWS_SETTINGS and $SETTINGS"
   failures=1
 fi
 

@@ -3,14 +3,12 @@
 
 # AI provider. GGA has no Pi provider, so reviews go through the repo-owned bridge
 # `agents/gga-pi/bin/kilo`, which GGA runs as its `kilo` provider and which answers
-# with `pi --print` using the Claude Pro / ChatGPT Plus logins Pi already holds.
-# The value after `kilo:` is a Pi model pattern with an effort suffix. Sonnet 5.5 at
-# `high` is the fast, low-cost reviewer for every commit; see docs/gentle-ai-gga.md.
+# with `pi --print` through the CLIProxyAPI gateway (cliproxyapi/* models).
+# The value after `kilo:` is a Pi model pattern with an effort suffix; check-config.sh
+# requires it to match the model and effort resolved from the workflow reviewer role.
 # Start GGA through `agents/gga-pi/run-gga.sh`; the pre-commit hook block in
 # docs/gentle-ai-gga.md does this and falls back to plain `gga run` elsewhere.
-# One-off override without editing this file:
-#   GGA_PROVIDER=kilo:openai-codex/gpt-6.1-sol:high git commit ...
-PROVIDER="kilo:anthropic/claude-sonnet-5-5:high"
+PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"
 
 # This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
 # Markdown directives. The generated npm lockfile is excluded (huge, machine
