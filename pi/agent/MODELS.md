@@ -43,9 +43,9 @@ default.
 Effort resolves the same way, independently of the model. You can pin the model
 from one layer and the effort from another.
 
-This repository's interactive default is `anthropic/claude-sonnet-5-5` at
-`medium`; `subagents.json` and the GGA reviewer (`.gga`, through Pi) use
-the same model. The CLIProxyAPI provider dynamically discovers its model catalog;
+This repository's interactive default is `cliproxyapi/claude-sonnet-5-5` at
+`medium`; `subagents.json` uses the same model. The GGA reviewer (`.gga`) follows
+the workflow `reviewer` role instead (`cliproxyapi/claude-opus-5-5:high`). The CLIProxyAPI provider dynamically discovers its model catalog;
 configuration or discovery does not establish that inference succeeds.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
@@ -333,8 +333,8 @@ gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
 `anthropic/claude-sonnet-5` both answered on the same day. That historical
 configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
 this document's workload policy for adversarial review. Current workflow
-settings use native providers by default and keep explicit CLIProxyAPI aliases
-for authenticated gateway use. CLIProxyAPI discovery is dynamic, so gateway
+settings route Claude through CLIProxyAPI (the Anthropic login is not used) and
+keep Codex on native providers. CLIProxyAPI discovery is dynamic, so gateway
 aliases are validated only after the local catalog is available.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
@@ -347,8 +347,9 @@ update, check this before editing model config.
 
 Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The set
 targets Claude Pro and ChatGPT Plus and follows the role mapping of
-`vekexasia/dotenv`. Native aliases are the default path; CLIProxyAPI
-aliases are an explicit opt-in alternative.
+`vekexasia/dotenv`. Claude roles resolve through the `cliproxy-*` aliases; Codex
+roles use the `native-*` aliases. The `native-*` Claude aliases remain as the
+mirror reference.
 
 | Alias | Configured target | Use |
 |---|---|---|
@@ -362,12 +363,12 @@ aliases are an explicit opt-in alternative.
 | `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of `native-reviewer-model` |
 | `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
 | `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
-| `cheap-model` | `native-cheap-model` | Standard cheap alias |
+| `cheap-model` | `cliproxy-cheap-model` | Standard cheap alias |
 | `scout-model` | `cheap-model` | Scout role |
 | `developer-model` | `cheap-model` | Developer role |
 | `tests-expert` | `native-luna` | Tests role |
 | `researcher-model` | `native-luna:xhigh` | Research role |
-| `reviewer-model` | `native-reviewer-model` | Reviewer role |
+| `reviewer-model` | `cliproxy-reviewer-model` | Reviewer role |
 | `oracle-model` | `reviewer-model` | Oracle role |
 
 **Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
@@ -387,10 +388,9 @@ precision, with Opus 5.5 catching 8/13 at standard effort and 10/13 at max
 (<https://www.coderabbit.ai/blog/sonnet-5-5-model-review>). Independent reasoning
 curves show medium to high as the useful step and xhigh as much costlier for a
 small gain (<https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve>).
-GGA therefore runs Sonnet 5.5 at `high` through Pi
-(`PROVIDER="kilo:anthropic/claude-sonnet-5-5:high"`); the OpenAI fallback is
-`GGA_PROVIDER=kilo:openai-codex/gpt-6.1-sol:high`. Reserve Opus 5.5
-(`reviewer-model`) for high-risk changes. Setup and alternatives:
+GGA nevertheless follows the workflow `reviewer` role: Opus 5.5 at `high` through
+the CLIProxyAPI mirror (`PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"`),
+enforced by `check-config.sh`, with no automatic fallback. Setup and alternatives:
 [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
@@ -399,9 +399,9 @@ GGA therefore runs Sonnet 5.5 at `high` through Pi
 - Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort.
 
 **Gateway usage:**
-- CLIProxyAPI: pass a `cliproxy-*` alias as a call-level `model` override. Requires an authenticated dynamic catalog.
+- CLIProxyAPI: Claude roles use the `cliproxy-*` aliases directly. Requires an authenticated dynamic catalog and the gateway running.
 
-Do not replace the standard aliases with unavailable gateway targets. Native providers remain the working default.
+Do not replace the standard aliases with other targets when the gateway is down; report it and retain the configured choice.
 
 ---
 

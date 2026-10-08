@@ -11,7 +11,7 @@ The module-owned package entries in `settings.json` (`pi-extensible-workflows`,
 
 ## Model Gateways
 
-### Native providers (default)
+### Providers
 
 This setup targets Claude Pro and ChatGPT Plus, so only models included in those
 plans are used (Claude Pro includes Opus, Sonnet and Haiku; Fable runs on paid
@@ -19,25 +19,23 @@ usage credits and is not used. ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and
 GPT-6 Luna, plus GPT-6 Astra with a small allowance). Sources:
 <https://claude.com/pricing>, <https://learn.chatgpt.com/docs/pricing>.
 
-The role mapping follows `vekexasia/dotenv`. Workflows use native providers by default:
+The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, Codex roles stay native:
 
 | Role alias | Resolves to | Used by |
 | --- | --- | --- |
-| `cheap-model` | `anthropic/claude-sonnet-5-5:medium` | summarizer, qa, release, sre |
+| `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | summarizer, qa, release, sre |
 | `scout-model`, `developer-model` | `cheap-model` | scout, developer |
 | `tests-expert` | `native-luna` = `openai-codex/gpt-6-luna:high` | tests-expert |
 | `researcher-model` | `native-luna:xhigh` | researcher |
-| `reviewer-model`, `oracle-model` | `anthropic/claude-opus-5-5:high` | reviewer, oracle, architect, security |
+| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | reviewer, oracle, architect, security |
 
-Interactive Pi defaults to `anthropic/claude-sonnet-5-5` at `medium`, as do the
+Interactive Pi defaults to `cliproxyapi/claude-sonnet-5-5` at `medium`, as do the
 subagents (`subagents.json`, review lenses at `high`). The `advisor` mode uses
-`openai-codex/gpt-6-luna` at `high`. GGA pre-commit review uses Claude Sonnet 5.5
-at `high` effort through Pi (`.gga` and the `agents/gga-pi/` bridge, see
-[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)): Sonnet 5.5 is the fast,
-low-cost reviewer for every commit, while Opus 5.5 stays reserved for the reviewer
-role on high-risk work.
+`openai-codex/gpt-6-luna` at `high`. GGA pre-commit review uses the CLIProxyAPI mirror of
+the `reviewer` role, `cliproxyapi/claude-opus-5-5` at `high` (`.gga` and the
+`agents/gga-pi/` bridge, see [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)).
 
-### CLIProxyAPI (opt-in)
+### CLIProxyAPI
 
 [CLIProxyAPI + CPA Usage Keeper](../../cliproxyapi/README.md) manages OAuth provider accounts and dynamically exposes models to Pi.
 
@@ -64,7 +62,7 @@ level has no `cliproxyapi` mirror on the same model and effort, so the two route
 cannot drift apart. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
 as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
-models, which is why the native route stays the default.
+models, which is why Codex stays on its native login.
 
 ### Gemini
 

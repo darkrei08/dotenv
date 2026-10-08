@@ -1,6 +1,6 @@
 {
   "lastChangelogVersion": "0.85.1",
-  "defaultProvider": "anthropic",
+  "defaultProvider": "cliproxyapi",
   "defaultModel": "claude-sonnet-5-5",
   "defaultThinkingLevel": "medium",
   "modelThinkingLevels": {

@@ -123,7 +123,7 @@ if ((versioned_workflows_ok && live_workflows_ok)) &&
 fi
 
 # Plan-tier routing (Claude Pro + ChatGPT Plus), aligned with vekexasia/dotenv roles:
-# native providers are the default, cliproxy-* mirror the same models explicitly.
+# Claude roles resolve through cliproxy-*; native-* Claude aliases stay as the mirror reference.
 if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "anthropic/claude-sonnet-5-5:medium" and
@@ -136,26 +136,26 @@ if ! jq -e '
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
-  $aliases["cheap-model"] == "native-cheap-model" and
+  $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cheap-model" and
   $aliases["developer-model"] == "cheap-model" and
   $aliases["tests-expert"] == "native-luna" and
   $aliases["researcher-model"] == "native-luna:xhigh" and
-  $aliases["reviewer-model"] == "native-reviewer-model" and
+  $aliases["reviewer-model"] == "cliproxy-reviewer-model" and
   $aliases["oracle-model"] == "reviewer-model" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
-  printf '%s: workflow aliases are not the native-default/CLIProxyAPI-explicit policy\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: workflow aliases are not the policy (Claude via CLIProxyAPI, Codex native)\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
 if ! jq -e '
-  .defaultProvider == "anthropic" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
+  .defaultProvider == "cliproxyapi" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
   (.enabledModels | all(.[]; startswith("anthropic/") or startswith("openai-codex/") or startswith("cliproxyapi/"))) and
-  (.enabledModels | index("anthropic/claude-sonnet-5-5") != null) and
+  (.enabledModels | index("cliproxyapi/claude-sonnet-5-5") != null) and
   (.enabledModels | index("openai-codex/gpt-6.1-sol") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be Sonnet 5.5 medium with enabledModels limited to Anthropic, OpenAI and CLIProxyAPI mirrors\n' "$SETTINGS"
+  printf '%s: defaults must be cliproxyapi Sonnet 5.5 medium with enabledModels limited to Anthropic, OpenAI and CLIProxyAPI mirrors\n' "$SETTINGS"
   failures=1
 fi
 
