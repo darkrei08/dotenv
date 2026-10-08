@@ -66,6 +66,7 @@ required_packages=(
   npm:pi-extensible-workflows
   npm:gentle-pi
   npm:gentle-engram
+  npm:@router-for-me/pi-cliproxyapi-provider
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do

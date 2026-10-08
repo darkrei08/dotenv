@@ -4,8 +4,8 @@ Personal Linux/WSL dotfiles plus a ready-to-use configuration for the Pi coding 
 
 What it gives you:
 
-- **Models and roles** tuned for Claude Pro and ChatGPT Plus, with the role mapping of `vekexasia/dotenv`: Sonnet 5.5 as the daily driver, Opus 5.5 for review, GPT-6 Luna for tests and research. Native providers are the default and CLIProxyAPI mirrors the same models. See [`pi/agent/MODELS.md`](pi/agent/MODELS.md).
-- **A commit review gate**: GGA reviews staged files through Pi with Sonnet 5.5 at high effort. See [`docs/gentle-ai-gga.md`](docs/gentle-ai-gga.md), which also covers Gentle AI and gentle-pi for Pi and the other agents.
+- **Models and roles** tuned for Claude Pro and ChatGPT Plus, with the role mapping of `vekexasia/dotenv`: Sonnet 5.5 as the daily driver, Opus 5.5 for review, GPT-6 Luna for tests and research. Claude roles go through CLIProxyAPI (the Anthropic login is not used); Codex roles stay native. See [`pi/agent/MODELS.md`](pi/agent/MODELS.md).
+- **A commit review gate**: GGA reviews staged files through Pi with the CLIProxyAPI mirror of the `reviewer` role (Opus 5.5, high effort). See [`docs/gentle-ai-gga.md`](docs/gentle-ai-gga.md), which also covers Gentle AI and gentle-pi for Pi and the other agents.
 - **Shared skills** installed once and linked into every agent ([`agents/LINKING.md`](agents/LINKING.md)).
 - **An optional localhost-only CLIProxyAPI + usage dashboard** ([setup guide](cliproxyapi/README.md)).
 
@@ -72,7 +72,7 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 | 369-370 | `sync_pi` and install the CLI-Anything Pi extension. |
 | 372-393 | Apply each non-comment entry in `pi/agent/pi-packages.txt` with `pi install`; skip `pi-extensible-workflows`, which is owned by setup-ai. |
 | 394-420 | **Shared skills:** when `SETUP_AI_SKIP_SKILLS` is not `1`, install the full first-party engineering set from `mattpocock/skills` (including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, and the existing planning/research skills), plus `herdrdev/herdr`, `pedronauck/skills` (`typescript-advanced`), `humanlayer/skills` (`show-me`), and `micio86dev/Engineering-Excellence` (`engineering-excellence`). Each command targets `pi cline` so skills-cli keeps one canonical copy under `~/.agents/skills`, which Pi reads directly. The `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install fails closed if the pinned tag cannot be fetched, and its CLI installer runs with `--no-skill`. |
-| 422-452 | Install missing AI CLIs and verify all ten required commands: `gentle-ai` via its official Go module, then (as root only) `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
+| 422-452 | Install missing AI CLIs and verify all eleven required commands: `gentle-ai` via its official Go module, then (as root only) `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`, `gga` via clone/install, native installers for `agy`, `codex`, `claude`, `cursor-agent`, and npm packages for `gemini`, `copilot`, and stable `opencode`. |
 | 453-458 | When `herdr` is on `PATH`, install `bun` into `/usr/local` if absent and run `herdr integration install pi`; then run `pi update --extensions`. |
 | 459-476 | `npm ci` in `~/.config/nvim`, `@typescript/native-preview`, `tree-sitter-cli` with install scripts forced on, then headless Neovim: `Lazy! restore`, `MasonInstall markdownlint`, and the tree-sitter parser install. |
 | 478-479 | Fail if the managed Pi alias or extension configuration has drifted. |
@@ -151,6 +151,7 @@ Third-party packages:
 
 | File | Registers | External binary |
 | --- | --- | --- |
+| `extensions/agent-usage/index.ts` | `/agent-usage [pi\|codex\|claude] [daily\|weekly\|monthly\|session]` command: local token and API-equivalent cost of Pi, Codex and Claude Code from their session logs | `ccusage` |
 | `extensions/answer.ts` | `/answer` command: extract the questions from the last assistant message and answer them interactively; reuses `questionnaire.ts` | none |
 | `extensions/compact-tools.ts` | When opted in with `PI_ENABLE_COMPACT_TOOLS=1` (off by default), registers `/compact-tools-status` and patches `ToolExecutionComponent.prototype.updateDisplay` for compact `read`/`edit`/`write`/`bash` rendering | none |
 | `extensions/deep-think.ts` | `think` tool; `session_start`, `thinking_level_select` handlers | none |
@@ -250,7 +251,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: anthropic`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` and the GGA pre-commit reviewer use the same Sonnet 5.5 default: GGA reviews through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -269,9 +270,11 @@ docker compose up -d
 # Keeper dashboard: http://127.0.0.1:8080
 ```
 
+Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: gentle-pi only reads plan quota for `openai-codex`, `anthropic` and `nan`. Local usage of all three agents is available without the gateway: `ccusage daily` (or `ccusage pi|codex|claude daily`) in a shell, or `/agent-usage` in Pi. It reads the session logs (`~/.pi/agent/sessions`, `~/.codex`, `~/.claude/projects`) and reports tokens and API-equivalent cost, not plan quota. Gateway quota and cost per account stay in the Keeper dashboard.
+
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases use native providers by default and follow the `vekexasia/dotenv` role mapping on Claude Pro and ChatGPT Plus models: `cheap-model`, scout and developer use `anthropic/claude-sonnet-5-5:medium`; tests and research use `openai-codex/gpt-6-luna`; reviewer and Oracle use `anthropic/claude-opus-5-5:high`. Each native alias has a `cliproxy-*` mirror that targets the same model through CLIProxyAPI and can be supplied as a per-agent `model` override after the dynamic catalog is authenticated. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
+Standard workflow aliases follow the `vekexasia/dotenv` role mapping: `cheap-model`, scout and developer use `cliproxyapi/claude-sonnet-5-5:medium`; tests and research use `openai-codex/gpt-6-luna`; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Claude goes through CLIProxyAPI because the native Anthropic login is not used; the `native-*` Claude aliases stay as the mirror reference. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
 
 ## External binaries and runtime dependencies
 
@@ -284,7 +287,7 @@ Standard workflow aliases use native providers by default and follow the `vekexa
 | `npm` / `npx` | Pi and the other npm-backed CLI installs, all `npx skills add` lines, Neovim tooling, `agents/link-skills.mjs` (Node) | Setup cannot install the required CLIs or skills. |
 | `node` (>= 22.19.0) | `setup_env.sh`, `agents/link-skills.mjs`, `pi/agent/bin/session-stats.mjs`, the OpenCode plugin edit in `install-agent-extensions.sh` | Setup exits before provisioning; Node-based tools cannot run. |
 | `pi` | `pi install` for manifest entries, `pi update --extensions`, every Pi session | Setup fails its required-CLI verification and Pi cannot run. |
-| `gentle-ai`, `gga`, `agy`, `codex`, `claude`, `gemini`, `copilot`, `opencode`, `cursor-agent` | Required coding-agent CLIs installed by `setup_env.sh` | Setup fails its final required-command verification if any is unavailable. |
+| `gentle-ai`, `gga`, `agy`, `codex`, `claude`, `gemini`, `copilot`, `opencode`, `cursor-agent`, `ccusage` | Required coding-agent CLIs (and the local usage reader `ccusage`) installed by `setup_env.sh` | Setup fails its final required-command verification if any is unavailable. |
 | `nvim` (>= 0.12.0) | `extensions/vim-editor.ts` (`alt+m`) | The shortcut fails to spawn the editor. |
 | `herdr` | `extensions/fork-out.ts`, `extensions/herdr-nvim-blocked/index.ts`, `bin/open-nvim.sh`, the `herdr-devbox` alias | `/fork-out` and the blocked-pane marker cannot report; `open-nvim.sh` exits 1 outside herdr. |
 | `tmux` | `extensions/tmux-progress.ts` | No tab progress; the extension is otherwise inert. |
@@ -346,8 +349,8 @@ Run these on the machine, after `setup_env.sh`:
 
 ```bash
 # This checkout's own config invariants: settings.json parses, carries the
-# module-owned packages and gentle-pi exclusions, enforces native/default and
-# explicit CLIProxyAPI aliases plus enabledModels, has no ../../ path, and
+# module-owned packages and gentle-pi exclusions, enforces Claude-via-CLIProxyAPI
+# and native Codex aliases, the GGA reviewer model, plus enabledModels, has no ../../ path, and
 # setup_env.sh never writes GENTLE_PI_QUIET_TOOLS=0
 bash check-config.sh
 
