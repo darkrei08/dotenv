@@ -452,8 +452,10 @@ command -v gemini >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" @goo
 command -v copilot >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" @github/copilot </dev/null
 command -v opencode >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" opencode-ai </dev/null
 command -v cursor-agent >/dev/null 2>&1 || curl -fsSL https://cursor.com/install | bash
+# Local usage of Pi, Codex and Claude Code from their session logs (used by /agent-usage in Pi).
+command -v ccusage >/dev/null 2>&1 || npm install -g --prefix "$HOME/.local" ccusage </dev/null
 
-for command_name in pi gentle-ai gga agy codex claude gemini copilot opencode cursor-agent; do
+for command_name in pi gentle-ai gga agy codex claude gemini copilot opencode cursor-agent ccusage; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     printf 'ERROR: required AI CLI %s was not found after installation; ensure its installer populated PATH and retry.\n' "$command_name" >&2
     exit 1
