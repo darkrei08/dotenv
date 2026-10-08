@@ -32,9 +32,11 @@ defect:
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
   anthropic`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
   and `modelThinkingLevels`. `enabledModels` lists only Anthropic, OpenAI Codex
-  and their CLIProxyAPI mirrors. `.gga` (GGA reviewing through the Pi bridge in
-  `agents/gga-pi/`, Sonnet 5.5 at `high` effort) and `pi/agent/subagents.json`
-  follow the same Sonnet 5.5 default.
+  and their CLIProxyAPI mirrors. `pi/agent/subagents.json` follows the same
+  Sonnet 5.5 default. `.gga` is the exception: GGA reviews through the Pi bridge in
+  `agents/gga-pi/` with the CLIProxyAPI mirror of the workflow `reviewer` role
+  (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; there is
+  no automatic fallback to another model.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.

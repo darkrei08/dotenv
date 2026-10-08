@@ -42,7 +42,7 @@ pi
 ```
 
 This runs `pi install` for `gentle-pi`, `gentle-engram`, `pi-web-access` and
-`pi-btw`, and initializes Pi Engram. Gentle AI does not write Pi's system prompt;
+`pi-btw`, and initializes Pi Engram. In this repository `pi/agent/extensions/light-web-search.ts` replaces `pi-web-access` so only one `web_search` tool is registered: after the install, run `pi remove npm:pi-web-access` (or drop it from `packages`) and re-run `bash check-config.sh`. Gentle AI does not write Pi's system prompt;
 `gentle-pi` does. Pi's own models and effort are set in this repository, not by
 Gentle AI: see [`pi/agent/MODELS.md`](../pi/agent/MODELS.md). `PI_CODING_AGENT_DIR`
 redirects the files Gentle AI writes into an isolated Pi home.
@@ -128,47 +128,33 @@ shadows a real Kilo install. Pi accepts `provider/model:effort` and reads the pr
 from stdin, which is why the value after `kilo:` is a Pi model pattern:
 
 ```bash
-PROVIDER="kilo:anthropic/claude-sonnet-5-5:high"
+PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"
 ```
+
+`check-config.sh` reads the Pi workflow `reviewer` role, resolves its alias chain and effort, maps it to the `cliproxyapi/` mirror (GGA always goes through CLIProxyAPI; the bridge loads only that provider extension), checks the pair is enabled in Pi settings, and requires `.gga` to match exactly. A missing alias or mismatch fails the check; this is configuration validation, not a live authentication or inference test, and there is no automatic model substitution.
 
 If GGA says "Kilo CLI not found", it was started without the wrapper: use
 `agents/gga-pi/run-gga.sh run` instead of `gga run`, or fix the hook block above.
 
 ### Which model, and at what effort
 
-The default is Claude Sonnet 5.5 at `high`.
+GGA follows the Pi workflow `reviewer` role (`reviewer.md` → `reviewer-model` → `native-reviewer-model`), routed through CLIProxyAPI: `cliproxyapi/claude-opus-5-5` at `high`. That review role, not Pi's interactive default, is the source of truth.
 
-- It is built for the review pass that runs on every change: CodeRabbit measured
-  about 5.5 minutes and $0.47 per review, 6 of 13 hard known bugs caught at 41%
-  precision, and found thinking on beats thinking off at a small cost
-  ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)).
-- Opus 5.5 caught 8 of 13 at standard effort (66.7% precision) and 10 of 13 at max
-  (52% precision) on the same cases, so it is stronger on the hardest changes and
-  costs twice the list price (same source).
-- Reasoning curves show low to medium to high as the useful steps and xhigh as much
-  costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)).
-  Sonnet 5.5 takes `low`, `medium`, `high`, `xhigh` and `max` (CodeRabbit, above);
-  Anthropic documents the effort parameter at
-  <https://platform.claude.com/docs/en/build-with-claude/effort>.
-
-The benchmark has 13 cases, so read it as a direction, not a verdict.
+- Opus is the stronger reviewer for hard changes: CodeRabbit measured 8 of 13 hard known bugs at standard effort (66.7% precision) and 10 of 13 at max (52% precision), against 6 of 13 at 41% precision for Sonnet 5.5, at about twice the list price ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)). The benchmark has 13 cases: a direction, not a verdict.
+- Reasoning curves show low to medium to high as the useful steps and xhigh as much costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)). Anthropic documents the effort parameter at <https://platform.claude.com/docs/en/build-with-claude/effort>.
 
 | Need | `PROVIDER` | Notes |
 | --- | --- | --- |
-| Default, every commit | `kilo:anthropic/claude-sonnet-5-5:high` | Claude Pro |
-| High-risk change | `kilo:anthropic/claude-opus-5-5:high` | Opus, stronger and slower, same Pro quota |
-| Claude quota spent | `kilo:openai-codex/gpt-6.1-sol:high` | ChatGPT Plus, 15-160 messages per 5 hours ([pricing](https://learn.chatgpt.com/docs/pricing)) |
-| Cheapest and fastest | `kilo:openai-codex/gpt-6-luna:high` | Fastest output, lower intelligence index ([Artificial Analysis](https://artificialanalysis.ai/models/releases/comparisons/claude-sonnet-5-5-vs-gpt-6-luna)) |
-| Through CLIProxyAPI | `kilo:cliproxyapi/claude-sonnet-5-5:high` | Same models, needs the gateway running |
+| Default, every commit | `kilo:cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of the reviewer role; needs the gateway running |
+| Lower-cost one-off review | `kilo:cliproxyapi/claude-sonnet-5-5:high` | Explicit per-command override; `.gga` remains unchanged |
 
 One-off override, without editing `.gga`:
 
 ```bash
-GGA_PROVIDER=kilo:anthropic/claude-opus-5-5:high git commit
+GGA_PROVIDER=kilo:cliproxyapi/claude-sonnet-5-5:high git commit
 ```
 
-`check-config.sh` asserts that the `.gga` provider is the Pi bridge for Pi's default
-model, so the review model and the interactive model cannot drift apart silently.
+`check-config.sh` asserts that `.gga` matches the model and effort resolved from the reviewer role. It never switches models when the gateway or model is unavailable; choose an override explicitly.
 
 ### Use GGA with other agents
 
@@ -203,8 +189,8 @@ delivery ([Pi integration](https://github.com/Gentleman-Programming/gentle-ai/bl
 | --- | --- |
 | `Kilo CLI not found` | GGA started without the wrapper. Use `agents/gga-pi/run-gga.sh run`, or fix the hook block above. |
 | `gga-pi: pi is not on PATH` | Pi is not installed for this shell. Install it, then retry. |
-| `provider returned no output` | The `pi` call failed. Run the model by hand: `echo hi \| pi --print --no-tools --model anthropic/claude-sonnet-5-5:high`, and run `/login` inside Pi if the provider is signed out. |
-| Quota or rate-limit error | Switch with `GGA_PROVIDER=kilo:openai-codex/gpt-6.1-sol:high` until the Claude window resets. |
+| `provider returned no output` | The `pi` call failed. Run the model by hand: `echo hi \| pi --print --no-tools --model cliproxyapi/claude-opus-5-5:high -e ~/.pi/agent/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts`, and check the CLIProxyAPI gateway is running. |
+| Quota or rate-limit error | GGA fails closed; use an explicit per-command `GGA_PROVIDER` override only when you choose that alternative. |
 | Verdict not parsed | `STRICT_MODE` blocks ambiguous answers by design. Re-run once; if it repeats, raise `TIMEOUT` or reduce the staged set. |
 
 ## Verify

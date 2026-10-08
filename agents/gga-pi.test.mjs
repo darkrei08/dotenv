@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
@@ -41,6 +41,28 @@ test('forwards the model to pi and returns only the review on stdout', (t) => {
   assert.ok(argv.includes('--print'));
   assert.ok(argv.includes('--no-tools'));
   assert.equal(argv[argv.indexOf('--model') + 1], 'anthropic/claude-sonnet-5-5:high');
+});
+
+test('cliproxyapi models load only the CLIProxyAPI provider extension', (t) => {
+  const home = mkdtempSync(join(tmpdir(), 'gga-pi-home-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const ext = join(home, 'npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts');
+  mkdirSync(dirname(ext), { recursive: true });
+  writeFileSync(ext, '');
+  const { dir, env } = fixture(t);
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/claude-opus-5-5:high'], {
+    env: { ...env, PI_CODING_AGENT_DIR: home }, input: 'p', encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const argv = readFileSync(join(dir, 'argv'), 'utf8').split('\n');
+  assert.equal(argv[argv.indexOf('-e') + 1], ext);
+  assert.ok(argv.includes('--no-extensions'));
+
+  const missing = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/x'], {
+    env: { ...env, PI_CODING_AGENT_DIR: join(home, 'none') }, input: 'p', encoding: 'utf8',
+  });
+  assert.equal(missing.status, 1);
+  assert.match(missing.stderr, /provider extension not found/);
 });
 
 test('a failing pi call surfaces its diagnostics and a non-zero status', (t) => {
