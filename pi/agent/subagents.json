@@ -1,21 +1,21 @@
 {
-  "default_model": "anthropic/claude-sonnet-5-5",
+  "default_model": "cliproxyapi/claude-sonnet-5-5",
   "default_effort": "medium",
   "model_profiles": {
     "review-risk": {
-      "model": "anthropic/claude-sonnet-5-5",
+      "model": "cliproxyapi/claude-sonnet-5-5",
       "effort": "high"
     },
     "review-resilience": {
-      "model": "anthropic/claude-sonnet-5-5",
+      "model": "cliproxyapi/claude-sonnet-5-5",
       "effort": "high"
     },
     "review-readability": {
-      "model": "anthropic/claude-sonnet-5-5",
+      "model": "cliproxyapi/claude-sonnet-5-5",
       "effort": "high"
     },
     "review-reliability": {
-      "model": "anthropic/claude-sonnet-5-5",
+      "model": "cliproxyapi/claude-sonnet-5-5",
       "effort": "high"
     }
   }

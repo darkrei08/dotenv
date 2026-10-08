@@ -19,20 +19,19 @@ defect:
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
   return. Do not reintroduce obsolete OpenCode workflow targets.
-- `pi/agent/pi-extensible-workflows/settings.json`: native providers are the
-  working default and follow the `vekexasia/dotenv` role mapping on Claude Pro
-  and ChatGPT Plus models: `cheap-model` (also scout and developer) resolves to
-  `anthropic/claude-sonnet-5-5:medium`, `tests-expert` to `native-luna`
+- `pi/agent/pi-extensible-workflows/settings.json`: Claude roles go through
+  CLIProxyAPI (the Anthropic OAuth login is not used) and Codex roles stay native,
+  following the `vekexasia/dotenv` role mapping: `cheap-model` (also scout and
+  developer) resolves to `cliproxyapi/claude-sonnet-5-5:medium`, `tests-expert` to `native-luna`
   (`openai-codex/gpt-6-luna:high`) and `researcher-model` to `native-luna:xhigh`, and `reviewer-model`
-  (also oracle) to `anthropic/claude-opus-5-5:high`. Every native alias has a
-  `cliproxy-*` mirror, which stays opt-in and must never let an unavailable
-  gateway model block native workflows. Do not
+  (also oracle) to `cliproxyapi/claude-opus-5-5:high`. The `native-*` Claude
+  aliases remain defined as the mirror reference. Do not
   configure Fable (not included in Claude Pro). Preserve the expanded `skills`
   list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
-  anthropic`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
+  cliproxyapi`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
   and `modelThinkingLevels`. `enabledModels` lists only Anthropic, OpenAI Codex
-  and their CLIProxyAPI mirrors. `pi/agent/subagents.json` follows the same
+  and their CLIProxyAPI mirrors (Claude runs through CLIProxyAPI). `pi/agent/subagents.json` follows the same
   Sonnet 5.5 default. `.gga` is the exception: GGA reviews through the Pi bridge in
   `agents/gga-pi/` with the CLIProxyAPI mirror of the workflow `reviewer` role
   (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; there is

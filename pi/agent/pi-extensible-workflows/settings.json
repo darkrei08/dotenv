@@ -10,13 +10,13 @@
     "cliproxy-reviewer-model": "cliproxyapi/claude-opus-5-5:high",
     "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
     "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",
-    "cheap-model": "native-cheap-model",
+    "cheap-model": "cliproxy-cheap-model",
     "scout-model": "cheap-model",
     "developer-model": "cheap-model",
     "tests-expert": "native-luna",
     "researcher-model": "native-luna:xhigh",
     "oracle-model": "reviewer-model",
-    "reviewer-model": "native-reviewer-model"
+    "reviewer-model": "cliproxy-reviewer-model"
   },
   "skills": [
     "!*",
