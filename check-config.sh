@@ -67,6 +67,7 @@ required_packages=(
   npm:gentle-pi
   npm:gentle-engram
   npm:@router-for-me/pi-cliproxyapi-provider
+  npm:@piewf/herdr
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do
