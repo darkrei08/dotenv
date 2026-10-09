@@ -57,6 +57,7 @@ git:github.com/vekexasia/pi-notify@feat/customizable-notifications
 git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
 npm:@router-for-me/pi-cliproxyapi-provider
+npm:@piewf/herdr
 
 # --- Packages that live inside this checkout ----------------------------------
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");

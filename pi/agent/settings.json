@@ -37,6 +37,7 @@
       ]
     },
     "npm:gentle-engram",
+    "npm:@piewf/herdr",
     {
       "source": "npm:@router-for-me/pi-cliproxyapi-provider",
       "extensions": [
