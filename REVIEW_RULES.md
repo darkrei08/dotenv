@@ -19,7 +19,7 @@ defect:
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
   return. Do not reintroduce obsolete OpenCode workflow targets.
-- `pi/agent/pi-extensible-workflows/settings.json`: Claude roles go through
+- `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): Claude roles go through
   CLIProxyAPI (the Anthropic OAuth login is not used) and Codex roles stay native,
   following the `vekexasia/dotenv` role mapping: `cheap-model` (also scout and
   developer) resolves to `cliproxyapi/claude-sonnet-5-5:medium`, `tests-expert` to `native-luna`
@@ -47,7 +47,7 @@ defect:
 - `pi/agent/settings.json` `packages` and `pi/agent/npm/package.json`
   `dependencies` must stay consistent: an npm package added/removed in one is
   reflected in the other (or justified as pi-managed vs npm-managed).
-- Workflow `extensions` globs in `pi-extensible-workflows/settings.json` must
+- Role `extensions` globs in `pi-ext-roles/settings.json` must
   reference packages that are actually installed (settings packages or npm deps).
 - Standard model aliases must dereference an available built-in provider;
   explicit CLIProxyAPI aliases may target the dynamic catalog and are validated

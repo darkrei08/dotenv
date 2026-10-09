@@ -210,7 +210,7 @@ sync_pi() {
     AGENTS.md advisor-system.md MODELS.md README.md \
     settings.json models.json modes.json keybindings.json subagents.json \
     pi-vcc-config.json tsconfig.json package.json pi-packages.txt .pii-allowlist \
-    bin packages prompts skills themes pi-extensible-workflows; do
+    bin packages prompts skills themes pi-extensible-workflows pi-ext-roles; do
     if [ -e "$src/$item" ]; then
       rsync -a "$src/$item" "$target/"
     fi
@@ -228,11 +228,17 @@ sync_pi() {
   # gentle-pi owns the visual shell; remove the retired local footer override.
   rm -f "$target/extensions/gentle-bar.ts"
 
-  # Verify the workflow roles and aliases actually landed: this is the config
-  # that silently breaks `workflow` (missing roles/aliases) if the copy fails.
-  if [ ! -d "$target/pi-extensible-workflows/roles" ] ||
-     [ ! -f "$target/pi-extensible-workflows/settings.json" ]; then
-    printf 'sync_pi: workflow roles/aliases missing after sync (%s)\n' "$target" >&2
+  # Legacy role sources make pi-extensible-workflows warn on every launch; roles and
+  # shared settings now live in pi-ext-roles. Keep a backup, never delete.
+  if [ -d "$target/pi-extensible-workflows/roles" ]; then
+    mv -- "$target/pi-extensible-workflows/roles" "$target/pi-extensible-workflows/roles.legacy.$(date +%s)"
+  fi
+
+  # Verify the roles and aliases actually landed: this is the config that
+  # silently breaks `workflow` (missing roles/aliases) if the copy fails.
+  if [ ! -d "$target/pi-ext-roles/roles" ] ||
+     [ ! -f "$target/pi-ext-roles/settings.json" ]; then
+    printf 'sync_pi: roles/aliases missing after sync (%s)\n' "$target" >&2
     return 1
   fi
 }

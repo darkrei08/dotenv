@@ -12,8 +12,8 @@ Run these on the machine, after `setup_env.sh`:
 bash check-config.sh
 
 # The versioned Pi configuration was copied into the live config
-test -f ~/.pi/agent/pi-extensible-workflows/settings.json
-test -d ~/.pi/agent/pi-extensible-workflows/roles
+test -f ~/.pi/agent/pi-ext-roles/settings.json
+test -d ~/.pi/agent/pi-ext-roles/roles
 
 # Pi's effective settings and packages
 node -e "const s=require(process.env.HOME+'/.pi/agent/settings.json');console.log(s.defaultProvider, s.defaultModel, s.packages.length)"

@@ -1,0 +1,42 @@
+{
+  "modelAliases": {
+    "native-cheap-model": "anthropic/claude-sonnet-5-5:medium",
+    "native-luna": "openai-codex/gpt-6-luna:high",
+    "native-reviewer-model": "anthropic/claude-opus-5-5:high",
+    "native-sol": "openai-codex/gpt-6.1-sol:medium",
+    "native-astra": "openai-codex/gpt-6-astra:high",
+    "cliproxy-cheap-model": "cliproxyapi/claude-sonnet-5-5:medium",
+    "cliproxy-luna": "cliproxyapi/gpt-6-luna:high",
+    "cliproxy-reviewer-model": "cliproxyapi/claude-opus-5-5:high",
+    "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
+    "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",
+    "cheap-model": "cliproxy-cheap-model",
+    "scout-model": "cheap-model",
+    "developer-model": "cheap-model",
+    "tests-expert": "native-luna",
+    "researcher-model": "native-luna:xhigh",
+    "oracle-model": "reviewer-model",
+    "reviewer-model": "cliproxy-reviewer-model"
+  },
+  "skills": [
+    "!*",
+    "image-generation",
+    "engineering-excellence",
+    "gentle-ai",
+    "ponytail*",
+    "impeccable",
+    "design-taste",
+    "phantom-ui"
+  ],
+  "extensions": [
+    "!*",
+    "**/extensions/live-dashboard.ts",
+    "**/pi-anthropic-auth/**",
+    "**/pi-codex-image/**",
+    "**/@sting8k/pi-vcc/**",
+    "**/pi-omplike-advisor/**",
+    "**/pi-cliproxyapi-provider/extensions/index.ts",
+    "**/light-web-search.ts",
+    "**/ponytail/**"
+  ]
+}

@@ -28,9 +28,9 @@ one file that does not win.
 |---|-------|------|------|---------|
 | 1 | Pi settings | `~/.pi/agent/settings.json`, project `.pi/settings.json` | `defaultProvider`, `defaultModel`, `defaultThinkingLevel`, `modelThinkingLevels`, `enabledModels` | The interactive session, `/model`, Ctrl+P cycling |
 | 2 | Provider and model catalog | `~/.pi/agent/models.json` | `providers.<id>`, `providers.<id>.models[]`, `providers.<id>.modelOverrides` | The model picker and the runtime; this is how a custom or gateway provider becomes usable |
-| 3 | Workflow aliases | `~/.pi/agent/pi-extensible-workflows/settings.json`, project `.pi/pi-extensible-workflows/settings.json` | `modelAliases` | Workflow `agent()` calls and workflow role files only |
+| 3 | Workflow aliases | `~/.pi/agent/pi-ext-roles/settings.json`, project `.pi/pi-ext-roles/settings.json` | `modelAliases` | Workflow `agent()` calls and workflow role files only |
 | 4 | Subagent routing | `~/.pi/agent/subagents.json`, project `.pi/subagents.json` | `default_model`, `default_effort`, `model_profiles` | SDD and subagent phase agents (gentle-pi) |
-| 5 | Agent and role definitions | `~/.pi/agent/agents/*.md`, `~/.pi/agent/pi-extensible-workflows/roles/*.md` | frontmatter `model:`, `thinking:` | One agent, as its own default |
+| 5 | Agent and role definitions | `~/.pi/agent/agents/*.md`, `~/.pi/agent/pi-ext-roles/roles/*.md` | frontmatter `model:`, `thinking:` | One agent, as its own default |
 | 6 | Modes | `~/.pi/agent/modes.json` | `modes.<name>.{provider,modelId,thinkingLevel,autostart}` | A named mode such as `advisor` |
 
 ### Precedence, in one line
@@ -58,9 +58,9 @@ This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config
 
 ### The trap: workflow aliases are not SDD aliases
 
-`modelAliases` in `pi-extensible-workflows/settings.json` are read by the
+`modelAliases` in `pi-ext-roles/settings.json` are read by the
 workflow layer. A workflow role file such as
-`~/.pi/agent/pi-extensible-workflows/roles/scout.md` can say `model: scout-model`
+`~/.pi/agent/pi-ext-roles/roles/scout.md` can say `model: scout-model`
 and it resolves, because the workflow executor resolves role `model:` values
 through `modelAliases` at launch (see `docs/llm.md` lines 103 to 109 in the
 `pi-extensible-workflows` package, and `resolveModelReference()` in
@@ -93,7 +93,7 @@ accepts `effort` or `thinking`. It does **not** read `thinking_level`; only
 top-level defaults and agent frontmatter accept that spelling.
 
 **Change one workflow role's model.** Edit the role frontmatter in
-`~/.pi/agent/pi-extensible-workflows/roles/scout.md`:
+`~/.pi/agent/pi-ext-roles/roles/scout.md`:
 
 ```yaml
 ---
@@ -172,7 +172,7 @@ file.
 ```
 
 4. If you use workflow roles, repoint the aliases in
-`~/.pi/agent/pi-extensible-workflows/settings.json`:
+`~/.pi/agent/pi-ext-roles/settings.json`:
 
 ```json
 {
@@ -345,7 +345,7 @@ update, check this before editing model config.
 
 ### Aliases currently configured in this repository
 
-Targets below reflect `pi/agent/pi-extensible-workflows/settings.json`. The set
+Targets below reflect `pi/agent/pi-ext-roles/settings.json`. The set
 targets Claude Pro and ChatGPT Plus and follows the role mapping of
 `vekexasia/dotenv`. Claude roles resolve through the `cliproxy-*` aliases; Codex
 roles use the `native-*` aliases. The `native-*` Claude aliases remain as the
@@ -768,12 +768,12 @@ effort sweep in section 1 is the clearest evidence for it.
 Mechanism claims were checked against these files on 2026-09-13:
 
 - `~/.pi/agent/settings.json`, `~/.pi/agent/models.json`,
-  `~/.pi/agent/pi-extensible-workflows/settings.json`,
+  `~/.pi/agent/pi-ext-roles/settings.json`,
   `~/.pi/agent/subagents.json`, `~/.pi/agent/modes.json`
 - `~/.pi/agent/models-store.json` (Pi's cached provider catalogs, `checkedAt`
   2026-09-13)
 - `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`
-- `~/.pi/agent/agents/sdd-init.md`, `~/.pi/agent/pi-extensible-workflows/roles/*.md`
+- `~/.pi/agent/agents/sdd-init.md`, `~/.pi/agent/pi-ext-roles/roles/*.md`
 - `~/.pi/agent/sessions/*.jsonl` (real usage record),
   `~/.pi/agent/subagents/<runId>/status.json`
 - `pi-extensible-workflows` package: `docs/llm.md`,
