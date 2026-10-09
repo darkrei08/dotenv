@@ -108,3 +108,26 @@ harness roots that need it. Non-negotiable:
   duplicate that the linker removes, because Pi also reads the canonical root.
 - The layout, the conflict rules and the refresh procedure are in
   `agents/LINKING.md`.
+
+## Gentle-AI suite, CodeGraph and Engram (mandatory)
+
+Use the whole Gentle AI suite for every code, config or documentation change, and persist what you learn to Engram. Both are hard rules, not suggestions: do not wait to be asked.
+
+### Engram (memory)
+
+- Start of work: `mem_context` and `mem_search` for the project before acting. Reconcile memory with Git, issues and PRs; current Git state wins.
+- Save with `mem_save` after every decision, fix, convention, discovery, merged PR and gotcha. Use a stable `topic_key` so it upserts (`mem_update` for an existing observation). Do not wait for the end of the session.
+- Before the final reply of any turn that changed a repository, a config, an issue or a PR, or produced a decision, the matching `mem_save` has already been made. Close a session with `mem_session_summary`. When the user says "save to memory", save everything relevant, not only the last step.
+- Never save tokens, credentials, refresh tokens, private transcripts or the content of `auth.json`/`ha.json`. Save what changed, why, where, and what was not verified.
+
+### Gentle AI suite
+
+- `gentle-ai`: clarify scope, track the work with `todo`, use the applicable test-first flow, forecast review workload before large changes.
+- `gentle-ai-issue-creation` and `issue-ops`: every change starts from an issue (`status:approved`, one type label, acceptance criteria with exact commands).
+- `gentle-ai-work-unit-commits`: one commit per reviewable work unit, tests and docs with the code, Conventional Commits.
+- `gentle-ai-branch-pr`: `type/description` branch, PR with `Fixes #N` or `Refs #N`, exactly one `type:*` label, test plan with commands and what was NOT run. `gentle-ai-chained-pr` above about 400 changed lines.
+- `gentle_review`: `inspect`, `start`, capture the whole reviewer group with `reviewerRunAcknowledged`, then `acknowledge-approved`. The GGA pre-commit hook runs on top; never use `--no-verify`.
+- `gentle-ai-judgment-day`: blind dual review for high-risk or contested changes (auth, routing, setup scripts, destructive paths).
+- `gentle-ai-comment-writer` for issue and PR comments; `gentle-ai-skill-registry` after any skill change; `gentle-ai-cognitive-doc-design` for READMEs and guides.
+- Use `codegraph` (query/explore) to locate symbols and call paths before reading or editing code.
+- Subagent roles carry the skills relevant to their task (see `pi-ext-roles/roles/`). Skills used most often: issue-ops, engineering-excellence, container-test-matrix, pi-extensible-workflows, gentle-ai, ponytail, work-unit-commits, tigerstyle, typescript-advanced.
