@@ -4,11 +4,11 @@ set -uo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
 GGA_CONFIG="$ROOT/.gga"
-WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-extensible-workflows/settings.json"
+WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 LIVE_SETTINGS="$PI_AGENT_DIR/settings.json"
-LIVE_WORKFLOWS_SETTINGS="$PI_AGENT_DIR/pi-extensible-workflows/settings.json"
+LIVE_WORKFLOWS_SETTINGS="$PI_AGENT_DIR/pi-ext-roles/settings.json"
 SETUP="$ROOT/setup_env.sh"
 failures=0
 
@@ -29,7 +29,7 @@ if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   failures=1
 fi
 
-reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-extensible-workflows/roles/reviewer.md")
+reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-ext-roles/roles/reviewer.md")
 gga_expected=$(jq -er --arg ref "$reviewer_role_model" '
   .modelAliases as $aliases |
   def splitref: if test(":.*$") then [sub(":.*$"; ""), match(":([^:]+)$").captures[0].string] else [., null] end;
@@ -202,7 +202,7 @@ if grep -Fq -- '../../' "$SETTINGS"; then
   failures=1
 fi
 
-ROLES_DIR="$ROOT/pi/agent/pi-extensible-workflows/roles"
+ROLES_DIR="$ROOT/pi/agent/pi-ext-roles/roles"
 required_roles=(
   developer.md
   oracle.md
