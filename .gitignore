@@ -12,3 +12,6 @@
 # CPA Usage Keeper local credentials and SQLite data
 /cliproxyapi/keeper.env
 /cliproxyapi/keeper/
+
+# Pi Herdr Orchestration runtime state
+.worktrees/
