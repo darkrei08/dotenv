@@ -103,11 +103,7 @@ function domainFilters(values: string[] | undefined): { allowed_domains?: string
 
 function queryValues(params: Parameters): string[] {
   const values = params.queries?.length ? params.queries : params.query ? [params.query] : [];
-  const blocked = domainFilters(params.domainFilter)?.blocked_domains?.map((domain) => `-site:${domain}`) ?? [];
-  return values.map((value) => {
-    const query = value.trim();
-    return query ? [query, ...blocked].join(" ") : "";
-  }).filter(Boolean);
+  return values.map((value) => value.trim()).filter(Boolean);
 }
 
 function formatQueries(queries: string[]): string | undefined {
@@ -124,7 +120,7 @@ function searchText(params: Parameters): string | undefined {
 function relaxedRequest(params: Parameters): { query: string; params: Parameters } | undefined {
   const queries = queryValues(params);
   const relaxed = queries
-    .map((query) => query.replace(/(^|\s)-?site:\S+\s*/giu, "$1").trim())
+    .map((query) => query.replace(/\bsite:\S+\s*/giu, "").trim())
     .filter(Boolean);
   const queryChanged = relaxed.some((query, index) => query !== queries[index]);
   if (!queryChanged && !params.domainFilter?.length) return undefined;
@@ -144,7 +140,7 @@ function instructions(params: Parameters): string {
   }
   const filters = domainFilters(params.domainFilter);
   if (filters?.allowed_domains) lines.push(`Only use: ${filters.allowed_domains.join(", ")}.`);
-  if (filters?.blocked_domains) lines.push(`Exclude ${filters.blocked_domains.join(", ")} via -site: query terms.`);
+  if (filters?.blocked_domains) lines.push(`Do not use: ${filters.blocked_domains.join(", ")}.`);
   return lines.join(" ");
 }
 
@@ -279,10 +275,7 @@ async function runSearch(
   auth: { apiKey: string; headers: Record<string, string>; url: string },
   headers: Record<string, string>,
 ): Promise<SearchOutput> {
-  const domainFilterValues = domainFilters(params.domainFilter);
-  const apiFilters = domainFilterValues?.allowed_domains
-    ? { allowed_domains: [...domainFilterValues.allowed_domains] }
-    : undefined;
+  const filters = domainFilters(params.domainFilter);
   const response = await fetch(auth.url, {
     method: "POST",
     headers,
@@ -290,7 +283,7 @@ async function runSearch(
       model: MODEL_ID,
       instructions: instructions(params),
       input: [{ role: "user", content: [{ type: "input_text", text: query }] }],
-      tools: [{ type: "web_search", ...(apiFilters ? { filters: apiFilters } : {}) }],
+      tools: [{ type: "web_search", ...(filters ? { filters } : {}) }],
       include: ["web_search_call.action.sources"],
       store: false,
       stream: true,
@@ -345,7 +338,7 @@ async function searchWith(provider: string, query: string, params: Parameters, s
 
   let result = await runSearch(query, params, searchSignal, auth, headers);
   const retry = !result.sources.length ? relaxedRequest(params) : undefined;
-  if (retry) {
+  if (retry && retry.query !== query) {
     const broader = await runSearch(retry.query, retry.params, searchSignal, auth, headers);
     if (broader.sources.length || !result.answer) result = broader;
   }
