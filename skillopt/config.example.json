@@ -1,0 +1,19 @@
+{
+  "runtime_repo": "https://github.com/darkrei08/SkillOpt.git",
+  "runtime_ref": "main",
+  "project": ".",
+  "source": "pi",
+  "backend": "pi",
+  "target_skill_path": "~/.agents/skills/skillopt-sleep-learned/SKILL.md",
+  "engram_chunks_dir": ".engram/chunks",
+  "engram_max_chars": 12000,
+  "lookback_hours": 72,
+  "max_tasks_per_night": 40,
+  "gate_mode": "on",
+  "gate_no_regression": true,
+  "evolve_skill": true,
+  "evolve_memory": false,
+  "auto_adopt": false,
+  "redact_secrets": true,
+  "evidence_log": true
+}
