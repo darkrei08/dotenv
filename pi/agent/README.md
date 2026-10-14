@@ -19,15 +19,27 @@ usage credits and is not used. ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and
 GPT-6 Luna, plus GPT-6 Astra with a small allowance). Sources:
 <https://claude.com/pricing>, <https://learn.chatgpt.com/docs/pricing>.
 
-The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, Codex roles stay native:
+The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, while Scout uses OpenCode Go directly:
 
 | Role alias | Resolves to | Used by |
 | --- | --- | --- |
-| `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | summarizer, qa, release, sre |
-| `scout-model`, `developer-model` | `cheap-model` | scout, developer |
-| `tests-expert` | `native-luna` = `openai-codex/gpt-6-luna:high` | tests-expert |
-| `researcher-model` | `native-luna:xhigh` | researcher |
+| `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | qa, release, sre |
+| `scout-model` | `opencode-go/cat-jam-free:medium` | scout |
+| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | summarizer |
+| `developer-model` | `cheap-model` | developer |
+| `tests-expert` | `cliproxyapi/gpt-6-luna:high` | tests-expert |
+| `researcher-model` | `cliproxyapi/gpt-6-luna:xhigh` | researcher |
 | `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | reviewer, oracle, architect, security |
+
+Optional Gemini alternatives are available as explicit aliases, without replacing the
+primary role assignments:
+
+| Alternative alias | Model:effort | Intended use |
+| --- | --- | --- |
+| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
+| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
+| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:high` | long research fallback |
+| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
 
 Interactive Pi defaults to `cliproxyapi/claude-sonnet-5-5` at `medium`, as do the
 subagents (`subagents.json`, review lenses at `high`). The `advisor` mode uses
@@ -63,6 +75,13 @@ cannot drift apart. The mirrors are not guaranteed until the dynamic catalog is 
 as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
 models, which is why Codex stays on its native login.
+
+The optional Gemini aliases are explicit alternatives, not automatic role replacements.
+For automatic quota/capacity fallback, `~/.pi/agent/ha.json` contains `development`,
+`scout`, `fast`, `research`, `summary`, and `testing` groups. Select one with
+`/ha-group <name> <model-id>...`; the repository template is
+`pi/agent/ha-failover.example.json`. The default development chain ends with
+`cliproxyapi/gemini-pro-agent` after the existing GPT and Claude entries.
 
 ### Gemini
 

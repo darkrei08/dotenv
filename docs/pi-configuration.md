@@ -86,7 +86,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | --- | --- |
 | `pi/agent/settings.json` | Effective Pi settings: `defaultProvider`/`defaultModel`/`defaultThinkingLevel`, `modelThinkingLevels`, `compaction`, `theme`, the `packages` list, `hideThinkingBlock`, `showCacheMissNotices`, `tuiMode`. |
 | `pi/agent/models.json` | Provider catalog and overrides; see [Providers and credentials](#providers-and-credentials). |
-| `pi/agent/modes.json` | `advisor`: provider `openai-codex`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
+| `pi/agent/modes.json` | `advisor`: provider `cliproxyapi`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-ext-roles/settings.json` | Shared role settings: `modelAliases`, the `skills` allowlist and the `extensions` allowlist. |
 | `pi/agent/pi-extensible-workflows/settings.json` | Workflow-only overrides: `extensionSettings` for `herdr` and `trajectory`. |
@@ -107,7 +107,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` sets Sonnet 5.5 and GPT-6.1 Sol to `medium` and Opus 5.5 and GPT-6 Luna to `high`; `enabledModels` lists only Claude Pro and ChatGPT Plus models and their CLIProxyAPI mirrors. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -130,4 +130,6 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Standard workflow aliases follow the `vekexasia/dotenv` role mapping: `cheap-model`, scout and developer use `cliproxyapi/claude-sonnet-5-5:medium`; tests and research use `openai-codex/gpt-6-luna`; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Claude goes through CLIProxyAPI because the native Anthropic login is not used; the `native-*` Claude aliases stay as the mirror reference. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.
+Workflow roles use CLIProxyAPI first, except the read-only Scout: developer, QA, release, and SRE use `cliproxyapi/claude-sonnet-5-5:medium`; summarizer uses `cliproxyapi/claude-haiku-5-5:low`; tests and research use `cliproxyapi/gpt-6-luna` at high/xhigh; Scout uses `opencode-go/cat-jam-free:medium` directly; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Native catalogs and aliases remain as a manual fallback but are hidden from the active picker. OpenCode Go is separate and remains directly logged into Pi through the `opencode-go` provider.
+
+Gemini alternatives are available through explicit `gemini-*` aliases and the HA fallback groups: Flash High for Scout/developer/tests, Flash Lite for summarization, and Gemini Pro Agent for research. They do not silently replace the primary role model; use the alias or activate the matching HA group deliberately. See `pi/agent/MODELS.md` for plan limits, effort levels and the GGA reviewer choice.

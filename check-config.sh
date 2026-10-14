@@ -139,30 +139,37 @@ if ! jq -e '
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
-  $aliases["scout-model"] == "cheap-model" and
+  $aliases["scout-model"] == "opencode-go/cat-jam-free:medium" and
   $aliases["developer-model"] == "cheap-model" and
-  $aliases["tests-expert"] == "native-luna" and
-  $aliases["researcher-model"] == "native-luna:xhigh" and
+  $aliases["tests-expert"] == "cliproxy-luna" and
+  $aliases["researcher-model"] == "cliproxy-luna:xhigh" and
+  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:low" and
+  $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:high" and
+  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["reviewer-model"] == "cliproxy-reviewer-model" and
   $aliases["oracle-model"] == "reviewer-model" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
-  printf '%s: workflow aliases are not the policy (Claude via CLIProxyAPI, Codex native)\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: workflow aliases are not the gateway-first policy\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
 if ! jq -e '
   .defaultProvider == "cliproxyapi" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
-  (.enabledModels | all(.[]; startswith("anthropic/") or startswith("openai-codex/") or startswith("cliproxyapi/"))) and
+  (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
   (.enabledModels | index("cliproxyapi/claude-sonnet-5-5") != null) and
-  (.enabledModels | index("openai-codex/gpt-6.1-sol") != null)
+  (.enabledModels | index("cliproxyapi/gpt-6-luna") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be cliproxyapi Sonnet 5.5 medium with enabledModels limited to Anthropic, OpenAI and CLIProxyAPI mirrors\n' "$SETTINGS"
+  printf '%s: defaults must be cliproxyapi Sonnet 5.5 medium with gateway-only enabledModels\n' "$SETTINGS"
   failures=1
 fi
 
-# Native and CLIProxyAPI must coincide: every native alias, enabled model and startup
-# thinking level has a cliproxyapi mirror on the same model and effort.
+# Native definitions remain available as a manual fallback, while the active picker
+# exposes only CLIProxyAPI models. Native and gateway aliases and startup thinking levels
+# must still mirror each other.
 if ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
   def mirror: sub("^cliproxyapi/"; "");
@@ -173,8 +180,6 @@ if ! jq -e '
   ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
   def mirror: sub("^cliproxyapi/"; "");
-  ([.enabledModels[] | select(startswith("cliproxyapi/")) | mirror] | sort) ==
-    ([.enabledModels[] | select(startswith("anthropic/") or startswith("openai-codex/")) | native] | sort) and
   ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror), v: .value}] | sort_by(.k)) ==
     ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native), v: .value}] | sort_by(.k))
 ' "$SETTINGS" >/dev/null 2>&1; then

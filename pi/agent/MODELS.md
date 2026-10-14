@@ -333,9 +333,10 @@ gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
 `anthropic/claude-sonnet-5` both answered on the same day. That historical
 configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
 this document's workload policy for adversarial review. Current workflow
-settings route Claude through CLIProxyAPI (the Anthropic login is not used) and
-keep Codex on native providers. CLIProxyAPI discovery is dynamic, so gateway
-aliases are validated only after the local catalog is available.
+settings route Claude and Codex roles through CLIProxyAPI first. Native catalogs
+and aliases remain available as a manual fallback, while the active picker is
+gateway-only. CLIProxyAPI discovery is dynamic, so gateway aliases are validated
+only after the local catalog is available.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -347,13 +348,13 @@ update, check this before editing model config.
 
 Targets below reflect `pi/agent/pi-ext-roles/settings.json`. The set
 targets Claude Pro and ChatGPT Plus and follows the role mapping of
-`vekexasia/dotenv`. Claude roles resolve through the `cliproxy-*` aliases; Codex
-roles use the `native-*` aliases. The `native-*` Claude aliases remain as the
-mirror reference.
+`vekexasia/dotenv`. Workflow roles resolve through the `cliproxy-*` aliases;
+native aliases remain available as a manual fallback. OpenCode Go is a separate
+provider and is used directly by the `opencode-max` mode.
 
 | Alias | Configured target | Use |
 |---|---|---|
-| `native-cheap-model` | `anthropic/claude-sonnet-5-5:medium` | Sonnet: cheap, scout, developer, summarizer, qa, release, sre |
+| `native-cheap-model` | `anthropic/claude-sonnet-5-5:medium` | Sonnet: cheap, developer, qa, release, sre |
 | `native-luna` | `openai-codex/gpt-6-luna:high` | GPT-6 Luna: tests, research |
 | `native-reviewer-model` | `anthropic/claude-opus-5-5:high` | Opus: reviewer, oracle, architect, security |
 | `native-sol` | `openai-codex/gpt-6.1-sol:medium` | GPT-6.1 Sol, manual override |
@@ -364,12 +365,18 @@ mirror reference.
 | `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
 | `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
 | `cheap-model` | `cliproxy-cheap-model` | Standard cheap alias |
-| `scout-model` | `cheap-model` | Scout role |
+| `scout-model` | `opencode-go/cat-jam-free:medium` | Scout role, direct OpenCode Go route |
 | `developer-model` | `cheap-model` | Developer role |
-| `tests-expert` | `native-luna` | Tests role |
-| `researcher-model` | `native-luna:xhigh` | Research role |
+| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | Summarizer role |
+| `tests-expert` | `cliproxy-luna` | Tests role through CLIProxyAPI |
+| `researcher-model` | `cliproxy-luna:xhigh` | Research role through CLIProxyAPI |
 | `reviewer-model` | `cliproxy-reviewer-model` | Reviewer role |
 | `oracle-model` | `reviewer-model` | Oracle role |
+| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Optional fast Scout alternative |
+| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Optional summarizer alternative |
+| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:high` | Optional research fallback |
+| `gemini-developer-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Optional developer fallback |
+| `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Optional tests fallback |
 
 **Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
 Fable 5 and 5.1 run on paid usage credits, so none is configured
@@ -394,12 +401,13 @@ enforced by `check-config.sh`, with no automatic fallback. Setup and alternative
 [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
-- Developer, scout and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort.
+- Developer and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort; Scout uses OpenCode Go Cat Jam Free at medium effort; Summarizer uses Claude Haiku 5.5 at low effort.
 - Tests and research use GPT-6 Luna so that high-volume work draws on the largest Plus allowance.
 - Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort.
 
 **Gateway usage:**
 - CLIProxyAPI: Claude roles use the `cliproxy-*` aliases directly. Requires an authenticated dynamic catalog and the gateway running.
+- Gemini alternatives: use the explicit `gemini-*` aliases, or activate the matching `scout`, `fast`, `research`, `summary`, or `testing` HA group. These are fallback routes, not silent replacements for the primary role aliases.
 
 Do not replace the standard aliases with other targets when the gateway is down; report it and retain the configured choice.
 
