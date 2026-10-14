@@ -15,6 +15,7 @@
     "developer-model": "cheap-model",
     "tests-expert": "native-luna",
     "researcher-model": "native-luna:xhigh",
+    "summarizer-model": "cliproxyapi/claude-haiku-5-5:low",
     "oracle-model": "reviewer-model",
     "reviewer-model": "cliproxy-reviewer-model"
   },
@@ -26,7 +27,8 @@
     "ponytail*",
     "impeccable",
     "design-taste",
-    "phantom-ui"
+    "phantom-ui",
+    "skillopt-sleep"
   ],
   "extensions": [
     "!*",

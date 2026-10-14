@@ -34,6 +34,8 @@
 #   phantom-ui       agents/skills/phantom-ui (skill plus the MIT standalone build,
 #                    provenance in its VENDORED.md), because it is a component library
 #                    with no upstream skill to install. Pi reads the canonical root.
+#   skillopt-sleep   agents/skills/skillopt-sleep (runtime usage and safety contract;
+#                    the Python engine is installed separately by setup-ai).
 #
 # Behavior:
 #   * Idempotent. Where a host can list what it already has, an existing ponytail
@@ -188,11 +190,11 @@ install_opencode() {
   # config that is not plain JSON (comments make JSON.parse throw) is reported
   # and left untouched rather than rewritten from a partial read.
   local result status=0
-  result="$(node -e '
+  result="$(GGA_OPENCODE_CONFIG_PATH="${config}" GGA_OPENCODE_PLUGIN="${OPENCODE_PLUGIN}" node -e '
 var fs = require("node:fs");
 var path = require("node:path");
-var configPath = process.argv[1];
-var plugin = process.argv[2];
+var configPath = process.env.GGA_OPENCODE_CONFIG_PATH;
+var plugin = process.env.GGA_OPENCODE_PLUGIN;
 var raw = fs.existsSync(configPath) ? fs.readFileSync(configPath, "utf8") : "";
 var config;
 try {
@@ -218,7 +220,7 @@ config.plugin = (Array.isArray(plugins) ? plugins : []).concat([plugin]);
 fs.mkdirSync(path.dirname(configPath), { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n");
 console.log("added");
-' "${config}" "${OPENCODE_PLUGIN}")" || status=$?
+')" || status=$?
 
   if [[ "${status}" -ne 0 ]]; then
     log "FAIL OpenCode: could not update ${config} (see the error above)"
@@ -241,7 +243,7 @@ console.log("added");
 # whose config directory is absent is never touched.
 
 # Global skills shipped under agents/skills/.
-LOCAL_SKILLS=(phantom-ui)
+LOCAL_SKILLS=(phantom-ui skillopt-sleep)
 
 # Directory holding an agent's own config, used to decide whether that agent exists.
 agent_config_dir() {

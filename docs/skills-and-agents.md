@@ -46,7 +46,7 @@ The rule for agents working in this repository:
 3. Run `node agents/link-skills.mjs` to review, then `--apply`.
 4. Confirm with `node agents/link-skills.mjs --verify`.
 
-Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` copies the skills this repository ships (`phantom-ui`) into every harness root; that is compatible, and the next `--apply` sees an identical copy and folds it back into a link.
+Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` copies the skills this repository ships (`phantom-ui`, `skillopt-sleep`) into every harness root; that is compatible, and the next `--apply` sees an identical copy and folds it back into a link.
 
 [`agents/LINKING.md`](../agents/LINKING.md) documents the actions (`link`, `already-linked`, `replace-copy-with-link`, `drop-copy`, `drop-link`, `fold-in`, `conflict`, `skip`), the conflict procedure, and the two unmanaged cases: `_shared/` is a support directory with no `SKILL.md` and a per-runtime copy per harness, and `impeccable` is installed per provider by its own installer, so each harness copy legitimately differs.
 
@@ -64,6 +64,7 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
 | this repository | `phantom-ui` (`agents/skills/phantom-ui`, MIT build, provenance in `VENDORED.md`) | `agents/install-agent-extensions.sh` copies it into every existing non-Pi harness root and the shared canonical root |
+| this repository | `skillopt-sleep` (`agents/skills/skillopt-sleep`, runtime usage and safety contract) | `agents/install-agent-extensions.sh` copies the wrapper; setup-ai's optional `skillopt-sleep` module installs the Python engine |
 | this repository | `issue-ops`, `learning-opportunities`, `orient`, `tigerstyle` | Tracked directly under `pi/agent/skills/`, Pi-only |
 | `pi` examples | `questionnaire` tool | Copied into `pi/agent/extensions/questionnaire.ts` |
 
@@ -80,6 +81,6 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 | Claude Code | Not scriptable: the script prints the two interactive `/plugin` commands as a manual step |
 | pi | Not handled here; Pi installs ponytail from `pi/agent/pi-packages.txt` |
 
-The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` into each existing non-Pi harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, plus `~/.agents/skills`). Pi reads the canonical root. Differing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
+The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` and `skillopt-sleep` into each existing non-Pi harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, plus `~/.agents/skills`). Pi reads the canonical root. Differing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
 
 Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker; the one exception is that `setup_env.sh`, when run as root, sets `permissions.defaultMode` to `default` in `~/.claude/settings.json` and preserves every other setting.
