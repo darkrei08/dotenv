@@ -61,6 +61,7 @@
     "skill-creator": { "default": true },
     "skill-improver": { "default": true },
     "skill-registry": { "default": true },
+    "skillopt-sleep": { "default": true },
     "systemic-issue-triage": { "managed": false, "reason": "owned by the Gentle AI package, not the shared canonical skill tree" },
     "tdd": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
     "teach": { "default": true, "except": ["codex", "opencode", "gemini", "antigravity"] },
