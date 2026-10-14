@@ -57,6 +57,7 @@ test('cliproxyapi models load only the CLIProxyAPI provider extension', (t) => {
   const argv = readFileSync(join(dir, 'argv'), 'utf8').split('\n');
   assert.equal(argv[argv.indexOf('-e') + 1], ext);
   assert.ok(argv.includes('--no-extensions'));
+  assert.ok(argv.includes('--offline'), 'CLIProxyAPI must use the Keeper-backed catalog cache');
 
   const missing = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/x'], {
     env: { ...env, PI_CODING_AGENT_DIR: join(home, 'none') }, input: 'p', encoding: 'utf8',

@@ -35,8 +35,14 @@
     "phantom-ui",
     "skillopt-sleep"
   ],
+  "tools": [
+    "tool_search"
+  ],
   "extensions": [
     "!*",
+    "builtin:codemode",
+    "builtin:tool-search",
+    "builtin:mcp",
     "**/extensions/live-dashboard.ts",
     "**/pi-anthropic-auth/**",
     "**/pi-codex-image/**",

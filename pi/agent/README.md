@@ -103,6 +103,8 @@ in `settings.json`. Verify the configured servers with:
 pi mcp list
 ```
 
+Workflow agents inherit Pi's built-in `codemode`, `tool-search`, and `mcp` extensions from `pi/agent/pi-ext-roles/settings.json`. The shared `tool_search` allowance keeps the configured local MCP servers discoverable without preloading every MCP tool into every child session. A workflow call can still narrow this ceiling with an explicit tool allowlist; do not start a child with `!*` unless it also includes `tool_search` when MCP access is intended.
+
 ## Credentials and local files
 
 Pi keeps provider credentials under ignored files in `~/.pi/agent/`. This

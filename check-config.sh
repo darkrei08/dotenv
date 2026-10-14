@@ -62,6 +62,17 @@ for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
   fi
 done
 
+# If this clone already has a hook, keep it on the repo-owned bridge path.
+git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null || printf '')
+if [[ -n "$git_common_dir" && "$git_common_dir" != /* ]]; then
+  git_common_dir="$ROOT/$git_common_dir"
+fi
+pre_commit_hook="$git_common_dir/hooks/pre-commit"
+if [[ -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
+  printf '%s: installed pre-commit hook must invoke agents/gga-pi/run-gga.sh\n' "$pre_commit_hook"
+  failures=1
+fi
+
 required_packages=(
   npm:pi-extensible-workflows
   npm:gentle-pi
@@ -114,13 +125,21 @@ elif ! check_json_file "$LIVE_SETTINGS"; then
   failures=1
 fi
 
-# Compare only behavior-bearing projections: modelAliases, workflow extensions, and object-package source/extensions. Pi/setup-ai may normalize package versions, duplicate entries, and order, so the whole settings file is intentionally not compared.
+# Compare only behavior-bearing projections: modelAliases, workflow tools/extensions, and object-package source/extensions. Pi/setup-ai may normalize package versions, duplicate entries, and order, so the whole settings file is intentionally not compared.
 if ((versioned_workflows_ok && live_workflows_ok)) &&
     ! diff -u \
-      <(jq -S '{modelAliases, extensions}' "$WORKFLOWS_SETTINGS") \
-      <(jq -S '{modelAliases, extensions}' "$LIVE_WORKFLOWS_SETTINGS") >/dev/null; then
-  printf '%s: canonical modelAliases/extensions differ from %s\n' \
+      <(jq -S '{modelAliases, tools, extensions}' "$WORKFLOWS_SETTINGS") \
+      <(jq -S '{modelAliases, tools, extensions}' "$LIVE_WORKFLOWS_SETTINGS") >/dev/null; then
+  printf '%s: canonical modelAliases/tools/extensions differ from %s\n' \
     "$WORKFLOWS_SETTINGS" "$LIVE_WORKFLOWS_SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '
+  (.tools // [] | index("tool_search") != null) and
+  ((["builtin:codemode", "builtin:tool-search", "builtin:mcp"] | all(.[]; . as $extension | $extensions | index($extension) != null)))
+' --argjson extensions "$(jq '.extensions // []' "$WORKFLOWS_SETTINGS" 2>/dev/null || printf '[]')" "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow subagents must retain tool_search and the built-in codemode/tool-search/mcp extensions\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
