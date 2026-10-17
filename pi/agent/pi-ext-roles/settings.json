@@ -25,6 +25,7 @@
     "gemini-researcher-model": "cliproxyapi/gemini-pro-agent:high",
     "gemini-developer-model": "cliproxyapi/gemini-3.8-flash-high:high",
     "gemini-tests-model": "cliproxyapi/gemini-3.8-flash-high:high",
+    "gemini-reviewer-model": "opencode-go/gemini-4-argon-contributor:high",
     "oracle-model": "reviewer-model",
     "reviewer-model": "cliproxy-reviewer-model"
   },
