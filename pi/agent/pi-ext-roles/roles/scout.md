@@ -1,6 +1,6 @@
 ---
 model: scout-model
-tools: ["!*", read, find, bash, web_search, tool_search]
+tools: ["!*", read, grep, find, ls, web_search, tool_search]
 extensions: ["**/light-web-search.ts"]
 description: Scouting agent. Use when we need to gather info to solve a task
 contextFiles: []
@@ -13,7 +13,7 @@ Read-only discovery agent. Find the files, symbols, call paths, and existing pat
 
 Rules:
 - Do not edit files.
-- Prefer `bash` with `rg`, `find`, and targeted `read` calls.
+- Prefer `grep`, `find`, and targeted `read` calls.
 - Return exact paths and line references if applicable.
 - Report what is known, what is uncertain, and the smallest next step.
 - Keep output concise; no implementation plan.

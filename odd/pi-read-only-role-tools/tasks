@@ -1,0 +1,4 @@
+Feature: Pi read-only role tool policies
+Source: odd/tasks/pi-read-only-role-tools.md
+Issue: darkrei08/dotenv#62
+Tasks: T1 role-policy regression RED; T2 tighten only read-only role allowlists; T3 focused checks plus independent security review; T4 issue-linked commit/PR/merge after gates. Commit: pending.
