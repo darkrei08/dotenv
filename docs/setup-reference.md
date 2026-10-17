@@ -11,7 +11,7 @@ What `setup_env.sh` requires, what it changes on the machine and what each step 
 | Privileges | `sudo` for `apt-get`, `pacman`, installing `go` under `/usr/local`, and the Neovim tarball. `omarchy pkg add` is used instead of `pacman` when `omarchy` is on `PATH`. |
 | Runtime | A POSIX shell plus `bash`. Neovim 0.12.0 or newer is required; the script installs it when missing or older. |
 | Node.js / npm | `node`, `npm`, and `npx` must already be on `PATH`; Node.js >=22.19.0 is required for Pi and Copilot (the script checks this early and does not install Node). |
-| Python | `python3` and `python3-venv` (Debian installs `python3-venv` explicitly) for the `gigatoken` virtualenv. |
+| Python | `python3` and `python3-venv` (Debian installs `python3-venv` explicitly) for the `gigatoken` and CLI-Anything virtualenvs. |
 | Network | Distribution mirrors, `https://go.dev/dl/`, the Go module proxy, `api.github.com`, GitHub release assets, `https://github.com/HKUDS/CLI-Anything.git`, `https://github.com/Gentleman-Programming/gentleman-guardian-angel.git`, the npm registry and `npx skills`, `https://raw.githubusercontent.com/darkrei08/ai-memory-kit/`, `https://antigravity.google/cli/install.sh`, `https://chatgpt.com/codex/install.sh`, `https://claude.ai/install.sh`, and `https://cursor.com/install`. |
 | Git identity | `gh` and `glab` are installed but not authenticated; `gh auth login` and `glab auth login` remain manual. |
 
@@ -26,7 +26,7 @@ The script is meant to be re-run. What it touches:
 | `~/.pi/agent` | A real directory populated by selective rsync of versioned items from `pi/agent`; a leftover symlink is removed, and an existing non-directory target is backed up. Runtime state is preserved. |
 | `~/.config/nvim` | `rsync -a --delete` from `nvim/`, excluding `node_modules/`. Anything else in the target that is not in the repository is deleted. |
 | `~/.config/herdr/config.toml`, `~/.tmux.conf` | Overwritten with `install -Dm644`. |
-| `~/.local/bin` | Overwritten with `rsync -a` on WSL only. |
+| `~/.local/bin` | Overwritten with `rsync -a` on WSL only; `cli-hub` is linked here from the isolated CLI-Anything virtualenv on every host. |
 | `$USERPROFILE/.wezterm.lua` | Overwritten on WSL when `powershell.exe` and `wslpath` are available. |
 | `~/.bashrc` | Appended only, one line at a time, and only when the exact line is absent (`append_once`). Nothing is rewritten. |
 
@@ -43,7 +43,7 @@ Nothing is committed or pushed by the script. `gh` and `glab` stay unauthenticat
 5. **Go and Neovim.** Install Go (distribution package on Arch, otherwise the `go1.24.4.linux-amd64` tarball into `/usr/local`). Require Neovim >= 0.12.0: update the distribution package on Arch, otherwise install the `nvim-linux-x86_64` release tarball into `/opt`, then verify the version.
 6. **Dotfiles.** Sync `nvim/` into `~/.config/nvim`, install `herdr/config.toml` and `.tmux.conf`. On the host named `devbox`, insert `copy_on_select = false` under `[ui]` in the Herdr config. On WSL, also sync `.local/bin/` and copy `.wezterm.lua` into the Windows profile.
 7. **Neovim helper.** Create `~/.local/share/nvim/gigatoken-venv` and `pip install gigatoken` when the venv is absent.
-8. **Pi.** On Arch/Omarchy, delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout and remove its global mise selection. On every supported distribution, install `@earendil-works/pi-coding-agent` with npm when `pi` is missing. Then run `sync_pi`, install and verify the pinned CLI-Anything Pi extension, and apply each non-comment entry of `pi/agent/pi-packages.txt` with `pi install`, skipping `pi-extensible-workflows` (owned by setup-ai).
+8. **Pi.** On Arch/Omarchy, delete a mise-managed `~/.local/bin/pi` shim that leaks mise output into Pi's stdout and remove its global mise selection. On every supported distribution, install `@earendil-works/pi-coding-agent` with npm when `pi` is missing. Then run `sync_pi`, install and verify the pinned CLI-Anything Pi extension and CLI-Hub virtualenv, and apply each non-comment entry of `pi/agent/pi-packages.txt` with `pi install`, skipping `pi-extensible-workflows` (owned by setup-ai).
 9. **Shared skills.** Unless `SETUP_AI_SKIP_SKILLS=1`, install the skills listed in [Skill provenance](skills-and-agents.md#skill-provenance) with `npx skills add ... --global --agent pi cline --yes`, so skills-cli keeps one canonical copy under `~/.agents/skills`. The pinned `darkrei08/ai-memory-kit#v0.1.0` `project-memory` install fails closed if the tag cannot be fetched, and its CLI installer runs with `--no-skill`.
 10. **AI CLIs.** Install the missing ones and verify that all of `pi`, `gentle-ai`, `gga`, `agy`, `codex`, `claude`, `gemini`, `copilot`, `opencode`, `cursor-agent` and `ccusage` exist: `gentle-ai` through its official Go module, `gga` by clone and install, native installers for `agy`, `codex`, `claude` and `cursor-agent`, npm packages for `gemini`, `copilot`, stable `opencode` and `ccusage`. When run as root, `agents/ensure-claude-root-mode.sh` sets `permissions.defaultMode` to `default` in `~/.claude/settings.json`.
 11. **Herdr integration.** When `herdr` is on `PATH`: install `bun` into `/usr/local` if absent, run `herdr integration install pi` and `herdr plugin link herdr/plugins/agent-notify`. Then run `pi update --extensions` when `pi` exists.
@@ -57,6 +57,8 @@ The exact order and flags are in `setup_env.sh`; this list is prose on purpose, 
 - **The `~/.pi/agent` configuration.** `sync_pi` removes a leftover symlink, creates a real directory, and selectively rsyncs the versioned allowlist from `$REPO_DIR/pi/agent`. It preserves runtime state such as `auth.json`, `sessions/`, `agents/`, `chains/`, `npm/node_modules`, and caches. The `extensions/` copy excludes `piextworkflows.ts` and `pi-ext-workflows/`, which setup-ai's `pi-workflows` module owns; it verifies `pi-extensible-workflows/roles` and `settings.json`.
 - **Package installs.** The Pi CLI itself comes from npm (`@earendil-works/pi-coding-agent`), `setup_env.sh` applies `pi/agent/pi-packages.txt` with `pi install`, and the skill packages come from the guarded `npx skills add` blocks. `@darkrei08/setup-ai`'s `pi-packages` module also consumes the manifest when orchestrated (see [Pi configuration](pi-configuration.md)).
 - **`pi` commands.** `pi install` applies each manifest entry, and `pi update --extensions` runs near the end of the script when `pi` is on `PATH`.
+- **CLI-Anything.** `install_cli_anything_hub` creates `~/.local/share/cli-anything/venv`, installs the pinned CLI-Hub package from the adjacent `CLI-Anything` checkout when available (or the pinned Git revision), and links `cli-hub` into `~/.local/bin`. `sync_pi` installs `pi/agent/bin/pi-ha`, which reads and updates only HA group/default fields and never prints credentials.
+- **Token budget.** `pi/agent/settings.json` keeps compaction enabled with `reserveTokens: 16384` and `keepRecentTokens: 20000`. Pi compacts when `contextTokens > contextWindow - reserveTokens`; keep `reserveTokens >= max(maxTokens, 16384)`, target an 80-85% trigger for long tool-heavy sessions, and do not use models below 32K output for developer, tests-expert, or reviewer work. The gateway catalog is authoritative for dynamic CLIProxyAPI limits. Run `node pi/agent/bin/pi-token-budget.mjs --root ~/.pi/agent --json` for the effective report; add `--strict` when unresolved gateway limits must fail.
 
 ## Managed configuration
 
@@ -66,6 +68,8 @@ The exact order and flags are in `setup_env.sh`; this list is prose on purpose, 
 | `nvim/` | `~/.config/nvim/` | `rsync -a --delete --exclude=node_modules/` |
 | `herdr/config.toml` | `~/.config/herdr/config.toml` | `install -Dm644`, plus a `sed` insert on the `devbox` host |
 | `herdr/plugins/agent-notify/` | herdr plugin registry (per user, global to all sessions) | `herdr plugin link` when `herdr` is on `PATH`, inside the same `command -v herdr` block as `herdr integration install pi` |
+| `pi/agent/bin/pi-ha` | `~/.pi/agent/bin/pi-ha` | Copied by `sync_pi`; reads and updates HA groups without exposing credentials |
+| CLI-Anything | `~/.local/share/cli-anything/venv`, `~/.local/bin/cli-hub`, `~/.pi/agent/extensions/cli-anything/` | Pinned CLI-Hub virtualenv, Pi extension asset install, and `pi-ha` command |
 | `.tmux.conf` | `~/.tmux.conf` | `install -Dm644` |
 | `.local/bin/` | `~/.local/bin/` | `rsync -a`, WSL only |
 | `.wezterm.lua` | `$USERPROFILE/.wezterm.lua` | `install -Dm644`, WSL only, when `powershell.exe` and `wslpath` exist |
@@ -91,7 +95,10 @@ The allowlisted versioned items under `pi/agent` are copied to `~/.pi/agent/...`
 | `tmux` | `extensions/tmux-progress.ts` | No tab progress; the extension is otherwise inert. |
 | `gh`, `glab` | `pi/agent/extensions/pi-ext-workflows/*`, `prompts/fixissues.md` | Issue workflows cannot list or close issues. Both need `auth login`. |
 | `fzf`, `bat`, `tree`, `rg`, `fd` | Shell additions, fzf previews, general tooling | Previews and aliases degrade; `bat` is symlinked from `batcat` on Debian. |
-| `python3` | The `gigatoken` virtualenv | The venv is not created. |
+| `python3` | The `gigatoken` and CLI-Anything virtualenvs | The venv-backed tools are not created. |
+| `cli-hub` | CLI-Anything discovery and installation | Agents cannot discover or install agent-native CLIs. |
+| `pi-ha` | LLM-readable Pi HA status and group selection | Shell callers must use the Pi-only `/ha` slash command. |
+| `pi-token-budget.mjs` | Token-budget and model-limit verification | Reports compaction arithmetic and role requirements; exits non-zero for disabled compaction, an insufficient reserve floor, or known static model limits below policy. |
 | `go` | Go development | Installed by the script when missing (1.24.4). |
 | `aimem` | The ai-memory-kit CLI | Installed by the script when missing; the `project-memory` skill still installs. |
 | `curl`/`wget` + a shell | `install-agent-extensions.sh` `npx` steps | `design-taste` and `impeccable` are skipped with a `SKIP` line. |

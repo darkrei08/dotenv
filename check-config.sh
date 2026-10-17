@@ -29,6 +29,20 @@ if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   failures=1
 fi
 
+if ! jq -e '
+  .compaction.enabled == true and
+  (.compaction.reserveTokens // 0) >= 16384 and
+  (.compaction.keepRecentTokens // 0) >= 20000
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: compaction must stay enabled with reserveTokens >= 16384 and keepRecentTokens >= 20000\n' "$SETTINGS"
+  failures=1
+fi
+
+if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --json >/dev/null 2>&1; then
+  printf '%s: token-budget policy check failed\n' "$ROOT/pi/agent/bin/pi-token-budget.mjs"
+  failures=1
+fi
+
 reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-ext-roles/roles/reviewer.md")
 gga_expected=$(jq -er --arg ref "$reviewer_role_model" '
   .modelAliases as $aliases |

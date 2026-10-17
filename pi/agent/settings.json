@@ -57,6 +57,8 @@
   "showCacheMissNotices": true,
   "tuiMode": "fullscreen",
   "compaction": {
-    "enabled": true
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
   }
 }

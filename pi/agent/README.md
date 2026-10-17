@@ -118,4 +118,8 @@ Pi compacts when the reported context exceeds `contextWindow - reserveTokens`, n
 
 Measure the effective limit for the exact `provider/model` before changing settings: use `pi --list-models`, `/session`, or the RPC session stats, and treat a gateway's `/v1/models` catalog as authoritative for that gateway. For long, tool-heavy sessions prefer a measured reserve that leaves room for the verified output budget rather than disabling compaction. The repository's `pi-codex-context` package adds session windows and history tools; it must remain the sole compaction provider for managed sessions.
 
+For model selection, keep `contextWindow >= 200K` for repository-wide scout work and `>= 272K` for researcher work. Keep `maxTokens >= 32K` for developer, tests-expert, reviewer, and oracle roles; scout has a 16K minimum, and summarizer has an 8K minimum. Gateway-registered limits are authoritative when the provider is dynamic; an absent gateway catalog is reported as unverified rather than guessed.
+
+Run `pi-token-budget.mjs --json` for an LLM-readable report of compaction arithmetic, static model limits, role requirements, and gateway-dynamic entries marked unverified. Add `--strict` when unverified gateway limits should fail the check.
+
 See the setup-ai [context-budget policy](https://github.com/darkrei08/setup-ai/blob/main/docs/context-budget.md) for the calculation, tuning examples, and verification record.
