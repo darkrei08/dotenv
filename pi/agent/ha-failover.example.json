@@ -13,6 +13,7 @@
       "entries": [
         { "id": "openai-codex/gpt-6-luna" },
         { "id": "cliproxyapi/claude-opus-5-5" },
+        { "id": "opencode-go/gemini-4-argon-contributor" },
         { "id": "cliproxyapi/gemini-pro-agent" }
       ]
     },
@@ -34,6 +35,7 @@
       "name": "Research fallback",
       "entries": [
         { "id": "cliproxyapi/gpt-6-luna" },
+        { "id": "opencode-go/gemini-4-argon-contributor" },
         { "id": "cliproxyapi/gemini-pro-agent" }
       ]
     },
@@ -55,6 +57,7 @@
       "name": "Reviewer fallback",
       "entries": [
         { "id": "cliproxyapi/claude-opus-5-5" },
+        { "id": "opencode-go/gemini-4-argon-contributor" },
         { "id": "cliproxyapi/gemini-3.8-flash-high" },
         { "id": "cliproxyapi/gpt-6-luna" }
       ]
