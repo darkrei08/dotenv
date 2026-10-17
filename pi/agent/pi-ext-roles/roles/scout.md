@@ -1,6 +1,6 @@
 ---
 model: scout-model
-tools: ["!*", read, find, bash, web_search]
+tools: ["!*", read, find, bash, web_search, tool_search]
 extensions: ["**/light-web-search.ts"]
 description: Scouting agent. Use when we need to gather info to solve a task
 contextFiles: []

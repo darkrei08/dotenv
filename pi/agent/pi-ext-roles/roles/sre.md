@@ -1,6 +1,6 @@
 ---
 model: cheap-model
-tools: ["!*", read, grep, find, ls, bash, view_image]
+tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: SRE advisor. Evaluates operational readiness, observability, error handling, and resource management
 overrideSystemPrompt: true
 contextFiles: []

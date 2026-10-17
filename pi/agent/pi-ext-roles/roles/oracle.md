@@ -1,6 +1,6 @@
 ---
 model: oracle-model
-tools: ["!*", read, find, ls, bash, view_image]
+tools: ["!*", read, find, ls, bash, view_image, tool_search]
 description: Oracle. Use for a second opinion on a plan, design, or decision before committing to it
 ---
 
