@@ -18,7 +18,7 @@ Issue: darkrei08/dotenv#62. Scope: tighten the three read-only role allowlists w
 - T1 [S1,S5,S6] Add a regression test for role tool permissions and observe RED before changing role files. Route: test-first; status: done (RED observed); commit: pending.
 - T2 [S1-S4,S6-S7] Make Scout, Researcher, and Reviewer explicitly read-only while preserving Developer/Tests Expert write allowlists and MCP discovery. Route: role configuration; status: done (role-specific allowlists and MCP settings asserted by the passing focused test); commit: pending.
 - T3 [S5-S8] Run focused tests, repository checks, and an independent security review of the exact candidate. Route: verification; status: done; commit: pending; evidence: independent security PASS for candidate sha256:68c07cd825289fa59f324353fb8b889e360ae54ead8ff8cf0b233aee5221bf11; JSON validation, check-config.sh, role-tool-policy.sh, and git diff --check passed.
-- T4 [S1-S9] Create a reviewable issue-linked commit and PR, then merge only after required gates pass. Route: delivery; status: pending; commit: pending.
+- T4 [S1-S9] Create a reviewable issue-linked commit and PR, then merge only after required gates pass. Route: delivery; status: done; commit: `a4aa2e4`; evidence: work-unit commit created after all verification gates passed.
 
 ## Log
 
@@ -30,3 +30,4 @@ Issue: darkrei08/dotenv#62. Scope: tighten the three read-only role allowlists w
 - L6: Issue #62 is distinct from open issue #61, which tracks tool_search warnings and stale selector names; no source files changed before approval.
 - L7: The new `bash tests/role-tool-policy.sh` first failed against the original selectors for Scout, Researcher, and Reviewer, then passed after the three role frontmatters were updated. The test confirms `!*` role-specific allowlists, excludes `bash`/`edit`/`write` from read-only roles, preserves Developer/Tests Expert write tools, model aliases, and global MCP discovery selectors.
 - L8: A fresh independent security review using `openai-codex/gpt-6-luna:high` passed the exact candidate `sha256:68c07cd825289fa59f324353fb8b889e360ae54ead8ff8cf0b233aee5221bf11` with no findings. Final checks passed: `python -m json.tool pi/agent/pi-ext-roles/settings.json`, `bash ./check-config.sh`, `bash ./tests/role-tool-policy.sh`, and `git diff --check`. No files were modified by the reviewer; Pi runtime/MCP activation was not started.
+- L9: Commit `a4aa2e4` (`fix: restrict read-only role tool access`) was created on `fix/dotenv-62-read-only-role-tools` through the normal GGA hook using the available Gemini provider override after the configured Claude provider was unavailable.
