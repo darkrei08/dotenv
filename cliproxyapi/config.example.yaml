@@ -12,6 +12,20 @@ api-keys:
 # Keep debug logging disabled.
 debug: false
 
+# Optional OpenCode Go subscription credentials. Keep this block only in the
+# ignored config.yaml; never commit a real key. The prefix makes the downstream
+# model ids explicit, for example `go/deepseek-v4.1-flash`.
+# opencode-go-api-key:
+#   - name: "opencode-go-primary"
+#     api-key: "REPLACE_WITH_A_PRIVATE_OPENCODE_GO_KEY"
+#     prefix: "go"
+#     # base-url defaults to https://opencode.ai/zen/go/v1
+#     # models:
+#     #   - name: "deepseek-v4.1-flash"
+#     #     alias: "deepseek-v4.1-flash"
+#     #     protocol: "openai"
+#     #     force-mapping: true
+#
 # The Management API serves the /management.html panel and CPA Usage Keeper.
 # allow-remote is required because Keeper calls from another container; the
 # host ports stay bound to 127.0.0.1. Use the same key as CPA_MANAGEMENT_KEY in
