@@ -113,6 +113,46 @@ through CLIProxyAPI, use these explicit aliases as its per-agent model override:
 These aliases resolve only after the CLIProxyAPI catalog is authenticated. No
 second dashboard is required.
 
+## Route OpenCode Go through CLIProxyAPI
+
+The Compose stack can route an OpenCode Go subscription key through the same
+local gateway. This is separate from Pi's direct `opencode-go/...` provider:
+
+- direct Pi provider: `opencode-go/deepseek-v4.1-flash`
+- CLIProxyAPI route: `cliproxyapi/go/deepseek-v4.1-flash`
+
+The `go/` segment comes from the optional `prefix: "go"` in the
+`opencode-go-api-key` entry. Add that entry to the ignored `config.yaml`, using
+`config.example.yaml` as the shape, then restart only the stack when the local
+configuration changes:
+
+```bash
+docker compose up -d --force-recreate cli-proxy-api
+```
+
+The client-facing key remains the private `api-keys` value already required by
+CLIProxyAPI. The OpenCode Go subscription key is a separate upstream credential;
+never copy either value into Git, Pi role settings, or an OpenCode config file.
+
+After the stack is running, verify the gateway without printing secrets:
+
+```bash
+curl -fsS http://127.0.0.1:8317/
+```
+
+Then authenticate Pi through `/login CLIProxyAPI` and run
+`/cliproxyapi-refresh`. The resulting `cliproxyapi/go/...` models are dynamic:
+model listing proves catalog exposure only, not successful inference. If the
+stack has no authenticated OpenCode Go account, report model discovery and
+inference as NOT RUN rather than falling back silently.
+
+Optional Pi role aliases for this route are kept in
+`pi/agent/pi-ext-roles/settings.json`; they do not replace the existing
+subscription-backed defaults. Free entries such as `cat-jam-free`,
+`longcat-2.5-preview-free`, and `step-5-preview-free` are suitable for scout or
+fallback experiments only until role-quality evidence exists. DeepSeek V4.1
+Flash is a paid OpenCode Go model, not a free default.
+
 ## Keeper login and data
 
 Open `http://127.0.0.1:8080` and use the `LOGIN_PASSWORD` from `keeper.env`.

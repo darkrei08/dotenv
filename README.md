@@ -22,6 +22,10 @@ Before you run it:
 
 Optional: the localhost-only CLIProxyAPI gateway and usage dashboard ([setup guide](cliproxyapi/README.md)).
 
+For shell and LLM access to Pi High Availability, use `pi-ha status --json`,
+`pi-ha group <name> <provider/model-id>...`, or `pi-ha use <name>`. The `/ha`
+command remains a Pi slash command and is not a Bash executable.
+
 ## What gets installed and where it is configured
 
 | Area | What you get | Configured in |
@@ -33,15 +37,16 @@ Optional: the localhost-only CLIProxyAPI gateway and usage dashboard ([setup gui
 | Local usage | `ccusage` and the `/agent-usage` command. | `pi/agent/extensions/agent-usage/`, `setup_env.sh` |
 | Skills | Shared skills installed once and linked into every agent. | `agents/skills.manifest.json`, `agents/link-skills.mjs`; [docs/skills-and-agents.md](docs/skills-and-agents.md) |
 | Other agent CLIs | `gentle-ai`, `gga`, `agy`, `codex`, `claude`, `gemini`, `copilot`, `opencode`, `cursor-agent`. | `setup_env.sh`, `agents/install-agent-extensions.sh`; [docs/skills-and-agents.md](docs/skills-and-agents.md) |
+| CLI-Anything | `cli-hub` in an isolated virtualenv, the global Pi extension, and `pi-ha` for LLM-readable HA groups. | `setup_env.sh`, `pi/agent/bin/pi-ha`; [docs/setup-reference.md](docs/setup-reference.md) |
 | Editor and terminal | Neovim (>= 0.12), tmux, WezTerm (WSL), shell additions, `lazygit`, `zellij`, Go. | `nvim/`, `.tmux.conf`, `.wezterm.lua`, `.local/bin/`; [docs/setup-reference.md](docs/setup-reference.md) |
 | Herdr | Config and the Pi integration when `herdr` is installed (the binary itself is not). Agent notifications plugin. | `herdr/config.toml`, `herdr/plugins/agent-notify/`; [docs/herdr-notifications.md](docs/herdr-notifications.md) |
 | CLIProxyAPI (optional) | Local gateway and usage dashboard, Docker Compose. | `cliproxyapi/` |
 
 ## Models and routing
 
-- **Claude goes through CLIProxyAPI.** The Anthropic login is not used. `pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, and the workflow aliases `cheap-model` and `reviewer-model` resolve to `cliproxy-*` aliases (Sonnet 5.5 medium and Opus 5.5 high). The `native-*` Claude aliases stay as the mirror reference.
-- **Codex stays native.** `tests-expert` and `researcher-model` use `openai-codex/gpt-6-luna`.
-- **GGA reviews with `kilo:cliproxyapi/claude-opus-5-5:high`**, the CLIProxyAPI mirror of the workflow `reviewer` role. It runs through Pi, so it needs no separate Claude or Codex login.
+- **Workflow roles use CLIProxyAPI first.** Claude and Codex roles route through the gateway (`cliproxyapi/claude-*` and `cliproxyapi/gpt-6-luna`). Native aliases and catalogs remain available as a manual fallback but are hidden from the active model picker.
+- **OpenCode Go remains direct in Pi.** Its subscription is a separate provider and is not an account that CLIProxyAPI can reuse. The `opencode-max` mode continues to use `opencode-go` directly.
+- **GGA reviews with `kilo:cliproxyapi/claude-opus-5-5:high`**, the CLIProxyAPI reviewer route. It runs through Pi, so it needs no separate Claude or Codex login.
 - **Usage:** `setup_env.sh` installs `ccusage`. `ccusage daily` or `/agent-usage` in Pi shows local tokens and API-equivalent cost from the session logs. Pi's footer message `no subscription usage for this provider` is expected: gentle-pi only reads plan quota for `openai-codex`, `anthropic` and `nan`, not `cliproxyapi`.
 
 Alias tables, plan limits and effort levels: [pi/agent/MODELS.md](pi/agent/MODELS.md) and [pi/agent/README.md](pi/agent/README.md). Providers, credentials and the full alias mapping: [docs/pi-configuration.md](docs/pi-configuration.md#providers-and-credentials).

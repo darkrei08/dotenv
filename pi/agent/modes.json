@@ -1,7 +1,7 @@
 {
   "modes": {
     "advisor": {
-      "provider": "openai-codex",
+      "provider": "cliproxyapi",
       "modelId": "gpt-6-luna",
       "thinkingLevel": "high",
       "autostart": false

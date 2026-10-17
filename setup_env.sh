@@ -186,6 +186,27 @@ install_cli_anything_pi() (
   printf 'Installed CLI-Anything Pi extension at %s\n' "$target"
 )
 
+# Install CLI-Hub in an isolated virtualenv and expose only its entry point.
+# The adjacent checkout is used when present; fresh hosts install the same pinned
+# revision from GitHub without mixing CLI-Anything dependencies into other venvs.
+install_cli_anything_hub() (
+  local revision=34f519533bc175d2fe287ab8316b0dd99bb9cc43
+  local source="${CLI_ANYTHING_SOURCE:-$REPO_DIR/../CLI-Anything}"
+  local venv="$HOME/.local/share/cli-anything/venv"
+  mkdir -p "$(dirname "$venv")" "$HOME/.local/bin"
+  if [ ! -x "$venv/bin/python" ]; then
+    python3 -m venv "$venv"
+  fi
+  if [ -f "$source/cli-hub/setup.py" ]; then
+    "$venv/bin/python" -m pip install --disable-pip-version-check -e "$source/cli-hub"
+  else
+    "$venv/bin/python" -m pip install --disable-pip-version-check \
+      "git+https://github.com/HKUDS/CLI-Anything.git@${revision}#subdirectory=cli-hub"
+  fi
+  ln -sfn "$venv/bin/cli-hub" "$HOME/.local/bin/cli-hub"
+  "$HOME/.local/bin/cli-hub" --help >/dev/null
+)
+
 # Mirror the versioned Pi config into the live ~/.pi/agent WITHOUT touching
 # runtime state. We deliberately do NOT symlink ~/.pi/agent to the repo: the
 # symlink model made npm resolve recursive self-paths into the lockfile and put
@@ -374,6 +395,7 @@ fi
 
 sync_pi
 install_cli_anything_pi
+install_cli_anything_hub
 
 # Apply the Pi packages declared in pi/agent/pi-packages.txt. pi-extensible-workflows
 # is skipped: @darkrei08/setup-ai's `pi-workflows` module owns that package.

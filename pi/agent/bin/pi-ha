@@ -1,0 +1,94 @@
+#!/usr/bin/env python3
+import argparse
+import json
+import os
+import tempfile
+from pathlib import Path
+
+CONFIG_PATH = Path(os.environ.get("PI_HA_CONFIG", Path.home() / ".pi" / "agent" / "ha.json"))
+
+
+def load_config(allow_missing=False):
+    try:
+        with CONFIG_PATH.open(encoding="utf-8") as handle:
+            config = json.load(handle)
+    except FileNotFoundError:
+        if allow_missing:
+            return {"groups": {}}
+        raise SystemExit(f"HA config not found: {CONFIG_PATH}")
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"Invalid HA config {CONFIG_PATH}: {error}")
+    if not isinstance(config, dict):
+        raise SystemExit(f"Invalid HA config root: {CONFIG_PATH}")
+    return config
+
+
+def public_config(config):
+    groups = {}
+    for name, group in (config.get("groups") or {}).items():
+        groups[name] = [entry.get("id") for entry in group.get("entries", [])]
+    return {
+        "config": str(CONFIG_PATH),
+        "activeGroup": config.get("activeGroup", config.get("defaultGroup")),
+        "defaultGroup": config.get("defaultGroup"),
+        "groups": groups,
+    }
+
+
+def save_config(config):
+    CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix="ha.", suffix=".json", dir=CONFIG_PATH.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, CONFIG_PATH)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="pi-ha", description="Manage Pi High Availability groups")
+    parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    subparsers.add_parser("status", help="show HA groups without credentials")
+    group = subparsers.add_parser("group", help="create or update a group and activate it")
+    group.add_argument("name")
+    group.add_argument("models", nargs="+")
+    use = subparsers.add_parser("use", help="activate an existing group")
+    use.add_argument("name")
+
+    args = parser.parse_args()
+    config = load_config(args.command == "group")
+    groups = config.setdefault("groups", {})
+
+    if args.command == "status":
+        result = public_config(config)
+    elif args.command == "group":
+        groups[args.name] = {"name": args.name, "entries": [{"id": model} for model in args.models]}
+        config["defaultGroup"] = args.name
+        config["activeGroup"] = args.name
+        save_config(config)
+        result = public_config(config)
+    else:
+        if args.name not in groups:
+            raise SystemExit(f"HA group not found: {args.name}")
+        config["defaultGroup"] = args.name
+        config["activeGroup"] = args.name
+        save_config(config)
+        result = public_config(config)
+
+    if args.json:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Active group: {result['activeGroup'] or 'none'}")
+        for name, models in result["groups"].items():
+            marker = " *" if name == result["activeGroup"] else ""
+            print(f"{name}{marker}: {' -> '.join(models)}")
+
+
+if __name__ == "__main__":
+    main()

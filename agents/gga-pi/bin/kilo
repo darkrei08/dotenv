@@ -28,12 +28,13 @@ if [[ $model == cliproxyapi/* ]]; then
 fi
 
 # Pure review call: no tools, extensions, skills or project context, so the model only
-# answers the prompt GGA built. Pi's startup warnings go to stderr and are shown only
-# when the call fails, keeping stdout clean for GGA's STATUS parser.
+# answers the prompt GGA built. Use the Keeper-backed model cache instead of refreshing
+# the gateway catalog; a successful empty catalog must not erase usable cached models.
+offline=(--offline)
 err=$(mktemp)
 trap 'rm -f "$err"' EXIT
 if ! pi --print --no-session --no-tools --no-extensions --no-skills --no-prompt-templates \
-  --no-themes --no-context-files --no-mcp --offline "${ext[@]}" \
+  --no-themes --no-context-files --no-mcp "${offline[@]}" "${ext[@]}" \
   --system-prompt 'You are a strict code reviewer. Follow the review instructions in the prompt exactly and reply in the requested format.' \
   --model "$model" 2>"$err"; then
   cat "$err" >&2

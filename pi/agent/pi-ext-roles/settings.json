@@ -11,11 +11,20 @@
     "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
     "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",
     "cheap-model": "cliproxy-cheap-model",
-    "scout-model": "cheap-model",
+    "scout-model": "opencode-go/cat-jam-free:medium",
+    "cliproxy-opencode-go-scout": "cliproxyapi/go/cat-jam-free:medium",
+    "cliproxy-opencode-go-deepseek": "cliproxyapi/go/deepseek-v4.1-flash:high",
+    "cliproxy-opencode-go-longcat-free": "cliproxyapi/go/longcat-2.5-preview-free:medium",
+    "cliproxy-opencode-go-step-free": "cliproxyapi/go/step-5-preview-free:medium",
     "developer-model": "cheap-model",
-    "tests-expert": "native-luna",
-    "researcher-model": "native-luna:xhigh",
+    "tests-expert": "cliproxy-luna",
+    "researcher-model": "cliproxy-luna:xhigh",
     "summarizer-model": "cliproxyapi/claude-haiku-5-5:low",
+    "gemini-scout-model": "cliproxyapi/gemini-3.8-flash-high:medium",
+    "gemini-summarizer-model": "cliproxyapi/gemini-3.5-flash-lite:low",
+    "gemini-researcher-model": "cliproxyapi/gemini-pro-agent:high",
+    "gemini-developer-model": "cliproxyapi/gemini-3.8-flash-high:high",
+    "gemini-tests-model": "cliproxyapi/gemini-3.8-flash-high:high",
     "oracle-model": "reviewer-model",
     "reviewer-model": "cliproxy-reviewer-model"
   },
@@ -30,8 +39,14 @@
     "phantom-ui",
     "skillopt-sleep"
   ],
+  "tools": [
+    "tool_search"
+  ],
   "extensions": [
     "!*",
+    "builtin:codemode",
+    "builtin:tool-search",
+    "builtin:mcp",
     "**/extensions/live-dashboard.ts",
     "**/pi-anthropic-auth/**",
     "**/pi-codex-image/**",
