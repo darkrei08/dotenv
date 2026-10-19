@@ -48,6 +48,28 @@ test('forwards the model to pi and returns only the review on stdout', (t) => {
   assert.equal(argv[argv.indexOf('--model') + 1], 'anthropic/claude-sonnet-5-5:high');
 });
 
+test('resolves the Pi Ext Roles reviewer alias before invoking Pi', (t) => {
+  const home = mkdtempSync(join(tmpdir(), 'gga-pi-alias-home-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  mkdirSync(join(home, 'pi-ext-roles'), { recursive: true });
+  const ext = join(home, 'npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts');
+  mkdirSync(dirname(ext), { recursive: true });
+  writeFileSync(ext, '');
+  writeFileSync(join(home, 'pi-ext-roles/settings.json'), JSON.stringify({
+    modelAliases: {
+      'reviewer-model': 'cliproxy-reviewer-model',
+      'cliproxy-reviewer-model': 'cliproxyapi/claude-opus-5-5:high',
+    },
+  }));
+  const { dir, env } = fixture(t);
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'reviewer-model'], {
+    env: { ...env, PI_CODING_AGENT_DIR: home }, input: 'p', encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const argv = readFileSync(join(dir, 'argv'), 'utf8').split('\n');
+  assert.equal(argv[argv.indexOf('--model') + 1], 'cliproxyapi/claude-opus-5-5:high');
+});
+
 test('cliproxyapi models load only the CLIProxyAPI provider extension', (t) => {
   const home = mkdtempSync(join(tmpdir(), 'gga-pi-home-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
@@ -88,6 +110,31 @@ test('CLIProxyAPI review failures automatically use a gateway fallback', (t) => 
   assert.equal(argv[argv.indexOf('--model') + 1], 'cliproxyapi/gpt-6-luna:high');
 });
 
+test('uses the reviewer failover matrix before built-in fallback defaults', (t) => {
+  const home = mkdtempSync(join(tmpdir(), 'gga-pi-matrix-home-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  const ext = join(home, 'npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts');
+  mkdirSync(dirname(ext), { recursive: true });
+  writeFileSync(ext, '');
+  writeFileSync(join(home, 'ha.json'), JSON.stringify({
+    groups: {
+      reviewer: {
+        entries: [
+          { id: 'cliproxyapi/claude-opus-5-5' },
+          { id: 'cliproxyapi/gpt-5.6-luna' },
+        ],
+      },
+    },
+  }));
+  const { dir, env } = fixture(t, { failFirst: true });
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/claude-opus-5-5:high'], {
+    env: { ...env, PI_CODING_AGENT_DIR: home }, input: 'p', encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const argv = readFileSync(join(dir, 'argv'), 'utf8').split('\n');
+  assert.equal(argv[argv.indexOf('--model') + 1], 'cliproxyapi/gpt-5.6-luna:high');
+});
+
 test('a failing pi call surfaces its diagnostics and a non-zero status', (t) => {
   const { result } = run(t, ['run', '--auto', '--model', 'anthropic/claude-sonnet-5-5'], 'p', { exit: 3 });
   assert.equal(result.status, 1);
@@ -97,7 +144,7 @@ test('a failing pi call surfaces its diagnostics and a non-zero status', (t) => 
 test('a missing model is a configuration error', (t) => {
   const { result } = run(t, ['run', '--auto'], 'p');
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /PROVIDER="kilo:<pi-model>/);
+  assert.match(result.stderr, /PROVIDER="kilo:<pi-model-or-alias>/);
 });
 
 test('unsupported arguments are rejected instead of ignored', (t) => {

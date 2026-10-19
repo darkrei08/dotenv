@@ -23,17 +23,17 @@ defect:
   CLIProxyAPI first, following the task-approved role mapping: `developer-model` resolves to
   `cliproxyapi/claude-sonnet-5-5:medium`, `scout-model` resolves to the direct CLIProxyAPI
   Gemini `cliproxyapi/gemini-3.8-flash-high:medium`, `tests-expert` to `cliproxy-luna`
-  (`cliproxyapi/gpt-6-luna:high`), `researcher-model` to `cliproxy-luna:xhigh`,
+  (`cliproxyapi/gpt-5.6-luna:high`), `researcher-model` to `cliproxy-luna:xhigh`,
   `summarizer-model` to `cliproxyapi/claude-haiku-5-5:low`, and `reviewer-model` (also oracle)
   to `cliproxyapi/claude-opus-5-5:high`. Explicit `gemini-*` aliases and CLIProxyAPI HA groups
   are allowed as alternatives/fallbacks; they do not replace the primary role targets. Native and
   OpenCode Go aliases remain explicit emergency failover only and are hidden from the active picker.
   Do not configure Fable (not included in Claude Pro). Preserve the expanded `skills` list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
-  cliproxyapi`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
+  cliproxyapi`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`,
   and `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native
-  catalogs remain defined for manual fallback (Claude and Codex still run through the gateway by default). `pi/agent/subagents.json` follows the same
-  Sonnet 5.5 default. `.gga` is the exception: GGA reviews through the Pi bridge in
+  catalogs remain defined for manual fallback (Claude and Codex still run through the gateway by default). `pi/agent/subagents.json` uses the same
+  Claude Opus 5.5 high-effort reviewer route as the workflow `reviewer` role. `.gga` uses the same route through the Pi bridge in
   `agents/gga-pi/` with the CLIProxyAPI mirror of the workflow `reviewer` role
   (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; review failures may
   fail over only through the configured CLIProxyAPI gateway models, never native or OpenCode Go routes.

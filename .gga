@@ -4,11 +4,12 @@
 # AI provider. GGA has no Pi provider, so reviews go through the repo-owned bridge
 # `agents/gga-pi/bin/kilo`, which GGA runs as its `kilo` provider and which answers
 # with `pi --print` through the CLIProxyAPI gateway (cliproxyapi/* models).
-# The value after `kilo:` is a Pi model pattern with an effort suffix; check-config.sh
-# requires it to match the model and effort resolved from the workflow reviewer role.
+# The value after `kilo:` is the Pi Ext Roles reviewer alias. The repo-owned bridge
+# resolves its role alias and effort from pi-ext-roles/settings.json; check-config.sh
+# requires it to match the model declared by the workflow reviewer role.
 # Start GGA through `agents/gga-pi/run-gga.sh`; the pre-commit hook block in
 # docs/gentle-ai-gga.md does this and falls back to plain `gga run` elsewhere.
-PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"
+PROVIDER="kilo:reviewer-model"
 
 # This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
 # Markdown directives. The generated npm lockfile is excluded (huge, machine

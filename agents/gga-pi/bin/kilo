@@ -15,20 +15,68 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ -n "$model" ] || { printf 'gga-pi: set PROVIDER="kilo:<pi-model>[:effort]" in .gga\n' >&2; exit 2; }
+[ -n "$model" ] || { printf 'gga-pi: set PROVIDER="kilo:<pi-model-or-alias>[:effort]" in .gga\n' >&2; exit 2; }
 command -v pi >/dev/null 2>&1 || { printf 'gga-pi: pi is not on PATH\n' >&2; exit 127; }
 
-models=("$model")
-if [[ $model == cliproxyapi/* ]]; then
+agent_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+role_settings="$agent_dir/pi-ext-roles/settings.json"
+resolve_model() {
+  local ref=$1
+  jq -er --arg ref "$ref" '
+    .modelAliases as $aliases |
+    def splitref:
+      if test(":.*$") then [sub(":.*$"; ""), match(":([^:]+)$").captures[0].string]
+      else [., null] end;
+    def resolve($value; $effort; $depth):
+      if $depth > 10 then error("model alias chain exceeds 10 steps") else
+        ($value | splitref) as $parts |
+        ($effort // $parts[1]) as $resolved_effort |
+        if $aliases[$parts[0]] then resolve($aliases[$parts[0]]; $resolved_effort; $depth + 1)
+        elif ($parts[0] | contains("/")) then
+          {model: $parts[0], effort: $resolved_effort}
+        else error("unresolved model alias or effort") end
+      end;
+    resolve($ref; null; 0) | .model + (if .effort == null then "" else ":" + .effort end)
+  ' "$role_settings"
+}
+
+if [[ -f "$role_settings" ]]; then
+  resolved_model=$(resolve_model "$model") || {
+    printf 'gga-pi: cannot resolve model or alias %s from %s\n' "$model" "$role_settings" >&2
+    exit 2
+  }
+elif [[ $model == */* ]]; then
+  resolved_model=$model
+else
+  printf 'gga-pi: model alias %s requires Pi Ext Roles settings at %s\n' "$model" "$role_settings" >&2
+  exit 2
+fi
+models=("$resolved_model")
+if [[ $resolved_model == cliproxyapi/* ]]; then
   effort="high"
-  if [[ $model == *:* ]]; then
-    effort=${model##*:}
+  if [[ $resolved_model == *:* ]]; then
+    effort=${resolved_model##*:}
   fi
-  models+=(
-    "cliproxyapi/gpt-6-luna:${effort}"
-    "cliproxyapi/gemini-pro-agent:${effort}"
-    "cliproxyapi/gemini-3.8-flash-high:${effort}"
-  )
+  primary_id=${resolved_model%:*}
+  matrix="$agent_dir/ha.json"
+  [[ -f "$matrix" ]] || matrix="$agent_dir/ha-failover.example.json"
+  if [[ -f "$matrix" ]]; then
+    while IFS= read -r fallback_id; do
+      [[ -n "$fallback_id" && "$fallback_id" != "$primary_id" ]] || continue
+      if [[ "$fallback_id" == *:* ]]; then
+        models+=("$fallback_id")
+      else
+        models+=("$fallback_id:$effort")
+      fi
+    done < <(jq -er --arg group reviewer '.groups[$group].entries[]?.id // empty' "$matrix" 2>/dev/null || true)
+  fi
+  if ((${#models[@]} == 1)); then
+    models+=(
+      "cliproxyapi/gpt-6-luna:${effort}"
+      "cliproxyapi/gemini-pro-agent:${effort}"
+      "cliproxyapi/gemini-3.8-flash-high:${effort}"
+    )
+  fi
 fi
 
 # Pure review call: no tools, extensions, skills or project context, so the model only

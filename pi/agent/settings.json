@@ -1,8 +1,8 @@
 {
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "cliproxyapi",
-  "defaultModel": "claude-sonnet-5-5",
-  "defaultThinkingLevel": "medium",
+  "defaultModel": "gpt-5.6-luna",
+  "defaultThinkingLevel": "high",
   "defaultTools": [
     "+tool_search"
   ],
@@ -10,11 +10,11 @@
     "anthropic/claude-sonnet-5-5": "medium",
     "anthropic/claude-opus-5-5": "high",
     "openai-codex/gpt-6.1-sol": "medium",
-    "openai-codex/gpt-6-luna": "high",
+    "openai-codex/gpt-5.6-luna": "high",
     "cliproxyapi/claude-sonnet-5-5": "medium",
     "cliproxyapi/claude-opus-5-5": "high",
     "cliproxyapi/gpt-6.1-sol": "medium",
-    "cliproxyapi/gpt-6-luna": "high"
+    "cliproxyapi/gpt-5.6-luna": "high"
   },
   "theme": "dark",
   "packages": [
@@ -53,7 +53,7 @@
     "cliproxyapi/claude-opus-5-5",
     "cliproxyapi/gpt-6.1-sol",
     "cliproxyapi/gpt-6-sol",
-    "cliproxyapi/gpt-6-luna",
+    "cliproxyapi/gpt-5.6-luna",
     "cliproxyapi/gpt-6-astra"
   ],
   "hideThinkingBlock": true,

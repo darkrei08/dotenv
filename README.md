@@ -44,9 +44,9 @@ command remains a Pi slash command and is not a Bash executable.
 
 ## Models and routing
 
-- **Workflow roles use CLIProxyAPI first.** Claude and Codex roles route through the gateway (`cliproxyapi/claude-*` and `cliproxyapi/gpt-6-luna`). Native aliases and catalogs remain available as a manual fallback but are hidden from the active model picker.
+- **Workflow roles use CLIProxyAPI first.** Claude and Codex roles route through the gateway (`cliproxyapi/claude-*` and `cliproxyapi/gpt-5.6-luna`). Native aliases and catalogs remain available as a manual fallback but are hidden from the active model picker; GPT-6 Luna is not the default.
 - **OpenCode Go remains direct in Pi.** Its subscription is a separate provider and is not an account that CLIProxyAPI can reuse. The `opencode-max` mode continues to use `opencode-go` directly.
-- **GGA reviews with `kilo:cliproxyapi/claude-opus-5-5:high`**, the CLIProxyAPI reviewer route. It runs through Pi, so it needs no separate Claude or Codex login.
+- **GGA reviews with the Pi Ext Roles `reviewer-model` alias**, resolved by the repository bridge to the CLIProxyAPI reviewer route. It runs through Pi, so it needs no separate Claude or Codex login; unavailable primary models use the configured gateway failover matrix.
 - **Usage:** `setup_env.sh` installs `ccusage`. `ccusage daily` or `/agent-usage` in Pi shows local tokens and API-equivalent cost from the session logs. Pi's footer message `no subscription usage for this provider` is expected: gentle-pi only reads plan quota for `openai-codex`, `anthropic` and `nan`, not `cliproxyapi`.
 
 Alias tables, plan limits and effort levels: [pi/agent/MODELS.md](pi/agent/MODELS.md) and [pi/agent/README.md](pi/agent/README.md). Providers, credentials and the full alias mapping: [docs/pi-configuration.md](docs/pi-configuration.md#providers-and-credentials).

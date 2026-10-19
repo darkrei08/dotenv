@@ -43,9 +43,9 @@ default.
 Effort resolves the same way, independently of the model. You can pin the model
 from one layer and the effort from another.
 
-This repository's interactive default is `cliproxyapi/claude-sonnet-5-5` at
-`medium`; `subagents.json` uses the same model. The GGA reviewer (`.gga`) follows
-the workflow `reviewer` role instead (`cliproxyapi/claude-opus-5-5:high`). The CLIProxyAPI provider dynamically discovers its model catalog;
+This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
+`high`; development subagents in `subagents.json` use their role-specific profiles. The GGA reviewer (`.gga`) and Gentle AI native reviewer profiles follow
+the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`). The CLIProxyAPI provider dynamically discovers its model catalog;
 configuration or discovery does not establish that inference succeeds.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
@@ -335,8 +335,10 @@ configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
 this document's workload policy for adversarial review. Current workflow
 settings route Claude and Codex roles through CLIProxyAPI first. Native catalogs
 and aliases remain available as a manual fallback, while the active picker is
-gateway-only. CLIProxyAPI discovery is dynamic, so gateway aliases are validated
-only after the local catalog is available.
+gateway-only. The built-in OpenAI Codex catalog exposes `gpt-6-sol`,
+`gpt-6.1-sol`, and `gpt-6-astra`; the corresponding native aliases below are
+therefore valid manual fallbacks. CLIProxyAPI discovery is dynamic, so gateway
+aliases are validated only after the local catalog is available.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -354,12 +356,12 @@ defaults and must not consume the wrong provider plan.
 | Alias | Configured target | Use |
 |---|---|---|
 | `native-cheap-model` | `anthropic/claude-sonnet-5-5:medium` | Sonnet: cheap, developer, qa, release, sre |
-| `native-luna` | `openai-codex/gpt-6-luna:high` | GPT-6 Luna: tests, research |
+| `native-luna` | `openai-codex/gpt-5.6-luna:high` | GPT-5.6 Luna: tests, research |
 | `native-reviewer-model` | `anthropic/claude-opus-5-5:high` | Opus: reviewer, oracle, architect, security |
 | `native-sol` | `openai-codex/gpt-6.1-sol:medium` | GPT-6.1 Sol, manual override |
 | `native-astra` | `openai-codex/gpt-6-astra:high` | GPT-6 Astra, manual override (Plus allowance is small) |
 | `cliproxy-cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | CLIProxyAPI mirror of `native-cheap-model` |
-| `cliproxy-luna` | `cliproxyapi/gpt-6-luna:high` | CLIProxyAPI mirror of `native-luna` |
+| `cliproxy-luna` | `cliproxyapi/gpt-5.6-luna:high` | CLIProxyAPI mirror of `native-luna` |
 | `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of `native-reviewer-model` |
 | `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
 | `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
@@ -394,9 +396,9 @@ precision, with Opus 5.5 catching 8/13 at standard effort and 10/13 at max
 (<https://www.coderabbit.ai/blog/sonnet-5-5-model-review>). Independent reasoning
 curves show medium to high as the useful step and xhigh as much costlier for a
 small gain (<https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve>).
-GGA nevertheless follows the workflow `reviewer` role: Opus 5.5 at `high` through
-the CLIProxyAPI mirror (`PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"`),
-enforced by `check-config.sh`. If that gateway call fails or returns an ambiguous
+GGA nevertheless follows the workflow `reviewer` role alias (`reviewer-model`),
+which the repository bridge resolves to Opus 5.5 at `high` through CLIProxyAPI;
+`check-config.sh` enforces the alias and resolved mirror. If that gateway call fails or returns an ambiguous
 verdict, the repo-owned bridge tries only the configured CLIProxyAPI gateway fallbacks;
 no native or OpenCode Go route is used. Setup and alternatives:
 [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
@@ -405,11 +407,12 @@ no native or OpenCode Go route is used. Setup and alternatives:
 - Developer and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort through CLIProxyAPI.
 - Scout uses Gemini 3.8 Flash High at medium effort through CLIProxyAPI; its 1M context and 65.5K output clear the scout floor without spending the OpenCode Go plan.
 - Summarizer uses Claude Haiku 5.5 at low effort through CLIProxyAPI.
-- Tests and research use GPT-6 Luna at high/xhigh through CLIProxyAPI; do not route Luna through OpenCode Go for normal work.
+- Tests and research use GPT-5.6 Luna at high/xhigh through CLIProxyAPI; do not route Luna through OpenCode Go for normal work.
 - Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort through CLIProxyAPI.
 
 **Gateway usage and automatic failover:**
 - CLIProxyAPI is the normal bridge for every role. The exact gateway catalog is authoritative for availability and context/output limits.
+- `pi-ha-role-groups.json` is the explicit hybrid map: pi-model-fit aliases remain each role's primary, while the named HA group supplies the committed fallback chain. Pi Workflow role files load the matching group extension so `PI_HA_GROUP` is bound before HA startup/turn recovery.
 - `setup_env.sh` copies `ha-failover.example.json` and runs `pi-ha ensure`; the matrix adds missing groups without overwriting live credentials or custom routing.
 - Gemini aliases are direct CLIProxyAPI fallbacks: Flash High for scout/developer/tests, Flash Lite for summarization, and Gemini Pro Agent for research/review recovery.
 - Native and OpenCode Go aliases are retained only for explicit emergency failover. They are never silently selected as normal role defaults.

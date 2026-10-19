@@ -27,8 +27,8 @@ The role mapping is CLIProxyAPI-first. Normal workflow roles use the gateway dir
 | `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | scout |
 | `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | summarizer |
 | `developer-model` | `cheap-model` | developer |
-| `tests-expert` | `cliproxyapi/gpt-6-luna:high` | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-6-luna:xhigh` | researcher |
+| `tests-expert` | `cliproxyapi/gpt-5.6-luna:high` | tests-expert |
+| `researcher-model` | `cliproxyapi/gpt-5.6-luna:xhigh` | researcher |
 | `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | reviewer, oracle, architect, security |
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
@@ -41,9 +41,9 @@ primary role assignments:
 | `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:high` | long research fallback |
 | `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
 
-Interactive Pi defaults to `cliproxyapi/claude-sonnet-5-5` at `medium`, as do the
-subagents (`subagents.json`, review lenses at `high`). The `advisor` mode uses
-`openai-codex/gpt-6-luna` at `high`. GGA pre-commit review uses the CLIProxyAPI mirror of
+Interactive Pi defaults to `cliproxyapi/gpt-5.6-luna` at `high`; development
+subagents still use Sonnet 5.5 at `medium` (`subagents.json`, review lenses at `high`). The
+`advisor` mode uses `cliproxyapi/gpt-5.6-luna` at `high`. GGA pre-commit review uses the CLIProxyAPI mirror of
 the `reviewer` role, `cliproxyapi/claude-opus-5-5` at `high` (`.gga` and the
 `agents/gga-pi/` bridge, see [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)).
 
@@ -64,7 +64,7 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 | Native | CLIProxyAPI |
 | --- | --- |
 | `native-cheap-model` (Sonnet 5.5 medium) | `cliproxy-cheap-model` → `cliproxyapi/claude-sonnet-5-5:medium` |
-| `native-luna` (GPT-6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-6-luna:high` |
+| `native-luna` (GPT-5.6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-5.6-luna:high` |
 | `native-reviewer-model` (Opus 5.5 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-5-5:high` |
 | `native-sol` (GPT-6.1 Sol medium) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:medium` |
 | `native-astra` (GPT-6 Astra high) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:high` |
@@ -81,7 +81,10 @@ HA matrix when the primary route is unavailable, rather than requiring a manual
 model edit. Native providers and OpenCode Go remain explicit emergency failover
 options only.
 For automatic quota/capacity fallback, `setup_env.sh` activates the tracked
-`pi/agent/ha-failover.example.json` matrix through `pi-ha ensure`. A missing
+`pi/agent/ha-failover.example.json` matrix through `pi-ha ensure`. The tracked
+`pi/agent/pi-ha-role-groups.json` maps every workflow role to its pi-model-fit primary
+alias and an explicit HA group; each role loads a small group extension that exports
+`PI_HA_GROUP` before the bootstrap selects fallbacks. A missing
 `~/.pi/agent/ha.json` is created from that credentials-free template; an existing
 file keeps its credentials, active/custom groups, and default group while receiving
 only missing managed groups/defaultGroup. The default development chain ends with

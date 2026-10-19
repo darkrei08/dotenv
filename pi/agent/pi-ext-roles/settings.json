@@ -1,12 +1,12 @@
 {
   "modelAliases": {
     "native-cheap-model": "anthropic/claude-sonnet-5-5:medium",
-    "native-luna": "openai-codex/gpt-6-luna:high",
+    "native-luna": "openai-codex/gpt-5.6-luna:high",
     "native-reviewer-model": "anthropic/claude-opus-5-5:high",
     "native-sol": "openai-codex/gpt-6.1-sol:medium",
     "native-astra": "openai-codex/gpt-6-astra:high",
     "cliproxy-cheap-model": "cliproxyapi/claude-sonnet-5-5:medium",
-    "cliproxy-luna": "cliproxyapi/gpt-6-luna:high",
+    "cliproxy-luna": "cliproxyapi/gpt-5.6-luna:high",
     "cliproxy-reviewer-model": "cliproxyapi/claude-opus-5-5:high",
     "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
     "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",

@@ -3,8 +3,11 @@ set -uo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
+MODES="$ROOT/pi/agent/modes.json"
 GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
+ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
+HA_MATRIX="$ROOT/pi/agent/ha-failover.example.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 LIVE_SETTINGS="$PI_AGENT_DIR/settings.json"
@@ -27,6 +30,31 @@ check_json_file() {
 if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: invalid JSON\n' "$SETTINGS"
   failures=1
+fi
+
+if ! check_json_file "$ROLE_GROUPS" || ! check_json_file "$HA_MATRIX"; then
+  failures=1
+else
+  while IFS=$'\t' read -r role alias group; do
+    role_file="$ROOT/pi/agent/pi-ext-roles/roles/$role.md"
+    group_extension="$ROOT/pi/agent/extensions/pi-ha-role-groups/$group.ts"
+    if ! jq -e --arg alias "$alias" '.modelAliases[$alias] != null' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+      printf '%s: role %s references missing model alias %s\n' "$ROLE_GROUPS" "$role" "$alias"
+      failures=1
+    fi
+    if ! jq -e --arg group "$group" '.groups[$group] != null' "$HA_MATRIX" >/dev/null 2>&1; then
+      printf '%s: role %s references missing HA group %s\n' "$ROLE_GROUPS" "$role" "$group"
+      failures=1
+    fi
+    if [[ ! -f "$role_file" ]] || ! grep -Fq "pi-ha-role-groups/$group.ts" "$role_file"; then
+      printf '%s: role %s does not load its HA group extension %s\n' "$ROLE_GROUPS" "$role" "$group"
+      failures=1
+    fi
+    if [[ ! -f "$group_extension" ]]; then
+      printf '%s: missing HA group extension for %s\n' "$ROLE_GROUPS" "$group"
+      failures=1
+    fi
+  done < <(jq -r '.roles | to_entries[] | [.key, .value.modelAlias, .value.haGroup] | @tsv' "$ROLE_GROUPS")
 fi
 
 if ! jq -e '
@@ -64,9 +92,18 @@ if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels 
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
 fi
-if [[ -z "$reviewer_role_model" || -z "$gga_expected" || "$gga_provider" != "kilo:$gga_expected" ]]; then
-  printf '%s: PROVIDER must match the Pi workflow reviewer role (kilo:%s, found: %s)\n' \
-    "$GGA_CONFIG" "${gga_expected:-unresolved-model-or-effort}" "${gga_provider:-missing}"
+if [[ -z "$reviewer_role_model" || -z "$gga_expected" || "$gga_provider" != "kilo:$reviewer_role_model" ]]; then
+  printf '%s: PROVIDER must use the Pi workflow reviewer role alias (kilo:%s, found: %s)\n' \
+    "$GGA_CONFIG" "${reviewer_role_model:-missing-reviewer-alias}" "${gga_provider:-missing}"
+  failures=1
+fi
+if [[ -n "$gga_expected" ]] && ! jq -e --arg expected "${gga_expected%:*}" --arg effort "${gga_expected##*:}" '
+  (.model_profiles // {}) as $profiles |
+  reduce ["review-risk", "review-resilience", "review-readability", "review-reliability"][] as $profile
+    (true; . and ($profiles[$profile].model == $expected and $profiles[$profile].effort == $effort))
+' "$ROOT/pi/agent/subagents.json" >/dev/null 2>&1; then
+  printf '%s: Gentle AI reviewer profiles must match the Pi workflow reviewer role (%s)\n' \
+    "$ROOT/pi/agent/subagents.json" "$gga_expected"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -162,12 +199,12 @@ fi
 if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "anthropic/claude-sonnet-5-5:medium" and
-  $aliases["native-luna"] == "openai-codex/gpt-6-luna:high" and
+  $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
   $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
   $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:medium" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:high" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-6-luna:high" and
+  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
@@ -191,12 +228,21 @@ if ! jq -e '
 fi
 
 if ! jq -e '
-  .defaultProvider == "cliproxyapi" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
+  .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
   (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
   (.enabledModels | index("cliproxyapi/claude-sonnet-5-5") != null) and
-  (.enabledModels | index("cliproxyapi/gpt-6-luna") != null)
+  (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be cliproxyapi Sonnet 5.5 medium with gateway-only enabledModels\n' "$SETTINGS"
+  printf '%s: defaults must be cliproxyapi GPT-5.6 Luna high with gateway-only enabledModels\n' "$SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '
+  .modes.advisor.provider == "cliproxyapi" and
+  .modes.advisor.modelId == "gpt-5.6-luna" and
+  .modes.advisor.thinkingLevel == "high"
+' "$MODES" >/dev/null 2>&1; then
+  printf '%s: advisor mode must use cliproxyapi GPT-5.6 Luna high\n' "$MODES"
   failures=1
 fi
 

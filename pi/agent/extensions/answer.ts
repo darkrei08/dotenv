@@ -68,17 +68,13 @@ Rules:
 - If the assistant explicitly recommends an answer or choice for a question, copy that recommendation into recommendation. Omit recommendation otherwise.
 - If no questions are found, return {"questions": []}.`;
 
-const EXTRACTION_PROVIDER = "openai-codex";
-const EXTRACTION_MODEL_ID = "gpt-6-luna";
+const EXTRACTION_PROVIDER = "cliproxyapi";
+const EXTRACTION_MODEL_ID = "gpt-5.6-luna";
 const EXTRACTION_REASONING = "none" as const;
 
-function selectExtractionModel(ctx: ExtensionContext): Model<Api> {
+function selectExtractionModel(ctx: ExtensionContext): Model<Api> | null {
   ctx.modelRegistry.refresh();
-  const preferredModel = ctx.modelRegistry.find(
-    EXTRACTION_PROVIDER,
-    EXTRACTION_MODEL_ID,
-  );
-  return preferredModel ?? ctx.model!;
+  return ctx.modelRegistry.find(EXTRACTION_PROVIDER, EXTRACTION_MODEL_ID) ?? null;
 }
 
 function parseExtractionResult(text: string): ExtractionResult | null {
@@ -145,6 +141,13 @@ export default function (pi: ExtensionAPI) {
       }
 
       const extractionModel = selectExtractionModel(ctx);
+      if (!extractionModel) {
+        ctx.ui.notify(
+          `Extraction model unavailable: ${EXTRACTION_PROVIDER}/${EXTRACTION_MODEL_ID}`,
+          "error",
+        );
+        return;
+      }
 
       const result = await ctx.ui.custom<string | null>(
         (tui, theme, _kb, done) => {

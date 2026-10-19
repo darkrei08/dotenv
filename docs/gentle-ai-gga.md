@@ -128,24 +128,24 @@ shadows a real Kilo install. Pi accepts `provider/model:effort` and reads the pr
 from stdin, which is why the value after `kilo:` is a Pi model pattern:
 
 ```bash
-PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"
+PROVIDER="kilo:reviewer-model"
 ```
 
-`check-config.sh` reads the Pi workflow `reviewer` role, resolves its alias chain and effort, maps it to the `cliproxyapi/` mirror (GGA always goes through CLIProxyAPI; the bridge loads only that provider extension), checks the pair is enabled in Pi settings, and requires `.gga` to match exactly. A missing alias or mismatch fails the check; this is configuration validation, not a live authentication or inference test, and there is no automatic model substitution.
+`check-config.sh` reads the Pi Ext Roles `reviewer` role, resolves its alias chain and effort, maps it to the `cliproxyapi/` mirror (GGA always goes through CLIProxyAPI; the bridge loads only that provider extension), checks the resolved primary is enabled in Pi settings, and requires `.gga` to name the role alias. The bridge then resolves that alias at runtime and advances through the reviewer failover matrix when the primary is unavailable.
 
 If GGA says "Kilo CLI not found", it was started without the wrapper: use
 `agents/gga-pi/run-gga.sh run` instead of `gga run`, or fix the hook block above.
 
 ### Which model, and at what effort
 
-GGA follows the Pi workflow `reviewer` role (`reviewer.md` → `reviewer-model` → `native-reviewer-model`), routed through CLIProxyAPI: `cliproxyapi/claude-opus-5-5` at `high`. That review role, not Pi's interactive default, is the source of truth.
+GGA follows the Pi Ext Roles `reviewer` role (`reviewer.md` → `reviewer-model` → `cliproxy-reviewer-model`), routed through CLIProxyAPI: `cliproxyapi/claude-opus-5-5` at `high`. That role alias, not Pi's interactive default, is the source of truth.
 
 - Opus is the stronger reviewer for hard changes: CodeRabbit measured 8 of 13 hard known bugs at standard effort (66.7% precision) and 10 of 13 at max (52% precision), against 6 of 13 at 41% precision for Sonnet 5.5, at about twice the list price ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)). The benchmark has 13 cases: a direction, not a verdict.
 - Reasoning curves show low to medium to high as the useful steps and xhigh as much costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)). Anthropic documents the effort parameter at <https://platform.claude.com/docs/en/build-with-claude/effort>.
 
 | Need | `PROVIDER` | Notes |
 | --- | --- | --- |
-| Default, every commit | `kilo:cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of the reviewer role; needs the gateway running |
+| Default, every commit | `kilo:reviewer-model` | Pi Ext Roles reviewer alias; the repository bridge resolves it to the configured CLIProxyAPI model and failover chain |
 | Lower-cost one-off review | `kilo:cliproxyapi/claude-sonnet-5-5:high` | Explicit per-command override; `.gga` remains unchanged |
 
 One-off override, without editing `.gga`:
@@ -154,7 +154,7 @@ One-off override, without editing `.gga`:
 GGA_PROVIDER=kilo:cliproxyapi/claude-sonnet-5-5:high git commit
 ```
 
-`check-config.sh` asserts that `.gga` matches the model and effort resolved from the reviewer role. It never switches models when the gateway or model is unavailable; choose an override explicitly.
+`check-config.sh` asserts that `.gga` names the Pi Ext Roles reviewer alias and that Gentle AI's reviewer profiles match its resolved model and effort. The repository bridge resolves the alias at runtime and tries the configured CLIProxyAPI failover matrix when the primary model is unavailable.
 
 ### Use GGA with other agents
 
@@ -178,7 +178,8 @@ Run `gga run --no-cache` to force a full review, and `gga run --ci` or
 
 Gentle AI's receipt-driven review does not use `.gga`. Its reviewer lenses take their
 models from `pi/agent/subagents.json` (`review-risk`, `review-resilience`,
-`review-readability`, `review-reliability`), set here to Sonnet 5.5 at `high`.
+`review-readability`, `review-reliability`), set here to the same Opus 5.5 at `high` as the
+Pi workflow `reviewer` role.
 Check or switch it with `gentle-ai review mode status|enable|disable`. Evidence from
 a review never authorizes a commit or push; repository policy still decides
 delivery ([Pi integration](https://github.com/Gentleman-Programming/gentle-ai/blob/main/docs/pi.md)).

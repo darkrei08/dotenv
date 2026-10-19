@@ -86,7 +86,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | --- | --- |
 | `pi/agent/settings.json` | Effective Pi settings: `defaultProvider`/`defaultModel`/`defaultThinkingLevel`, `modelThinkingLevels`, `compaction`, `theme`, the `packages` list, `hideThinkingBlock`, `showCacheMissNotices`, `tuiMode`. |
 | `pi/agent/models.json` | Provider catalog and overrides; see [Providers and credentials](#providers-and-credentials). |
-| `pi/agent/modes.json` | `advisor`: provider `cliproxyapi`, modelId `gpt-6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
+| `pi/agent/modes.json` | `advisor`: provider `cliproxyapi`, modelId `gpt-5.6-luna`, `thinkingLevel: high`, `autostart: false`; `opencode-max`: provider `opencode-go`, modelId `deepseek-v4.1-flash`, `thinkingLevel: max`, `autostart: false`. |
 | `pi/agent/advisor-system.md` | System prompt for `pi-omplike-advisor`, loaded as plain Markdown text by `packages/pi-omplike-advisor/extensions/lib/controller.ts`. |
 | `pi/agent/pi-ext-roles/settings.json` | Shared role settings: `modelAliases`, the `skills` allowlist and the `extensions` allowlist. |
 | `pi/agent/pi-extensible-workflows/settings.json` | Workflow-only overrides: `extensionSettings` for `herdr` and `trajectory`. |
@@ -107,7 +107,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. Development roles in `pi/agent/subagents.json` continue to use Sonnet 5.5 where configured. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -130,6 +130,6 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-All normal workflow roles use direct CLIProxyAPI routes: developer, QA, release, and SRE use `cliproxyapi/claude-sonnet-5-5:medium`; Scout uses `cliproxyapi/gemini-3.8-flash-high:medium`; summarizer uses `cliproxyapi/claude-haiku-5-5:low`; tests and research use `cliproxyapi/gpt-6-luna` at high/xhigh; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Native catalogs and OpenCode Go remain explicit emergency failover options only. Routing Luna through OpenCode Go for normal work would consume the wrong provider plan/quota.
+All normal workflow roles use direct CLIProxyAPI routes: developer, QA, release, and SRE use `cliproxyapi/claude-sonnet-5-5:medium`; Scout uses `cliproxyapi/gemini-3.8-flash-high:medium`; summarizer uses `cliproxyapi/claude-haiku-5-5:low`; tests and research use `cliproxyapi/gpt-5.6-luna` at high/xhigh; reviewer and Oracle use `cliproxyapi/claude-opus-5-5:high`. Native catalogs and OpenCode Go remain explicit emergency failover options only. Routing Luna through OpenCode Go for normal work would consume the wrong provider plan/quota.
 
 Gemini fallbacks are direct CLIProxyAPI aliases: Flash High for Scout/developer/tests, Flash Lite for summarization, and Gemini Pro Agent for research/review recovery. `setup_env.sh` copies the credentials-free HA template and runs `pi-ha ensure`; it creates missing live configuration without overwriting credentials, active routing, or custom groups. `pi-ha-bootstrap.mjs` selects a valid matrix entry before the first prompt (using `PI_HA_GROUP` when supplied) and switches/replays once after unknown-provider/model errors. See `pi/agent/MODELS.md` and `reports/2026-10-19.md` for the role rubric, effort rules, context/output limits, and evidence boundaries.
