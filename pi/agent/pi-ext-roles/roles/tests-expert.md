@@ -1,5 +1,6 @@
 ---
 model: tests-expert
+extensions: ["**/pi-ha-role-groups/testing.ts"]
 tools: ["!*", read, grep, find, ls, bash, edit, write, view_image, tool_search]
 description: Agent focused in writing/reading tests
 ---

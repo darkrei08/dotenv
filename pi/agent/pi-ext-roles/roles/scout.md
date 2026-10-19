@@ -1,7 +1,7 @@
 ---
 model: scout-model
 tools: ["!*", read, find, bash, web_search, tool_search]
-extensions: ["**/light-web-search.ts"]
+extensions: ["**/light-web-search.ts", "**/pi-ha-role-groups/scout.ts"]
 description: Scouting agent. Use when we need to gather info to solve a task
 contextFiles: []
 overrideSystemPrompt: true

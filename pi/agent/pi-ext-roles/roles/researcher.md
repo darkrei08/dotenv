@@ -1,5 +1,6 @@
 ---
 model: researcher-model
+extensions: ["**/pi-ha-role-groups/research.ts"]
 tools: ["!edit", "!write", "!bash"]
 description: Researcher. Use for deep research across the codebase, docs, and the web when web tools are available
 ---

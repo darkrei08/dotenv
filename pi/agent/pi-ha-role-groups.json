@@ -1,0 +1,16 @@
+{
+  "roles": {
+    "developer": { "modelAlias": "developer-model", "haGroup": "fast" },
+    "qa": { "modelAlias": "cliproxy-cheap-model", "haGroup": "fast" },
+    "release": { "modelAlias": "cliproxy-cheap-model", "haGroup": "fast" },
+    "sre": { "modelAlias": "cliproxy-cheap-model", "haGroup": "fast" },
+    "scout": { "modelAlias": "scout-model", "haGroup": "scout" },
+    "summarizer": { "modelAlias": "summarizer-model", "haGroup": "summary" },
+    "tests-expert": { "modelAlias": "tests-expert", "haGroup": "testing" },
+    "researcher": { "modelAlias": "researcher-model", "haGroup": "research" },
+    "reviewer": { "modelAlias": "reviewer-model", "haGroup": "reviewer" },
+    "oracle": { "modelAlias": "reviewer-model", "haGroup": "reviewer" },
+    "architect": { "modelAlias": "reviewer-model", "haGroup": "reviewer" },
+    "security": { "modelAlias": "reviewer-model", "haGroup": "reviewer" }
+  }
+}

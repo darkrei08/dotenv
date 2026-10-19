@@ -1,5 +1,6 @@
 ---
-model: cheap-model
+model: cliproxy-cheap-model
+extensions: ["**/pi-ha-role-groups/fast.ts"]
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: QA specialist. Validates testing coverage, edge cases, and correctness of test implementations
 overrideSystemPrompt: true

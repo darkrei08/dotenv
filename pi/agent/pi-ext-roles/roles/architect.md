@@ -1,5 +1,6 @@
 ---
 model: reviewer-model
+extensions: ["**/pi-ha-role-groups/reviewer.ts"]
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Architecture advisor. Evaluates system design, component boundaries, and integration patterns
 overrideSystemPrompt: true

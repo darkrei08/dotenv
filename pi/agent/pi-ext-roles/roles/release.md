@@ -1,5 +1,6 @@
 ---
-model: cheap-model
+model: cliproxy-cheap-model
+extensions: ["**/pi-ha-role-groups/fast.ts"]
 tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Release readiness validator. Checks migrations, version bumps, changelog, and deployment artifacts
 overrideSystemPrompt: true

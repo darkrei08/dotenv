@@ -1,5 +1,6 @@
 ---
-model: oracle-model
+model: reviewer-model
+extensions: ["**/pi-ha-role-groups/reviewer.ts"]
 tools: ["!*", read, find, ls, bash, view_image, tool_search]
 description: Oracle. Use for a second opinion on a plan, design, or decision before committing to it
 ---
