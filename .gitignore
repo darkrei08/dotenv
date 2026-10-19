@@ -15,3 +15,7 @@
 
 # Pi Herdr Orchestration runtime state
 .worktrees/
+# --- ai-memory-kit: ephemeral, regenerable local state (never committed) ---
+*.local
+.env.local
+# NOTE: `.engram/` (the committed sync chunks) is intentionally NOT ignored.

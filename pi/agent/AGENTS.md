@@ -119,6 +119,7 @@ Use the whole Gentle AI suite for every code, config or documentation change, an
 - Save with `mem_save` after every decision, fix, convention, discovery, merged PR and gotcha. Use a stable `topic_key` so it upserts (`mem_update` for an existing observation). Do not wait for the end of the session.
 - Before the final reply of any turn that changed a repository, a config, an issue or a PR, or produced a decision, the matching `mem_save` has already been made. Close a session with `mem_session_summary`. When the user says "save to memory", save everything relevant, not only the last step.
 - Never save tokens, credentials, refresh tokens, private transcripts or the content of `auth.json`/`ha.json`. Save what changed, why, where, and what was not verified.
+- After every completed commit, record one commit-indexed memory entry before starting the next work unit: use the full commit hash and subject, record parents, changed paths, verification commands/outcomes, scope, and blockers; run `aimem save "Commit <full-hash>: <subject>" "<structured evidence>" discovery` followed by `aimem sync`; confirm indexing before continuing. Redact credentials and never include `auth.json`, `ha.json`, tokens, transcripts, or secret values. This memory record does not authorize push, merge, issue closure, or release.
 
 ### Gentle AI suite
 
