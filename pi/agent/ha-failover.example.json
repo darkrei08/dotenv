@@ -11,16 +11,15 @@
     "development": {
       "name": "Development",
       "entries": [
-        { "id": "openai-codex/gpt-6-luna" },
-        { "id": "cliproxyapi/claude-opus-5-5" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
+        { "id": "cliproxyapi/gpt-6-luna" },
+        { "id": "cliproxyapi/gpt-6.1-sol" },
         { "id": "cliproxyapi/gemini-pro-agent" }
       ]
     },
     "scout": {
       "name": "Scout fallback",
       "entries": [
-        { "id": "opencode-go/cat-jam-free" },
+        { "id": "cliproxyapi/gpt-6-luna" },
         { "id": "cliproxyapi/gemini-3.8-flash-high" }
       ]
     },
@@ -35,7 +34,6 @@
       "name": "Research fallback",
       "entries": [
         { "id": "cliproxyapi/gpt-6-luna" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
         { "id": "cliproxyapi/gemini-pro-agent" }
       ]
     },
@@ -57,8 +55,7 @@
       "name": "Reviewer fallback",
       "entries": [
         { "id": "cliproxyapi/claude-opus-5-5" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high" },
+        { "id": "cliproxyapi/gemini-pro-agent" },
         { "id": "cliproxyapi/gpt-6-luna" }
       ]
     }

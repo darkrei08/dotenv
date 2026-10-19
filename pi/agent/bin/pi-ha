@@ -6,20 +6,58 @@ import tempfile
 from pathlib import Path
 
 CONFIG_PATH = Path(os.environ.get("PI_HA_CONFIG", Path.home() / ".pi" / "agent" / "ha.json"))
+TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "ha-failover.example.json"
+
+
+def read_json(path, label):
+    try:
+        with path.open(encoding="utf-8") as handle:
+            config = json.load(handle)
+    except FileNotFoundError:
+        raise SystemExit(f"{label} not found: {path}")
+    except json.JSONDecodeError as error:
+        raise SystemExit(f"Invalid {label} {path}: {error}")
+    if not isinstance(config, dict):
+        raise SystemExit(f"Invalid {label} root: {path}")
+    return config
 
 
 def load_config(allow_missing=False):
-    try:
-        with CONFIG_PATH.open(encoding="utf-8") as handle:
-            config = json.load(handle)
-    except FileNotFoundError:
+    if not CONFIG_PATH.exists():
         if allow_missing:
             return {"groups": {}}
         raise SystemExit(f"HA config not found: {CONFIG_PATH}")
-    except json.JSONDecodeError as error:
-        raise SystemExit(f"Invalid HA config {CONFIG_PATH}: {error}")
-    if not isinstance(config, dict):
-        raise SystemExit(f"Invalid HA config root: {CONFIG_PATH}")
+    return read_json(CONFIG_PATH, "HA config")
+
+
+def ensure_config():
+    template = read_json(TEMPLATE_PATH, "HA template")
+    template_groups = template.get("groups")
+    if not isinstance(template_groups, dict) or "defaultGroup" not in template:
+        raise SystemExit(f"Invalid HA template shape: {TEMPLATE_PATH}")
+
+    if not CONFIG_PATH.exists():
+        save_config(template)
+        return template
+
+    config = load_config()
+    groups = config.get("groups")
+    if groups is None:
+        groups = {}
+        config["groups"] = groups
+    elif not isinstance(groups, dict):
+        raise SystemExit(f"Invalid HA groups: {CONFIG_PATH}")
+
+    changed = False
+    for name, group in template_groups.items():
+        if name not in groups:
+            groups[name] = group
+            changed = True
+    if "defaultGroup" not in config:
+        config["defaultGroup"] = template["defaultGroup"]
+        changed = True
+    if changed:
+        save_config(config)
     return config
 
 
@@ -55,6 +93,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("status", help="show HA groups without credentials")
+    subparsers.add_parser("ensure", help="create or merge the tracked credentials-free matrix")
     group = subparsers.add_parser("group", help="create or update a group and activate it")
     group.add_argument("name")
     group.add_argument("models", nargs="+")
@@ -62,24 +101,30 @@ def main():
     use.add_argument("name")
 
     args = parser.parse_args()
-    config = load_config(args.command == "group")
-    groups = config.setdefault("groups", {})
 
-    if args.command == "status":
-        result = public_config(config)
-    elif args.command == "group":
-        groups[args.name] = {"name": args.name, "entries": [{"id": model} for model in args.models]}
-        config["defaultGroup"] = args.name
-        config["activeGroup"] = args.name
-        save_config(config)
-        result = public_config(config)
+    if args.command == "ensure":
+        result = public_config(ensure_config())
     else:
-        if args.name not in groups:
-            raise SystemExit(f"HA group not found: {args.name}")
-        config["defaultGroup"] = args.name
-        config["activeGroup"] = args.name
-        save_config(config)
-        result = public_config(config)
+        config = load_config(args.command == "group")
+        groups = config.setdefault("groups", {})
+        if not isinstance(groups, dict):
+            raise SystemExit(f"Invalid HA groups: {CONFIG_PATH}")
+
+        if args.command == "status":
+            result = public_config(config)
+        elif args.command == "group":
+            groups[args.name] = {"name": args.name, "entries": [{"id": model} for model in args.models]}
+            config["defaultGroup"] = args.name
+            config["activeGroup"] = args.name
+            save_config(config)
+            result = public_config(config)
+        else:
+            if args.name not in groups:
+                raise SystemExit(f"HA group not found: {args.name}")
+            config["defaultGroup"] = args.name
+            config["activeGroup"] = args.name
+            save_config(config)
+            result = public_config(config)
 
     if args.json:
         print(json.dumps(result, indent=2))

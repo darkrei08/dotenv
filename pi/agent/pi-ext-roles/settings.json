@@ -11,7 +11,7 @@
     "cliproxy-sol": "cliproxyapi/gpt-6.1-sol:medium",
     "cliproxy-astra": "cliproxyapi/gpt-6-astra:high",
     "cheap-model": "cliproxy-cheap-model",
-    "scout-model": "opencode-go/cat-jam-free:medium",
+    "scout-model": "cliproxyapi/gemini-3.8-flash-high:medium",
     "cliproxy-opencode-go-scout": "cliproxyapi/go/cat-jam-free:medium",
     "cliproxy-opencode-go-deepseek": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "cliproxy-opencode-go-longcat-free": "cliproxyapi/go/longcat-2.5-preview-free:medium",
@@ -25,7 +25,7 @@
     "gemini-researcher-model": "cliproxyapi/gemini-pro-agent:high",
     "gemini-developer-model": "cliproxyapi/gemini-3.8-flash-high:high",
     "gemini-tests-model": "cliproxyapi/gemini-3.8-flash-high:high",
-    "gemini-reviewer-model": "opencode-go/gemini-4-argon-contributor:high",
+    "gemini-reviewer-model": "cliproxyapi/gemini-pro-agent:high",
     "oracle-model": "reviewer-model",
     "reviewer-model": "cliproxy-reviewer-model"
   },

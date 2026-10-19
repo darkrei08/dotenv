@@ -20,23 +20,23 @@ defect:
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
   return. Do not reintroduce obsolete OpenCode workflow targets.
 - `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): workflow roles use
-  CLIProxyAPI first, following the `vekexasia/dotenv` role mapping: `developer-model` resolves to
-  `cliproxyapi/claude-sonnet-5-5:medium`, `scout-model` intentionally resolves to the direct
-  OpenCode Go `opencode-go/cat-jam-free:medium`, `tests-expert` to `cliproxy-luna`
+  CLIProxyAPI first, following the task-approved role mapping: `developer-model` resolves to
+  `cliproxyapi/claude-sonnet-5-5:medium`, `scout-model` resolves to the direct CLIProxyAPI
+  Gemini `cliproxyapi/gemini-3.8-flash-high:medium`, `tests-expert` to `cliproxy-luna`
   (`cliproxyapi/gpt-6-luna:high`), `researcher-model` to `cliproxy-luna:xhigh`,
   `summarizer-model` to `cliproxyapi/claude-haiku-5-5:low`, and `reviewer-model` (also oracle)
-  to `cliproxyapi/claude-opus-5-5:high`. Explicit `gemini-*` aliases and HA groups are allowed
-  as alternatives/fallbacks; they do not replace the primary role targets. Native aliases remain
-  defined as a manual fallback and native models are hidden from the active picker. Do not
-  configure Fable (not included in Claude Pro). Preserve the expanded `skills` list.
+  to `cliproxyapi/claude-opus-5-5:high`. Explicit `gemini-*` aliases and CLIProxyAPI HA groups
+  are allowed as alternatives/fallbacks; they do not replace the primary role targets. Native and
+  OpenCode Go aliases remain explicit emergency failover only and are hidden from the active picker.
+  Do not configure Fable (not included in Claude Pro). Preserve the expanded `skills` list.
 - `pi/agent/settings.json`: the Pi/GGA baseline is `defaultProvider:
   cliproxyapi`, `defaultModel: claude-sonnet-5-5`, `defaultThinkingLevel: medium`,
   and `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native
   catalogs remain defined for manual fallback (Claude and Codex still run through the gateway by default). `pi/agent/subagents.json` follows the same
   Sonnet 5.5 default. `.gga` is the exception: GGA reviews through the Pi bridge in
   `agents/gga-pi/` with the CLIProxyAPI mirror of the workflow `reviewer` role
-  (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; there is
-  no automatic fallback to another model.
+  (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; review failures may
+  fail over only through the configured CLIProxyAPI gateway models, never native or OpenCode Go routes.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.

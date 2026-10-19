@@ -19,12 +19,12 @@ usage credits and is not used. ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and
 GPT-6 Luna, plus GPT-6 Astra with a small allowance). Sources:
 <https://claude.com/pricing>, <https://learn.chatgpt.com/docs/pricing>.
 
-The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, while Scout uses OpenCode Go directly:
+The role mapping is CLIProxyAPI-first. Normal workflow roles use the gateway directly; native providers and OpenCode Go are retained only as explicit emergency failover routes:
 
 | Role alias | Resolves to | Used by |
 | --- | --- | --- |
 | `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | qa, release, sre |
-| `scout-model` | `opencode-go/cat-jam-free:medium` | scout |
+| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | scout |
 | `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | summarizer |
 | `developer-model` | `cheap-model` | developer |
 | `tests-expert` | `cliproxyapi/gpt-6-luna:high` | tests-expert |
@@ -76,12 +76,17 @@ as the per-agent `model` override to run a workflow through CLIProxyAPI. With on
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
 models, which is why Codex stays on its native login.
 
-The optional Gemini aliases are explicit alternatives, not automatic role replacements.
-For automatic quota/capacity fallback, `~/.pi/agent/ha.json` contains `development`,
-`scout`, `fast`, `research`, `summary`, and `testing` groups. Select one with
-`/ha-group <name> <model-id>...`; the repository template is
-`pi/agent/ha-failover.example.json`. The default development chain ends with
-`cliproxyapi/gemini-pro-agent` after the existing GPT and Claude entries.
+Gemini aliases are direct CLIProxyAPI routes and are selected by the automatic
+HA matrix when the primary route is unavailable, rather than requiring a manual
+model edit. Native providers and OpenCode Go remain explicit emergency failover
+options only.
+For automatic quota/capacity fallback, `setup_env.sh` activates the tracked
+`pi/agent/ha-failover.example.json` matrix through `pi-ha ensure`. A missing
+`~/.pi/agent/ha.json` is created from that credentials-free template; an existing
+file keeps its credentials, active/custom groups, and default group while receiving
+only missing managed groups/defaultGroup. The default development chain ends with
+`cliproxyapi/gemini-pro-agent` after the existing GPT and Claude entries. Use
+`/ha-group <name> <model-id>...` only when deliberately changing live routing.
 
 ### Gemini
 

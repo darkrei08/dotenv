@@ -172,7 +172,7 @@ if ! jq -e '
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
-  $aliases["scout-model"] == "opencode-go/cat-jam-free:medium" and
+  $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["developer-model"] == "cheap-model" and
   $aliases["tests-expert"] == "cliproxy-luna" and
   $aliases["researcher-model"] == "cliproxy-luna:xhigh" and

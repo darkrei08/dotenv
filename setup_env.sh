@@ -2,6 +2,12 @@
 set -euo pipefail
 
 REPO_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+PI_AGENT_DIR=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+case "$PI_AGENT_DIR" in
+  '~') PI_AGENT_DIR="$HOME" ;;
+  '~/'*) PI_AGENT_DIR="$HOME/${PI_AGENT_DIR#\~/}" ;;
+esac
+export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
 IS_WSL=0
 grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
 
@@ -215,7 +221,7 @@ install_cli_anything_hub() (
 # idempotent and never delete auth.json, sessions/, or pi-managed installs
 # (npm/, packages pi resolves from settings.json).
 sync_pi() {
-  local src="$REPO_DIR/pi/agent" target="$HOME/.pi/agent"
+  local src="$REPO_DIR/pi/agent" target="$PI_AGENT_DIR"
 
   # A leftover symlink from the old model would make rsync write back into the
   # repo; replace it with a real directory first, backing up anything real.
@@ -231,7 +237,7 @@ sync_pi() {
     AGENTS.md advisor-system.md MODELS.md README.md \
     settings.json models.json modes.json keybindings.json subagents.json \
     pi-vcc-config.json tsconfig.json package.json pi-packages.txt .pii-allowlist \
-    bin packages prompts skills themes pi-extensible-workflows pi-ext-roles; do
+    ha-failover.example.json bin packages prompts skills themes pi-extensible-workflows pi-ext-roles; do
     if [ -e "$src/$item" ]; then
       rsync -a "$src/$item" "$target/"
     fi
@@ -394,6 +400,7 @@ if ! command -v pi >/dev/null 2>&1; then
 fi
 
 sync_pi
+"$PI_AGENT_DIR/bin/pi-ha" ensure
 install_cli_anything_pi
 install_cli_anything_hub
 

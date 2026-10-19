@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-# GGA has no Pi provider (v2.10.1 and upstream main). GGA's `kilo` provider runs
+# GGA has no Pi provider (v2.10.1 and upstream). GGA's `kilo` provider runs
 #   kilo run --auto [--model <m>]   (review prompt on stdin, answer on stdout)
 # so this shim stands in for that binary and answers through `pi --print`, which
-# reuses the Claude Pro / ChatGPT Plus logins Pi already holds. It is only on PATH
-# when GGA is started through ../run-gga.sh. <m> is any Pi model pattern, with an
-# optional effort suffix: PROVIDER="kilo:anthropic/claude-sonnet-5-5:high".
+# reuses the CLIProxyAPI gateway. CLIProxyAPI review failures automatically try
+# the configured gateway-only fallback models in priority order.
 set -euo pipefail
 
 model=""
@@ -19,12 +18,17 @@ done
 [ -n "$model" ] || { printf 'gga-pi: set PROVIDER="kilo:<pi-model>[:effort]" in .gga\n' >&2; exit 2; }
 command -v pi >/dev/null 2>&1 || { printf 'gga-pi: pi is not on PATH\n' >&2; exit 127; }
 
-# cliproxyapi/* models only exist once the provider extension is loaded; load just that one.
-ext=()
+models=("$model")
 if [[ $model == cliproxyapi/* ]]; then
-  provider_ext="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
-  [ -f "$provider_ext" ] || { printf 'gga-pi: CLIProxyAPI provider extension not found: %s\n' "$provider_ext" >&2; exit 1; }
-  ext=(-e "$provider_ext")
+  effort="high"
+  if [[ $model == *:* ]]; then
+    effort=${model##*:}
+  fi
+  models+=(
+    "cliproxyapi/gpt-6-luna:${effort}"
+    "cliproxyapi/gemini-pro-agent:${effort}"
+    "cliproxyapi/gemini-3.8-flash-high:${effort}"
+  )
 fi
 
 # Pure review call: no tools, extensions, skills or project context, so the model only
@@ -32,11 +36,34 @@ fi
 # the gateway catalog; a successful empty catalog must not erase usable cached models.
 offline=(--offline)
 err=$(mktemp)
-trap 'rm -f "$err"' EXIT
-if ! pi --print --no-session --no-tools --no-extensions --no-skills --no-prompt-templates \
-  --no-themes --no-context-files --no-mcp "${offline[@]}" "${ext[@]}" \
-  --system-prompt 'You are a strict code reviewer. Follow the review instructions in the prompt exactly and reply in the requested format.' \
-  --model "$model" 2>"$err"; then
-  cat "$err" >&2
-  exit 1
-fi
+out=$(mktemp)
+failures=$(mktemp)
+input=$(mktemp)
+cat >"$input"
+trap 'rm -f "$err" "$out" "$failures" "$input"' EXIT
+for candidate in "${models[@]}"; do
+  : >"$err"
+  : >"$out"
+  ext=()
+  if [[ $candidate == cliproxyapi/* ]]; then
+    provider_ext="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
+    [ -f "$provider_ext" ] || { printf 'gga-pi: CLIProxyAPI provider extension not found: %s\n' "$provider_ext" >&2; exit 1; }
+    ext=(-e "$provider_ext")
+  fi
+  if pi --print --no-session --no-tools --no-extensions --no-skills --no-prompt-templates \
+    --no-themes --no-context-files --no-mcp "${offline[@]}" "${ext[@]}" \
+    --system-prompt 'You are a strict code reviewer. Follow the review instructions in the prompt exactly and reply in the requested format.' \
+    --model "$candidate" <"$input" >"$out" 2>"$err"; then
+    if grep -Eq '^STATUS: (PASSED|FAILED)$' "$out"; then
+      cat "$out"
+      exit 0
+    fi
+    printf 'ambiguous review output: %s\n' "$candidate" >>"$failures"
+    cat "$out" >>"$failures"
+  else
+    printf 'model failed: %s\n' "$candidate" >>"$failures"
+  fi
+  cat "$err" >>"$failures"
+done
+cat "$failures" >&2
+exit 1
