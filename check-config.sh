@@ -200,6 +200,13 @@ if ! jq -e '
   failures=1
 fi
 
+if ! jq -e '
+  .defaultTools == ["+tool_search"]
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: canonical defaultTools must be ["+tool_search"]\n' "$SETTINGS"
+  failures=1
+fi
+
 # Native definitions remain available as a manual fallback, while the active picker
 # exposes only CLIProxyAPI models. Native and gateway aliases and startup thinking levels
 # must still mirror each other.
@@ -226,6 +233,13 @@ if ! jq -e '(.providers | has("tuxevil-rotator") | not)' "$ROOT/pi/agent/models.
 fi
 
 if ((live_settings_ok)); then
+  if ! diff -u \
+      <(jq -S '.defaultTools // []' "$SETTINGS") \
+      <(jq -S '.defaultTools // []' "$LIVE_SETTINGS") >/dev/null; then
+    printf '%s: canonical defaultTools differ from %s\n' \
+      "$SETTINGS" "$LIVE_SETTINGS"
+    failures=1
+  fi
   if ! diff -u \
       <(jq -S '[.packages? // [] | .[]? | select(type == "object") | {source, extensions: (.extensions? // [])}] | sort_by(.source)' "$SETTINGS") \
       <(jq -S '[.packages? // [] | .[]? | select(type == "object") | {source, extensions: (.extensions? // [])}] | sort_by(.source)' "$LIVE_SETTINGS") >/dev/null; then
@@ -263,6 +277,17 @@ for role in "${required_roles[@]}"; do
 done
 if ((${#missing_roles[@]})); then
   printf '%s: missing required role file(s): %s\n' "$ROLES_DIR" "${missing_roles[*]}"
+  failures=1
+fi
+
+researcher_tools=$(sed -nE 's/^tools:[[:space:]]*(.*)/\1/p;T;q' "$ROLES_DIR/researcher.md")
+if [[ -z "$researcher_tools" ]] || ! jq -e '
+  (index("!edit") != null) and
+  (index("!write") != null) and
+  (index("!bash") != null) and
+  (any(.[]; . == "!replace" or . == "!insert" or . == "!undo_last_change" or . == "replace" or . == "insert" or . == "undo_last_change") | not)
+' <<<"$researcher_tools" >/dev/null 2>&1; then
+  printf '%s: researcher role must exclude edit, write, and bash without referencing absent tools (replace, insert, undo_last_change)\n' "$ROLES_DIR/researcher.md"
   failures=1
 fi
 
