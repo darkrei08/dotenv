@@ -42,6 +42,9 @@ git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url
 git:github.com/vekexasia/pi-high-availability
 
 npm:pi-btw
+# Workflow role extension: pi-extensible-workflows accepts role options only when this
+# separate package is explicitly enabled in the parent Pi session.
+npm:@piewf/pi-ext-roles
 git:github.com/vekexasia/pi-codex-image@fix-codex-image-generation-output
 npm:pi-vim
 npm:pi-markdown-preview

@@ -1,0 +1,14 @@
+{
+  "name": "pi-ha-role-groups",
+  "private": true,
+  "pi": {
+    "extensions": [
+      "fast.ts",
+      "research.ts",
+      "reviewer.ts",
+      "scout.ts",
+      "summary.ts",
+      "testing.ts"
+    ]
+  }
+}

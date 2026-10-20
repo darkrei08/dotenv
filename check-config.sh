@@ -7,6 +7,7 @@ MODES="$ROOT/pi/agent/modes.json"
 GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
+ROLE_GROUP_MANIFEST="$ROOT/pi/agent/extensions/pi-ha-role-groups/package.json"
 HA_MATRIX="$ROOT/pi/agent/ha-failover.example.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
@@ -32,7 +33,15 @@ if ! jq empty "$SETTINGS" >/dev/null 2>&1; then
   failures=1
 fi
 
-if ! check_json_file "$ROLE_GROUPS" || ! check_json_file "$HA_MATRIX"; then
+if ! check_json_file "$ROLE_GROUPS" || ! check_json_file "$HA_MATRIX" || ! check_json_file "$ROLE_GROUP_MANIFEST"; then
+  failures=1
+elif ! jq -e '
+  (.pi.extensions // []) as $extensions |
+  ($extensions | index("bind.ts") | not) and
+  (["fast.ts", "research.ts", "reviewer.ts", "scout.ts", "summary.ts", "testing.ts"] | all(.[]; $extensions | index(.) != null))
+' "$ROLE_GROUP_MANIFEST" >/dev/null 2>&1; then
+  printf '%s: HA group package manifest must expose only the six factory extensions
+' "$ROLE_GROUP_MANIFEST"
   failures=1
 else
   while IFS=$'\t' read -r role alias group; do
@@ -142,6 +151,7 @@ fi
 
 required_packages=(
   npm:pi-extensible-workflows
+  npm:@piewf/pi-ext-roles
   npm:gentle-pi
   npm:gentle-engram
   npm:@router-for-me/pi-cliproxyapi-provider
