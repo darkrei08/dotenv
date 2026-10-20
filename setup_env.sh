@@ -8,6 +8,8 @@ case "$PI_AGENT_DIR" in
   '~/'*) PI_AGENT_DIR="$HOME/${PI_AGENT_DIR#\~/}" ;;
 esac
 export PI_CODING_AGENT_DIR="$PI_AGENT_DIR"
+SKILLOPT_SLEEP_REPO=${SKILLOPT_SLEEP_REPO:-$HOME/git/personale/upstream}
+export SKILLOPT_SLEEP_REPO
 IS_WSL=0
 grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
 
@@ -306,6 +308,7 @@ append_once 'export PATH="$HOME/.bin:$PATH"'
 append_once 'export PATH="$HOME/.local/bin:$PATH"'
 append_once 'export PATH="$PATH:/usr/local/go/bin"'
 append_once 'export PATH="$PATH:/opt/nvim-linux-x86_64/bin"'
+append_once 'export SKILLOPT_SLEEP_REPO="${SKILLOPT_SLEEP_REPO:-$HOME/git/personale/upstream}"'
 append_once 'eval "$(fzf --bash)"'
 append_once 'export BAT_THEME="TwoDark"'
 append_once "alias ll='ls -alF'"
@@ -426,6 +429,18 @@ elif [ -r "$pi_packages" ]; then
     fi
   done < "$pi_packages"
 fi
+# Install SkillOpt-Sleep from the selected local fork. The upstream installer
+# copies only the skill into the canonical user skill root; it does not clone or
+# download another checkout. A missing fork is optional and must not block setup.
+if [ -f "$SKILLOPT_SLEEP_REPO/plugins/codex/install.sh" ] &&
+   [ -f "$SKILLOPT_SLEEP_REPO/plugins/run-sleep.sh" ] &&
+   [ -f "$SKILLOPT_SLEEP_REPO/plugins/codex/skills/skillopt-sleep/SKILL.md" ]; then
+  bash "$SKILLOPT_SLEEP_REPO/plugins/codex/install.sh"
+else
+  printf 'WARN: SkillOpt-Sleep fork not found at %s; skipping its skill install. Set SKILLOPT_SLEEP_REPO to a local checkout to enable it.\n' \
+    "$SKILLOPT_SLEEP_REPO" >&2
+fi
+
 # The shared agent-skill stack. The explicit `cline` target makes skills-cli
 # materialize one canonical copy under ~/.agents/skills, which Pi reads directly;
 # setup-ai installs the same stack for every detected agent and sets
