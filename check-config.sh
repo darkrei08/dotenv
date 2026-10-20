@@ -65,6 +65,22 @@ if ! jq -e '
   printf '%s: compaction must stay enabled with reserveTokens >= 16384 and keepRecentTokens >= 20000\n' "$SETTINGS"
   failures=1
 fi
+if ! jq -e '
+  (.packages // []) as $packages |
+  any($packages[]?; . == "npm:@sting8k/pi-vcc") and
+  all($packages[]?; . != "packages/pi-codex-context")
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: pi-vcc must be the sole registered compaction package\n' "$SETTINGS"
+  failures=1
+fi
+if ! jq -e '
+  .overrideDefaultCompaction == true and
+  .smartKeepTail == true and
+  .continueAfterThresholdCompact == true
+' "$ROOT/pi/agent/pi-vcc-config.json" >/dev/null 2>&1; then
+  printf '%s: pi-vcc config must enable default override, smart tail, and threshold continuation\n' "$ROOT/pi/agent/pi-vcc-config.json"
+  failures=1
+fi
 
 if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --json >/dev/null 2>&1; then
   printf '%s: token-budget policy check failed\n' "$ROOT/pi/agent/bin/pi-token-budget.mjs"

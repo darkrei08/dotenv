@@ -30,3 +30,15 @@ Verification: git diff --cached --check; node --experimental-strip-types --test 
 Scope: explicit hybrid role-to-HA mapping, CLIProxyAPI-first role aliases, oracle/reviewer alignment, ordered lifecycle-safe PI_HA_GROUP binding, and accurate model audit documentation.
 Review: GGA v2.10.1 passed after correcting stale documentation, explicit cheap-role aliases, oracle alias parity, and out-of-order binding restoration.
 Blockers: dotenv issues #25/#29 still require owner compactor choice; Guardian Angel issue #131 remains unapproved and no upstream Pi commit is present.
+
+## 2026-10-19 — Commit 8599a3bd7dd4fc5fc7ae66c4c60c82052d0c6937: docs(memory): add commit-indexed memory directives
+
+Commit: 8599a3bd7dd4fc5fc7ae66c4c60c82052d0c6937
+Subject: docs(memory): add commit-indexed memory directives
+Parent: 7513b2dfd059b95a7058371527465fa8345a234d
+Task/spec: commit-indexed memory directive
+Changed paths: .ai/ repository memory source, .engram/chunks synchronized cache, root and Pi AGENTS directives, CLAUDE.md, GEMINI.md, and ephemeral-state gitignore entries.
+Verification: git diff --cached --check; aimem status (26 local chunks, no pending import); final check-config.sh; HA binder tests (4 passed); GGA bridge tests (10 passed); safe source/live role parity; GGA pre-commit review passed.
+Scope: durable repository memory bootstrap and a testable post-commit full-hash indexing protocol with secret redaction and delivery-gate separation.
+Review: GGA pre-commit review passed.
+Blockers: issue #25/#29 compactor choice and Guardian Angel #131 approval remain external decisions; no push, PR, merge, or issue closure performed.

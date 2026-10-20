@@ -27,7 +27,7 @@
     "npm:@narumitw/pi-goal",
     "git:github.com/DietrichGebert/ponytail",
     "packages/pi-omplike-advisor",
-    "packages/pi-codex-context",
+    "npm:@sting8k/pi-vcc",
     "npm:pi-tool-display",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",

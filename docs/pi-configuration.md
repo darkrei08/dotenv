@@ -21,7 +21,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). `setup_env.sh` runs `pi-ha ensure` after sync: it creates the missing file from the template or adds only missing managed groups and `defaultGroup`. The tracked `pi-ha-bootstrap.mjs` selects an available entry from `PI_HA_GROUP` when supplied, otherwise from the live active/default group, and switches/replays once after unknown-provider/model errors. |
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts` and `extensions/pi-pretty.ts`, the same two exclusions `setup-ai`'s `handle_quiet_tools_conflict` applies at runtime. `npm:pi-tool-display` registers `read`/`bash`/`find`/`grep`/`ls`, and both of those gentle-pi files register the same built-in tool names, which makes `pi` abort at startup with `Tool "read" conflicts with ...`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
-| `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
+| `npm:@sting8k/pi-vcc` | The active main-session compactor. Its tracked `pi-vcc-config.json` enables default override, smart tail retention, and continuation after threshold compaction. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
 
@@ -44,9 +44,9 @@ Third-party packages:
 | `git:github.com/DietrichGebert/ponytail` | Lazy-senior-dev ruleset: injects the rules each turn and registers the `/ponytail*` commands. Installed for the other agent CLIs by `agents/install-agent-extensions.sh`. |
 | `npm:pi-tool-display` | Compact tool-call rendering, diff visualization, output truncation. |
 | `git:github.com/vekexasia/pi-notify@feat/customizable-notifications` | Desktop notifications via OSC 777/99/9 and Windows toast. |
-| `npm dependency: @sting8k/pi-vcc` | Loaded for workflow children through the `pi-extensible-workflows` extensions glob; it is not a Pi package because its second `session_before_compact` provider conflicts with `pi-codex-context`, which requires sole compaction ownership. |
+| `npm:@sting8k/pi-vcc` | Main-session compaction provider aligned with vekexasia/dotenv. It is the sole registered compactor; `pi-codex-context` remains in the tree for research/reference but is not registered in `settings.json`. |
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
-| `pi/agent/packages/pi-codex-context` | In-repo session context-management and compaction provider; its `TODO.md` lists known limitations. |
+| `pi/agent/pi-vcc-config.json` | Enables `overrideDefaultCompaction`, `smartKeepTail`, and `continueAfterThresholdCompact` for the active pi-vcc provider. |
 
 ### In-repo extensions
 
@@ -95,7 +95,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
 | `pi/agent/AGENTS.md` | Project instructions Pi loads for this repository. |
 | `pi/agent/keybindings.json` | Editor keybinding overrides (`ctrl+w`, `alt+d`, ...). |
-| `pi/agent/pi-vcc-config.json` | `pi-vcc` settings retained for workflow children: `overrideDefaultCompaction`, `smartKeepTail`, `continueAfterThresholdCompact`. |
+| `pi/agent/pi-vcc-config.json` | Active main-session pi-vcc settings: `overrideDefaultCompaction`, `smartKeepTail`, and `continueAfterThresholdCompact`. |
 | `pi/agent/bin/` | `open-nvim.sh` (herdr-gated operator review helper, requires `HERDR_ENV=1` and `HERDR_PANE_ID`), `session-stats.mjs` (session metrics), `cdp` (pointer to the chrome-cdp script). |
 | `pi/agent/npm/` | npm manifest and lockfile for the npm-backed packages. |
 | `pi/agent/.pii-allowlist` | Regex allowlist for git-shield false positives in this repository. |

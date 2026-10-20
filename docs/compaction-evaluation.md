@@ -55,8 +55,12 @@ Generated output never exceeded about 29k tokens in any model. A 128K reserve wo
 ## Recommendation
 
 1. Do not change `reserveTokens` or `keepRecentTokens` now. There is no observed overflow to fix, and the vekexasia floor rule would make things worse here. Revisit if overflow recoveries show up in the logs.
-2. Compactor: align with vekexasia's current choice, `pi-vcc` as the single summary owner for the main session, only after an end-to-end check with a real agent that it calls `vcc_recall` when it needs older facts. Durable constraints (like destructive-command rules) belong in `AGENTS.md`, not in a summary. Keep `pi-codex-context` in the tree, unregistered, as upstream does.
+2. Compactor decision: adopt vekexasia's current choice, `pi-vcc` as the single summary owner for the main session. The repository now registers `npm:@sting8k/pi-vcc` with the tracked `pi-vcc-config.json`; older facts remain available through `vcc_recall` when needed. Durable constraints (like destructive-command rules) belong in `AGENTS.md`, not in a summary. Keep `pi-codex-context` in the tree, unregistered, as upstream does.
 3. If a higher in-context retention matters more than cost and determinism, native compaction is the stronger summarizer (0.73 to 0.96), at one model call per compaction.
+
+## Decision status
+
+The owner selected pi-vcc following vekexasia/dotenv. The implementation is configuration-only: it preserves the existing reserve and keep-recent values, registers one compaction owner, and does not copy upstream's unrelated package removals or absolute local paths.
 
 ## Limits of this evidence
 
