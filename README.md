@@ -26,6 +26,33 @@ For shell and LLM access to Pi High Availability, use `pi-ha status --json`,
 `pi-ha group <name> <provider/model-id>...`, or `pi-ha use <name>`. The `/ha`
 command remains a Pi slash command and is not a Bash executable.
 
+## SkillOpt-Sleep for Pi
+
+`setup_env.sh` uses the local SkillOpt fork at
+`$SKILLOPT_SLEEP_REPO` (default: `$HOME/git/personale/upstream`) when its
+Codex installer is present. It installs the `skillopt-sleep` skill into the
+canonical user skill root without cloning or downloading another checkout. The
+existing `skillopt-sleep` selector in
+`pi/agent/pi-ext-roles/settings.json` is what makes the skill available to Pi;
+this setup does not add a second selector.
+
+The safe first checks are read-only and use the deterministic mock backend:
+
+```bash
+export SKILLOPT_SLEEP_REPO="${SKILLOPT_SLEEP_REPO:-$HOME/git/personale/upstream}"
+bash "$SKILLOPT_SLEEP_REPO/plugins/run-sleep.sh" status --project "$(pwd)"
+bash "$SKILLOPT_SLEEP_REPO/plugins/run-sleep.sh" dry-run --project "$(pwd)" \
+  --source pi --target-skill-path "$HOME/.agents/skills/skillopt-sleep/SKILL.md" \
+  --backend mock --max-sessions 5 --max-tasks 3 --json
+```
+
+Harvesting and review/adoption are separate: inspect the staged report and
+proposed edits before running `adopt`; do not treat harvesting as permission to
+change live skills. A real `--source pi --backend pi` run is different: it can
+send transcript-derived text and prompts to the provider configured in Pi, so
+check that provider's retention and privacy policy first. This integration does
+not run such a cycle or auto-adopt proposals.
+
 ## What gets installed and where it is configured
 
 | Area | What you get | Configured in |
