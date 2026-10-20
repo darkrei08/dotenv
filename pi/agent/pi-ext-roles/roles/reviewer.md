@@ -1,7 +1,7 @@
 ---
 model: reviewer-model
+tools: ["!*", read, grep, find, ls, view_image, tool_search]
 extensions: ["**/pi-ha-role-groups/reviewer.ts"]
-tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Reviewer. Use when we need to review decisions or code changes
 overrideSystemPrompt: true
 contextFiles: []
