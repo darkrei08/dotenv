@@ -58,6 +58,7 @@ git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
 npm:@router-for-me/pi-cliproxyapi-provider
 npm:@piewf/herdr
+git:github.com/gwelinder/pi-extension-pack
 
 # --- Packages that live inside this checkout ----------------------------------
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");

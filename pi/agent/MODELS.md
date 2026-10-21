@@ -43,10 +43,12 @@ default.
 Effort resolves the same way, independently of the model. You can pin the model
 from one layer and the effort from another.
 
-This repository's interactive default is `cliproxyapi/claude-sonnet-5-5` at
-`medium`; `subagents.json` uses the same model. The GGA reviewer (`.gga`) follows
-the workflow `reviewer` role instead (`cliproxyapi/claude-opus-5-5:high`). The CLIProxyAPI provider dynamically discovers its model catalog;
-configuration or discovery does not establish that inference succeeds.
+This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
+`high`; workflow aliases use the same refreshed gateway-first matrix. The GGA
+reviewer (`.gga`) follows the workflow `reviewer` role instead
+(`cliproxyapi/claude-opus-4-6-thinking:medium`). The CLIProxyAPI provider
+dynamically discovers its model catalog; configuration or discovery does not
+establish upstream entitlement, quota, or sustained inference.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
 
@@ -354,29 +356,29 @@ provider and is used directly by the `opencode-max` mode.
 
 | Alias | Configured target | Use |
 |---|---|---|
-| `native-cheap-model` | `anthropic/claude-sonnet-5-5:medium` | Sonnet: cheap, developer, qa, release, sre |
-| `native-luna` | `openai-codex/gpt-6-luna:high` | GPT-6 Luna: tests, research |
-| `native-reviewer-model` | `anthropic/claude-opus-5-5:high` | Opus: reviewer, oracle, architect, security |
-| `native-sol` | `openai-codex/gpt-6.1-sol:medium` | GPT-6.1 Sol, manual override |
-| `native-astra` | `openai-codex/gpt-6-astra:high` | GPT-6 Astra, manual override (Plus allowance is small) |
-| `cliproxy-cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | CLIProxyAPI mirror of `native-cheap-model` |
-| `cliproxy-luna` | `cliproxyapi/gpt-6-luna:high` | CLIProxyAPI mirror of `native-luna` |
-| `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-5-5:high` | CLIProxyAPI mirror of `native-reviewer-model` |
-| `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:medium` | CLIProxyAPI mirror of `native-sol` |
-| `cliproxy-astra` | `cliproxyapi/gpt-6-astra:high` | CLIProxyAPI mirror of `native-astra` |
-| `cheap-model` | `cliproxy-cheap-model` | Standard cheap alias |
-| `scout-model` | `opencode-go/cat-jam-free:medium` | Scout role, direct OpenCode Go route |
-| `developer-model` | `cheap-model` | Developer role |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | Summarizer role |
-| `tests-expert` | `cliproxy-luna` | Tests role through CLIProxyAPI |
-| `researcher-model` | `cliproxy-luna:xhigh` | Research role through CLIProxyAPI |
+| `native-cheap-model` | `openai-codex/gpt-5.6-luna:medium` | Luna routine-work mirror |
+| `native-luna` | `openai-codex/gpt-5.6-luna:high` | Luna deep-work mirror |
+| `native-reviewer-model` | `anthropic/claude-opus-4-6-thinking:medium` | Native manual reviewer reference |
+| `native-sol` | `openai-codex/gpt-6.1-sol:high` | Sol research/tests mirror |
+| `native-astra` | `openai-codex/gpt-6-astra:medium` | Astra manual fallback |
+| `cliproxy-cheap-model` | `cliproxyapi/gpt-5.6-luna:medium` | Routine gateway baseline |
+| `cliproxy-luna` | `cliproxyapi/gpt-5.6-luna:high` | Gateway deep-work baseline |
+| `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-4-6-thinking:medium` | Independent gateway reviewer |
+| `cliproxy-sol` | `cliproxyapi/gpt-6.1-sol:high` | Gateway research/tests route |
+| `cliproxy-astra` | `cliproxyapi/gpt-6-astra:medium` | Gateway manual fallback |
+| `cheap-model` | `cliproxy-cheap-model` | Standard routine alias |
+| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Fast gateway scouting |
+| `developer-model` | `cheap-model` | Developer, QA, release, SRE |
+| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Fast compression |
+| `tests-expert` | `cliproxy-sol:high` | High-confidence test authoring |
+| `researcher-model` | `cliproxy-sol:xhigh` | Deep research and source conflict resolution |
 | `reviewer-model` | `cliproxy-reviewer-model` | Reviewer role |
 | `oracle-model` | `reviewer-model` | Oracle role |
-| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Optional fast Scout alternative |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Optional summarizer alternative |
-| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:high` | Optional research fallback |
-| `gemini-developer-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Optional developer fallback |
-| `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Optional tests fallback |
+| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Fast scouting fallback |
+| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Summarizer fallback |
+| `gemini-researcher-model` | `cliproxyapi/gemini-3-flash:high` | Long-context research fallback |
+| `gemini-developer-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Developer fallback |
+| `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Tests fallback |
 
 **Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
 Fable 5 and 5.1 run on paid usage credits, so none is configured
@@ -389,21 +391,20 @@ takes the high-volume tests and research roles and Astra stays a manual override
 `gpt-5.5` retires from Codex on 2026-10-14 and is not configured.
 
 **Review model and effort (GGA and the reviewer role).** For a gate that runs on
-every commit, speed and cost per review matter. CodeRabbit measured Sonnet 5.5 at
-about 5.5 minutes and $0.47 per review against 6/13 known bugs caught and 41%
-precision, with Opus 5.5 catching 8/13 at standard effort and 10/13 at max
-(<https://www.coderabbit.ai/blog/sonnet-5-5-model-review>). Independent reasoning
-curves show medium to high as the useful step and xhigh as much costlier for a
-small gain (<https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve>).
-GGA nevertheless follows the workflow `reviewer` role: Opus 5.5 at `high` through
-the CLIProxyAPI mirror (`PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"`),
-enforced by `check-config.sh`, with no automatic fallback. Setup and alternatives:
-[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
+every commit, speed, independence, and route health matter. The refreshed
+catalog and smoke probe expose `cliproxyapi/claude-opus-4-6-thinking` with a
+200K context and 64K output budget; the gateway reports thinking as disabled,
+so the configured effort is deliberately `medium`. GGA follows the workflow
+`reviewer` role through the same route
+(`PROVIDER="kilo:cliproxyapi/claude-opus-4-6-thinking:medium"`), enforced by
+`check-config.sh`, with no automatic fallback. Entitlement and quota remain
+UNKNOWN. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
-- Developer and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort; Scout uses OpenCode Go Cat Jam Free at medium effort; Summarizer uses Claude Haiku 5.5 at low effort.
-- Tests and research use GPT-6 Luna so that high-volume work draws on the largest Plus allowance.
-- Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort.
+- Developer and routine quality roles (`developer`, `qa`, `release`, `sre`) use gateway GPT-5.6 Luna at medium effort.
+- Tests use gateway GPT-6.1 Sol at high effort; research uses the same route at xhigh effort and 500K context.
+- Scout uses gateway Gemini 3.8 Flash High at medium effort; summarizer uses Gemini 3.5 Flash Lite at low effort.
+- Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use the independent gateway Claude Opus 4.6 route at medium effort; it is inference-verified but its upstream quota is UNKNOWN.
 
 **Gateway usage:**
 - CLIProxyAPI: Claude roles use the `cliproxy-*` aliases directly. Requires an authenticated dynamic catalog and the gateway running.

@@ -71,10 +71,11 @@ not run such a cycle or auto-adopt proposals.
 
 ## Models and routing
 
-- **Workflow roles use CLIProxyAPI first.** Claude and Codex roles route through the gateway (`cliproxyapi/claude-*` and `cliproxyapi/gpt-6-luna`). Native aliases and catalogs remain available as a manual fallback but are hidden from the active model picker.
+- **Workflow roles use the refreshed CLIProxyAPI matrix.** Routine work uses `cliproxyapi/gpt-5.6-luna:medium`; tests use `cliproxyapi/gpt-6.1-sol:high`; research uses that Sol route at `xhigh`; scouting and summarization use the live Gemini Flash routes. Native aliases remain available as manual fallbacks but are hidden from the active model picker.
 - **OpenCode Go remains direct in Pi.** Its subscription is a separate provider and is not an account that CLIProxyAPI can reuse. The `opencode-max` mode continues to use `opencode-go` directly.
-- **GGA reviews with `kilo:cliproxyapi/claude-opus-5-5:high`**, the CLIProxyAPI reviewer route. It runs through Pi, so it needs no separate Claude or Codex login.
+- **GGA reviews with `kilo:cliproxyapi/claude-opus-4-6-thinking:medium`**, the inference-verified independent gateway reviewer route. It runs through Pi, so it needs no separate Claude or Codex login; entitlement and quota remain UNKNOWN.
 - **Usage:** `setup_env.sh` installs `ccusage`. `ccusage daily` or `/agent-usage` in Pi shows local tokens and API-equivalent cost from the session logs. Pi's footer message `no subscription usage for this provider` is expected: gentle-pi only reads plan quota for `openai-codex`, `anthropic` and `nan`, not `cliproxyapi`.
+- **Role-scoped extension pack:** `gwelinder/pi-extension-pack` is registered once, but role frontmatter selects only the resources each child needs. Coding and test roles receive `bash-fixer`, `tool-fixer`, `codegraph` and `dcg-guard;` research roles receive `codegraph`, `exa` and `rich-fetch`; review/security roles receive `codegraph` with `dcg-guard` where shell execution is allowed. Parent-only memory, routing, telemetry and update resources are not exposed to generic children. Herdr worktrees keep their existing isolated ownership model.
 
 Alias tables, plan limits and effort levels: [pi/agent/MODELS.md](pi/agent/MODELS.md) and [pi/agent/README.md](pi/agent/README.md). Providers, credentials and the full alias mapping: [docs/pi-configuration.md](docs/pi-configuration.md#providers-and-credentials).
 

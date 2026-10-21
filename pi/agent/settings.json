@@ -1,20 +1,22 @@
 {
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "cliproxyapi",
-  "defaultModel": "claude-sonnet-5-5",
-  "defaultThinkingLevel": "medium",
+  "defaultModel": "gpt-5.6-luna",
+  "defaultThinkingLevel": "high",
   "modelThinkingLevels": {
     "anthropic/claude-sonnet-5-5": "medium",
     "anthropic/claude-opus-5-5": "medium",
     "anthropic/claude-opus-4-6-thinking": "medium",
     "anthropic/claude-haiku-5-5": "medium",
-    "openai-codex/gpt-6.1-sol": "medium",
+    "openai-codex/gpt-5.6-luna": "high",
+    "openai-codex/gpt-6.1-sol": "high",
     "openai-codex/gpt-6-luna": "medium",
     "cliproxyapi/claude-sonnet-5-5": "medium",
     "cliproxyapi/claude-opus-5-5": "medium",
     "cliproxyapi/claude-opus-4-6-thinking": "medium",
     "cliproxyapi/claude-haiku-5-5": "medium",
-    "cliproxyapi/gpt-6.1-sol": "medium",
+    "cliproxyapi/gpt-5.6-luna": "high",
+    "cliproxyapi/gpt-6.1-sol": "high",
     "cliproxyapi/gpt-6-luna": "medium",
     "cliproxyapi/gpt-6-sol": "medium",
     "cliproxyapi/gpt-6-astra": "medium",
@@ -52,6 +54,23 @@
     "npm:gentle-engram",
     "npm:@piewf/herdr",
     {
+      "source": "git:github.com/gwelinder/pi-extension-pack",
+      "extensions": [
+        "extensions/bash-fixer/**",
+        "extensions/codegraph/**",
+        "extensions/exa/**",
+        "extensions/rich-fetch/**",
+        "extensions/tool-fixer/**",
+        "extras/dcg-guard/**"
+      ],
+      "skills": [
+        "skills/agent-mail-coordination",
+        "skills/codex-ui-design",
+        "skills/frontend-stack",
+        "skills/nextjs-ubs-review"
+      ]
+    },
+    {
       "source": "npm:@router-for-me/pi-cliproxyapi-provider",
       "extensions": [
         "-extensions/tps.ts"
@@ -59,14 +78,17 @@
     }
   ],
   "enabledModels": [
-    "cliproxyapi/claude-sonnet-5-5",
-    "cliproxyapi/claude-opus-5-5",
+    "cliproxyapi/gpt-5.6-luna",
     "cliproxyapi/gpt-6.1-sol",
-    "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-luna",
+    "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-astra",
-    "cliproxyapi/claude-haiku-5-5",
-    "cliproxyapi/claude-opus-4-6-thinking"
+    "cliproxyapi/claude-opus-4-6-thinking",
+    "cliproxyapi/claude-sonnet-4-6",
+    "cliproxyapi/gemini-3-flash",
+    "cliproxyapi/gemini-3.5-flash-lite",
+    "cliproxyapi/gemini-3.8-flash-high",
+    "cliproxyapi/gpt-oss-120b-medium"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

@@ -2,6 +2,7 @@
 model: researcher-model
 tools: ["!*", read, grep, find, ls, web_search, tool_search]
 description: Researcher. Use for deep research across the codebase, docs, and the web when web tools are available
+extensions: ["**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extensions/exa/**", "**/pi-extension-pack/extensions/rich-fetch/**"]
 ---
 
 Research the requested question in depth. Do not edit files.

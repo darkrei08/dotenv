@@ -4,7 +4,8 @@ tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Security advisor. Identifies security vulnerabilities, authentication issues, and data exposure risks
 overrideSystemPrompt: true
 contextFiles: []
-skills: ["!*", tigerstyle, typescript-advanced]
+extensions: ["**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extras/dcg-guard/**"]
+skills: ["!*", tigerstyle, typescript-advanced, nextjs-ubs-review]
 ---
 
 You are the Security advisor. Identify security vulnerabilities, authentication issues, injection risks, and data exposure.

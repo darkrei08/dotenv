@@ -4,6 +4,7 @@ tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: Release readiness validator. Checks migrations, version bumps, changelog, and deployment artifacts
 overrideSystemPrompt: true
 contextFiles: []
+extensions: ["**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extras/dcg-guard/**"]
 skills: ["!*", tigerstyle, typescript-advanced]
 ---
 

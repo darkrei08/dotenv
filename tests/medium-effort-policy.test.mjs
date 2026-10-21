@@ -18,39 +18,48 @@ function resolveModel(reference, seen = []) {
   return { model: resolved.model, effort: effort ?? resolved.effort };
 }
 
-test("managed aliases, roles and GGA resolve to medium effort", () => {
-  const assignments = Object.keys(aliases).map((name) => [name, resolveModel(name)]);
+test("managed aliases, roles and GGA resolve to the configured model matrix", () => {
+  const expected = {
+    "native-cheap-model": { model: "openai-codex/gpt-5.6-luna", effort: "medium" },
+    "native-luna": { model: "openai-codex/gpt-5.6-luna", effort: "high" },
+    "native-reviewer-model": { model: "anthropic/claude-opus-4-6-thinking", effort: "medium" },
+    "native-sol": { model: "openai-codex/gpt-6.1-sol", effort: "high" },
+    "native-astra": { model: "openai-codex/gpt-6-astra", effort: "medium" },
+    "cliproxy-cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
+    "cliproxy-luna": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
+    "cliproxy-reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
+    "cliproxy-sol": { model: "cliproxyapi/gpt-6.1-sol", effort: "high" },
+    "cliproxy-astra": { model: "cliproxyapi/gpt-6-astra", effort: "medium" },
+    "cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
+    "scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "developer-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
+    "tests-expert": { model: "cliproxyapi/gpt-6.1-sol", effort: "high" },
+    "researcher-model": { model: "cliproxyapi/gpt-6.1-sol", effort: "xhigh" },
+    "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
+    "gemini-scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "gemini-summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
+    "gemini-researcher-model": { model: "cliproxyapi/gemini-3-flash", effort: "high" },
+    "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
+    "oracle-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "medium" },
+  };
+  for (const [name, expectedModel] of Object.entries(expected)) {
+    assert.deepEqual(resolveModel(name), expectedModel, `${name}: unexpected route`);
+  }
   const roles = new URL("pi/agent/pi-ext-roles/roles/", root);
   for (const name of readdirSync(roles).filter((name) => name.endsWith(".md"))) {
     const content = readFileSync(new URL(name, roles), "utf8");
     const model = content.match(/^model:\s*(\S+)\s*$/m)?.[1];
     assert.ok(model, `${name}: missing model declaration`);
-    assignments.push([`role:${name}`, resolveModel(model)]);
+    assert.ok(["low", "medium", "high", "xhigh"].includes(resolveModel(model).effort), `${name}: unsupported effort`);
   }
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];
   assert.ok(gga, "GGA must keep its Pi bridge provider");
-  const reviewer = resolveModel("reviewer-model");
-  const reviewGate = resolveModel(gga);
-  assert.deepEqual(reviewGate, reviewer, "GGA and the reviewer role must use the same model and effort");
-  assignments.push(["GGA", reviewGate]);
-  const settings = JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8"));
-  assignments.push(["Pi:default", { effort: settings.defaultThinkingLevel }]);
-  for (const [model, effort] of Object.entries(settings.modelThinkingLevels)) {
-    assignments.push([`Pi:${model}`, { model, effort }]);
-  }
-  const subagents = JSON.parse(readFileSync(new URL("pi/agent/subagents.json", root), "utf8"));
-  assignments.push(["subagents:default", { effort: subagents.default_effort }]);
-  for (const [name, profile] of Object.entries(subagents.model_profiles)) {
-    assignments.push([`subagents:${name}`, { model: profile.model, effort: profile.effort ?? subagents.default_effort }]);
-  }
-  const { modes } = JSON.parse(readFileSync(new URL("pi/agent/modes.json", root), "utf8"));
-  for (const [name, mode] of Object.entries(modes)) {
-    assignments.push([`mode:${name}`, { model: `${mode.provider}/${mode.modelId}`, effort: mode.thinkingLevel }]);
-  }
-  assert.deepEqual(assignments.filter(([, value]) => value.effort !== "medium"), [], "Only medium effort is permitted");
+  assert.deepEqual(resolveModel(gga), resolveModel("reviewer-model"), "GGA and reviewer must share the route");
 });
 
-test("configuration checker accepts the policy and still rejects mismatched GGA effort without writes", () => {
+test("configuration checker accepts the matrix and rejects mismatched GGA effort without writes", () => {
   const fixture = mkdtempSync(join(tmpdir(), "pi-medium-policy-"));
   try {
     for (const file of ["check-config.sh", "setup_env.sh", ".gga", "pi/agent", "agents/gga-pi"]) {

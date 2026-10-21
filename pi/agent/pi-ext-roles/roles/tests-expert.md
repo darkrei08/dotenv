@@ -2,6 +2,7 @@
 model: tests-expert
 tools: ["!*", read, grep, find, ls, bash, edit, write, view_image, tool_search]
 description: Agent focused in writing/reading tests
+extensions: ["**/pi-extension-pack/extensions/bash-fixer/**", "**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extensions/tool-fixer/**", "**/pi-extension-pack/extras/dcg-guard/**"]
 ---
 
 # Tests Creator Role

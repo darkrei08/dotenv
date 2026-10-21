@@ -24,12 +24,12 @@ The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI
 
 | Role alias | Resolves to | Used by |
 | --- | --- | --- |
-| `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | qa, release, sre |
-| `scout-model` | `opencode-go/cat-jam-free:medium` | scout |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:medium` | summarizer |
+| `cheap-model` | `cliproxyapi/gpt-5.6-luna:medium` | qa, release, sre |
+| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | scout |
+| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | summarizer |
 | `developer-model` | `cheap-model` | developer |
-| `tests-expert` | `cliproxyapi/gpt-6-luna:medium` | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-6-luna:medium` | researcher |
+| `tests-expert` | `cliproxyapi/gpt-6.1-sol:high` | tests-expert |
+| `researcher-model` | `cliproxyapi/gpt-6.1-sol:xhigh` | researcher |
 | `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking:medium` | reviewer, oracle, architect, security |
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
@@ -38,22 +38,19 @@ primary role assignments:
 | Alternative alias | Model:effort | Intended use |
 | --- | --- | --- |
 | `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:medium` | low-cost summarization |
-| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:medium` | long research fallback |
-| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | experimental coding/testing fallback |
+| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
+| `gemini-researcher-model` | `cliproxyapi/gemini-3-flash:high` | long research fallback |
+| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
 
-Managed role aliases, subagent review profiles, optional modes and GGA use
-`medium` effort. This policy changes no provider/model identifiers or role tool
-permissions. GGA retains the CLIProxyAPI mirror of the reviewer role
-(`.gga` and the `agents/gga-pi/` bridge; see
+Managed role aliases, subagent review profiles, optional modes and GGA use the
+configured effort for their route. GGA retains the CLIProxyAPI mirror of the
+reviewer role (`.gga` and the `agents/gga-pi/` bridge; see
 [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)). An unavailable review
 model remains a blocker, not permission to bypass the gate or choose another one.
 
-Verify this policy with `node --test tests/medium-effort-policy.test.mjs` and
+Verify this matrix with `node --test tests/medium-effort-policy.test.mjs` and
 `bash tests/role-tool-policy.sh` from the repository root. Existing sessions
-retain their recorded thinking level: use `/thinking medium` in an idle session
-and verify the confirmation before assigning new work. New workflow calls
-should specify `:medium` explicitly; changing configuration is not proof that
+retain their recorded thinking level; changing configuration is not proof that
 an already-running agent or review has changed effort.
 
 ### CLIProxyAPI
@@ -72,10 +69,10 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 
 | Native | CLIProxyAPI |
 | --- | --- |
-| `native-cheap-model` (Sonnet 5.5 medium) | `cliproxy-cheap-model` → `cliproxyapi/claude-sonnet-5-5:medium` |
-| `native-luna` (GPT-6 Luna medium) | `cliproxy-luna` → `cliproxyapi/gpt-6-luna:medium` |
+| `native-cheap-model` (GPT-5.6 Luna medium) | `cliproxy-cheap-model` → `cliproxyapi/gpt-5.6-luna:medium` |
+| `native-luna` (GPT-5.6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-5.6-luna:high` |
 | `native-reviewer-model` (Opus 4.6 medium) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-4-6-thinking:medium` |
-| `native-sol` (GPT-6.1 Sol medium) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:medium` |
+| `native-sol` (GPT-6.1 Sol high) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:high` |
 | `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
 
 `check-config.sh` fails when a native alias, an enabled model or a startup thinking

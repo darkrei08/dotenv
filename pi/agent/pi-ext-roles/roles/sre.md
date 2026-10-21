@@ -4,6 +4,7 @@ tools: ["!*", read, grep, find, ls, bash, view_image, tool_search]
 description: SRE advisor. Evaluates operational readiness, observability, error handling, and resource management
 overrideSystemPrompt: true
 contextFiles: []
+extensions: ["**/pi-extension-pack/extensions/bash-fixer/**", "**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extensions/tool-fixer/**", "**/pi-extension-pack/extras/dcg-guard/**"]
 skills: ["!*", tigerstyle, typescript-advanced]
 ---
 

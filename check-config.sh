@@ -197,46 +197,47 @@ if ! jq -e '
   failures=1
 fi
 
-# Configured medium-only routing; catalog visibility does not establish plan access:
-# Claude roles resolve through cliproxy-*; native-* Claude aliases stay as the mirror reference.
+# Configured gateway-first routing; catalog visibility does not establish plan access.
+# Each native alias mirrors its CLIProxyAPI route, while role aliases deliberately use
+# the effort supported by the selected model and workload.
 if ! jq -e '
   .modelAliases as $aliases |
-  $aliases["native-cheap-model"] == "anthropic/claude-sonnet-5-5:medium" and
-  $aliases["native-luna"] == "openai-codex/gpt-6-luna:medium" and
+  $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
+  $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
   $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:medium" and
-  $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:medium" and
+  $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:high" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
-  $aliases["cliproxy-cheap-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-6-luna:medium" and
+  $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
+  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:medium" and
-  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
+  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
-  $aliases["scout-model"] == "opencode-go/cat-jam-free:medium" and
+  $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["developer-model"] == "cheap-model" and
-  $aliases["tests-expert"] == "cliproxy-luna" and
-  $aliases["researcher-model"] == "cliproxy-luna:medium" and
-  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:medium" and
+  $aliases["tests-expert"] == "cliproxy-sol:high" and
+  $aliases["researcher-model"] == "cliproxy-sol:xhigh" and
+  $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:medium" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:medium" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3-flash:high" and
+  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["reviewer-model"] == "cliproxy-reviewer-model" and
   $aliases["oracle-model"] == "reviewer-model" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
-  printf '%s: workflow aliases are not the gateway-first policy\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
 if ! jq -e '
-  .defaultProvider == "cliproxyapi" and .defaultModel == "claude-sonnet-5-5" and .defaultThinkingLevel == "medium" and
+  .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
   (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
-  (.enabledModels | index("cliproxyapi/claude-sonnet-5-5") != null) and
-  (.enabledModels | index("cliproxyapi/gpt-6-luna") != null)
+  (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
+  (.enabledModels | index("cliproxyapi/gpt-6.1-sol") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be cliproxyapi Sonnet 5.5 medium with gateway-only enabledModels\n' "$SETTINGS"
+  printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with gateway-only enabledModels\n' "$SETTINGS"
   failures=1
 fi
 

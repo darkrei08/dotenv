@@ -4,7 +4,8 @@ tools: ["!*", read, grep, find, ls, view_image, tool_search]
 description: Reviewer. Use when we need to review decisions or code changes
 overrideSystemPrompt: true
 contextFiles: []
-skills: ["!*", tigerstyle, typescript-advanced, issue-ops]
+extensions: ["**/pi-extension-pack/extensions/codegraph/**"]
+skills: ["!*", tigerstyle, typescript-advanced, issue-ops, nextjs-ubs-review]
 ---
 
 You're Review agent. Inspect a plan, diff, or implementation for correctness issues.
