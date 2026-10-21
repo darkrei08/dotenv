@@ -121,6 +121,13 @@ repository never stores OAuth tokens, API keys, Keeper passwords, or CPA
 management keys. The local CPA and Keeper setup is described in
 `cliproxyapi/README.md`.
 
+## Standalone Subagents De-duplication
+
+To prevent duplicate subagent UI/tools when running alongside Gentle AI, standalone subagents in `pi-extensible-workflows` are disabled through three layers:
+1. Package filter: `settings.json` specifies `{ "source": "npm:pi-extensible-workflows", "extensions": ["!dist/subagents/index.js"] }`.
+2. Runtime toggle: `pi-extensible-workflows/settings.json` configures `"extensionSettings": { "subagents": { "enabled": false } }`.
+3. Process environment: `setup_env.sh` exports `PI_DISABLE_STANDALONE_SUBAGENTS=1` in `~/.bashrc`.
+
 ## Context budget and compaction
 
 Pi compacts when the reported context exceeds `contextWindow - reserveTokens`, not at a fixed percentage. With Pi's default `reserveTokens: 16384` and `keepRecentTokens: 20000`, the approximate trigger is 87.50% for a 131,072-token window, 91.81% for 200,000, and 98.36% for 1,000,000. `keepRecentTokens` controls the retained tail after compaction; it does not change the trigger.

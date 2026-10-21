@@ -264,6 +264,23 @@ sync_pi() {
     printf 'sync_pi: roles/aliases missing after sync (%s)\n' "$target" >&2
     return 1
   fi
+
+  # Idempotently normalize pi-extensible-workflows to exclude standalone subagents UI
+  if [ -f "$target/settings.json" ] && command -v jq >/dev/null 2>&1; then
+    local tmp_settings
+    tmp_settings=$(mktemp)
+    if jq '
+      .packages = [
+        (.packages // [])[] |
+        if . == "npm:pi-extensible-workflows" then
+          { source: "npm:pi-extensible-workflows", extensions: ["!dist/subagents/index.js"] }
+        else . end
+      ]
+    ' "$target/settings.json" > "$tmp_settings" 2>/dev/null; then
+      cat "$tmp_settings" > "$target/settings.json"
+    fi
+    rm -f "$tmp_settings"
+  fi
 }
 
 if [ "$PACKAGE_MANAGER" = debian ]; then
