@@ -14,7 +14,7 @@ carries user integrations that must survive every upstream sync.
 ## Must-not-break user integrations (highest priority)
 
 A change that drops or alters any of these without an explicit instruction is a
-defect:
+defect (the user explicitly authorized issue #70 medium-only policy and claude-opus-4-6-thinking:medium for reviewer and GGA review):
 
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
@@ -23,9 +23,9 @@ defect:
   CLIProxyAPI first, following the `vekexasia/dotenv` role mapping: `developer-model` resolves to
   `cliproxyapi/claude-sonnet-5-5:medium`, `scout-model` intentionally resolves to the direct
   OpenCode Go `opencode-go/cat-jam-free:medium`, `tests-expert` to `cliproxy-luna`
-  (`cliproxyapi/gpt-6-luna:high`), `researcher-model` to `cliproxy-luna:xhigh`,
-  `summarizer-model` to `cliproxyapi/claude-haiku-5-5:low`, and `reviewer-model` (also oracle)
-  to `cliproxyapi/claude-opus-5-5:high`. Explicit `gemini-*` aliases and HA groups are allowed
+  (`cliproxyapi/gpt-6-luna:medium`), `researcher-model` to `cliproxy-luna:medium`,
+  `summarizer-model` to `cliproxyapi/claude-haiku-5-5:medium`, and `reviewer-model` (also oracle)
+  to `cliproxyapi/claude-opus-4-6-thinking:medium` (or `cliproxyapi/claude-opus-5-5:medium` when available). Explicit `gemini-*` aliases and HA groups are allowed
   as alternatives/fallbacks; they do not replace the primary role targets. Native aliases remain
   defined as a manual fallback and native models are hidden from the active picker. Do not
   configure Fable (not included in Claude Pro). Preserve the expanded `skills` list.
@@ -35,7 +35,7 @@ defect:
   catalogs remain defined for manual fallback (Claude and Codex still run through the gateway by default). `pi/agent/subagents.json` follows the same
   Sonnet 5.5 default. `.gga` is the exception: GGA reviews through the Pi bridge in
   `agents/gga-pi/` with the CLIProxyAPI mirror of the workflow `reviewer` role
-  (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; there is
+  (`cliproxyapi/claude-opus-4-6-thinking:medium`), enforced by `check-config.sh`; there is
   no automatic fallback to another model.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses

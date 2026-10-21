@@ -157,31 +157,31 @@ if ! jq -e '
   failures=1
 fi
 
-# Plan-tier routing (Claude Pro + ChatGPT Plus), aligned with vekexasia/dotenv roles:
+# Configured medium-only routing; catalog visibility does not establish plan access:
 # Claude roles resolve through cliproxy-*; native-* Claude aliases stay as the mirror reference.
 if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "anthropic/claude-sonnet-5-5:medium" and
-  $aliases["native-luna"] == "openai-codex/gpt-6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
+  $aliases["native-luna"] == "openai-codex/gpt-6-luna:medium" and
+  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:medium" and
   $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:medium" and
-  $aliases["native-astra"] == "openai-codex/gpt-6-astra:high" and
+  $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-6-luna:high" and
-  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-6-luna:medium" and
+  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:medium" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:medium" and
-  $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:high" and
+  $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "opencode-go/cat-jam-free:medium" and
   $aliases["developer-model"] == "cheap-model" and
   $aliases["tests-expert"] == "cliproxy-luna" and
-  $aliases["researcher-model"] == "cliproxy-luna:xhigh" and
-  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:low" and
+  $aliases["researcher-model"] == "cliproxy-luna:medium" and
+  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:medium" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:high" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:medium" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:medium" and
+  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["reviewer-model"] == "cliproxy-reviewer-model" and
   $aliases["oracle-model"] == "reviewer-model" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)

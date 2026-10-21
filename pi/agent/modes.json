@@ -3,13 +3,13 @@
     "advisor": {
       "provider": "cliproxyapi",
       "modelId": "gpt-6-luna",
-      "thinkingLevel": "high",
+      "thinkingLevel": "medium",
       "autostart": false
     },
     "opencode-max": {
       "provider": "opencode-go",
       "modelId": "deepseek-v4.1-flash",
-      "thinkingLevel": "max",
+      "thinkingLevel": "medium",
       "autostart": false
     }
   }
