@@ -245,7 +245,7 @@ sync_pi() {
   # pi-ext-workflows/node_modules; copying them here without that node_modules
   # breaks `pi` startup ("Cannot find module 'pi-extensible-workflows'").
   if [ -d "$src/extensions" ]; then
-    rsync -a --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
+    rsync -a --exclude='*.test.ts' --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
       "$src/extensions" "$target/"
   fi
   # gentle-pi owns the visual shell; remove the retired local footer override.
