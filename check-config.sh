@@ -137,6 +137,25 @@ if ! jq -e '
   failures=1
 fi
 
+if ! jq -e '
+  any((.packages? // [])[]?;
+    type == "object" and .source == "npm:pi-extensible-workflows" and
+    ((.extensions? // []) |
+      if type == "array" then
+        index("!dist/subagents/index.js") != null
+      else false end))
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: npm:pi-extensible-workflows must be an object with !dist/subagents/index.js excluded\n' "$SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '
+  .extensionSettings.subagents.enabled == false
+' "$ROOT/pi/agent/pi-extensible-workflows/settings.json" >/dev/null 2>&1; then
+  printf '%s: subagents.enabled must be explicitly false under extensionSettings\n' "$ROOT/pi/agent/pi-extensible-workflows/settings.json"
+  failures=1
+fi
+
 versioned_workflows_ok=1
 live_workflows_ok=1
 live_settings_ok=1

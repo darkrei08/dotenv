@@ -50,6 +50,7 @@ defect (the user explicitly authorized issue #70 medium-only policy and claude-o
   reflected in the other (or justified as pi-managed vs npm-managed).
 - Role `extensions` globs in `pi-ext-roles/settings.json` must
   reference packages that are actually installed (settings packages or npm deps).
+- `pi-extensible-workflows` must be registered with `!dist/subagents/index.js` in `settings.json`, and `extensionSettings.subagents.enabled` must be `false` in `pi-extensible-workflows/settings.json` to prevent duplicate subagents UI.
 - Standard model aliases must dereference an available built-in provider;
   explicit CLIProxyAPI aliases may target the dynamic catalog and are validated
   when the provider is authenticated.
