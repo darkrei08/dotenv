@@ -38,6 +38,23 @@ if ! jq -e '
   failures=1
 fi
 
+check_main_compaction_owner() {
+  local path=$1
+  jq -e '
+    [(.packages // [])[]? |
+      (if type == "string" then . else (.source // "") end)] as $packages |
+    ([ $packages[] | select(test("pi-codex-context")) ] | length) == 1 and
+    ([ $packages[] | select(test("pi-vcc")) ] | length) == 0
+  ' "$path" >/dev/null 2>&1
+}
+
+# pi-codex-context owns the main session. pi-vcc remains an npm dependency for
+# workflow-child extensions only and must not be registered in main packages.
+if ! check_main_compaction_owner "$SETTINGS"; then
+  printf '%s: main Pi settings must register exactly pi-codex-context and not pi-vcc\n' "$SETTINGS"
+  failures=1
+fi
+
 if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --json >/dev/null 2>&1; then
   printf '%s: token-budget policy check failed\n' "$ROOT/pi/agent/bin/pi-token-budget.mjs"
   failures=1
@@ -136,6 +153,10 @@ if [[ ! -f "$LIVE_SETTINGS" ]]; then
   live_settings_ok=0
 elif ! check_json_file "$LIVE_SETTINGS"; then
   live_settings_ok=0
+  failures=1
+fi
+if ((live_settings_ok)) && ! check_main_compaction_owner "$LIVE_SETTINGS"; then
+  printf '%s: live main Pi settings must match the pi-codex-context-only compaction policy\n' "$LIVE_SETTINGS"
   failures=1
 fi
 

@@ -6,14 +6,20 @@
   "modelThinkingLevels": {
     "anthropic/claude-sonnet-5-5": "medium",
     "anthropic/claude-opus-5-5": "medium",
+    "anthropic/claude-opus-4-6-thinking": "medium",
+    "anthropic/claude-haiku-5-5": "medium",
     "openai-codex/gpt-6.1-sol": "medium",
     "openai-codex/gpt-6-luna": "medium",
     "cliproxyapi/claude-sonnet-5-5": "medium",
     "cliproxyapi/claude-opus-5-5": "medium",
+    "cliproxyapi/claude-opus-4-6-thinking": "medium",
+    "cliproxyapi/claude-haiku-5-5": "medium",
     "cliproxyapi/gpt-6.1-sol": "medium",
     "cliproxyapi/gpt-6-luna": "medium",
-    "anthropic/claude-opus-4-6-thinking": "medium",
-    "cliproxyapi/claude-opus-4-6-thinking": "medium"
+    "cliproxyapi/gpt-6-sol": "medium",
+    "cliproxyapi/gpt-6-astra": "medium",
+    "openai-codex/gpt-6-sol": "medium",
+    "openai-codex/gpt-6-astra": "medium"
   },
   "theme": "dark",
   "packages": [
@@ -30,7 +36,12 @@
     "npm:pi-tool-display",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",
-    "npm:pi-extensible-workflows",
+    {
+      "source": "npm:pi-extensible-workflows",
+      "extensions": [
+        "!dist/subagents/index.js"
+      ]
+    },
     {
       "source": "npm:gentle-pi",
       "extensions": [
@@ -54,6 +65,7 @@
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-luna",
     "cliproxyapi/gpt-6-astra",
+    "cliproxyapi/claude-haiku-5-5",
     "cliproxyapi/claude-opus-4-6-thinking"
   ],
   "hideThinkingBlock": true,

@@ -132,3 +132,12 @@ For model selection, keep `contextWindow >= 200K` for repository-wide scout work
 Run `pi-token-budget.mjs --json` for an LLM-readable report of compaction arithmetic, static model limits, role requirements, and gateway-dynamic entries marked unverified. Add `--strict` when unverified gateway limits should fail the check.
 
 See the setup-ai [context-budget policy](https://github.com/darkrei08/setup-ai/blob/main/docs/context-budget.md) for the calculation, tuning examples, and verification record.
+
+## Command Artifacts and Pagination
+
+The repository-owned `command-artifacts.ts` extension loads automatically from `pi/agent/extensions/` (rsynced to `~/.pi/agent/extensions/` by `setup_env.sh`). It registers content-addressed Pi `ls` and `grep` tool handlers to preserve complete, deterministic results without loss:
+
+- **Bounded preview and pagination**: When results exceed configured entry/match limits (default 500 for `ls`, 100 for `grep`) or the 50KB byte limit, the tool emits a bounded preview accompanied by exact pagination instructions (`offset` and `limit`).
+- **Authoritative artifact**: The full, untruncated result is preserved in a local, content-addressed file under `/tmp/pi-command-artifacts/` (mode `0600`, outside tracked source). The artifact path is the authoritative complete result; models paginate through it using the built-in `read` tool: `read(path="/tmp/pi-command-artifacts/...", offset=N, limit=M)`.
+- **Shell fallback**: `bash` remains the fallback for arbitrary shell commands, pipelines, and commands that require shell execution semantics.
+- **Safe secrets behavior**: Credential and sensitive files (`.env`, `auth.json`, `ha.json`, `*credential*`, `*secret*`, `.ssh/`, `.aws/`, `.gnupg/`) are rejected on direct search and automatically excluded from directory searches by default.
