@@ -41,7 +41,7 @@ Issue details:
 {issueDetails}`,
         { issueDetails },
       ),
-      { model: "cheap-model", tools: [], outputSchema: batchPlanSchema },
+      { role: "architect", tools: [], outputSchema: batchPlanSchema },
     );
     validateBatches(plan.batches, issues);
 
