@@ -4,19 +4,19 @@
   "model_profiles": {
     "review-risk": {
       "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "high"
+      "effort": "medium"
     },
     "review-resilience": {
       "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "high"
+      "effort": "medium"
     },
     "review-readability": {
       "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "high"
+      "effort": "medium"
     },
     "review-reliability": {
       "model": "cliproxyapi/claude-sonnet-5-5",
-      "effort": "high"
+      "effort": "medium"
     }
   }
 }

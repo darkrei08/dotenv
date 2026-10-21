@@ -5,13 +5,15 @@
   "defaultThinkingLevel": "medium",
   "modelThinkingLevels": {
     "anthropic/claude-sonnet-5-5": "medium",
-    "anthropic/claude-opus-5-5": "high",
+    "anthropic/claude-opus-5-5": "medium",
     "openai-codex/gpt-6.1-sol": "medium",
-    "openai-codex/gpt-6-luna": "high",
+    "openai-codex/gpt-6-luna": "medium",
     "cliproxyapi/claude-sonnet-5-5": "medium",
-    "cliproxyapi/claude-opus-5-5": "high",
+    "cliproxyapi/claude-opus-5-5": "medium",
     "cliproxyapi/gpt-6.1-sol": "medium",
-    "cliproxyapi/gpt-6-luna": "high"
+    "cliproxyapi/gpt-6-luna": "medium",
+    "anthropic/claude-opus-4-6-thinking": "medium",
+    "cliproxyapi/claude-opus-4-6-thinking": "medium"
   },
   "theme": "dark",
   "packages": [
@@ -51,7 +53,8 @@
     "cliproxyapi/gpt-6.1-sol",
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-luna",
-    "cliproxyapi/gpt-6-astra"
+    "cliproxyapi/gpt-6-astra",
+    "cliproxyapi/claude-opus-4-6-thinking"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

@@ -13,11 +13,12 @@ The module-owned package entries in `settings.json` (`pi-extensible-workflows`,
 
 ### Providers
 
-This setup targets Claude Pro and ChatGPT Plus, so only models included in those
-plans are used (Claude Pro includes Opus, Sonnet and Haiku; Fable runs on paid
-usage credits and is not used. ChatGPT Plus includes GPT-6.1 Sol, GPT-6 Sol and
-GPT-6 Luna, plus GPT-6 Astra with a small allowance). Sources:
-<https://claude.com/pricing>, <https://learn.chatgpt.com/docs/pricing>.
+Use `pi-model-fit` before selecting a route. Check the exact provider/model,
+supported thinking levels, authenticated plan and applicable quota separately.
+A catalog entry or a native-provider subscription does not prove access through
+CLIProxyAPI. When entitlement or quota is unknown, keep the existing route
+provisional; do not silently substitute a provider or model. The tables below
+describe configured assignments, not verified availability or plan limits.
 
 The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI, while Scout uses OpenCode Go directly:
 
@@ -25,11 +26,11 @@ The role mapping follows `vekexasia/dotenv`. Claude roles go through CLIProxyAPI
 | --- | --- | --- |
 | `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | qa, release, sre |
 | `scout-model` | `opencode-go/cat-jam-free:medium` | scout |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | summarizer |
+| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:medium` | summarizer |
 | `developer-model` | `cheap-model` | developer |
-| `tests-expert` | `cliproxyapi/gpt-6-luna:high` | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-6-luna:xhigh` | researcher |
-| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5:high` | reviewer, oracle, architect, security |
+| `tests-expert` | `cliproxyapi/gpt-6-luna:medium` | tests-expert |
+| `researcher-model` | `cliproxyapi/gpt-6-luna:medium` | researcher |
+| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking:medium` | reviewer, oracle, architect, security |
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
 primary role assignments:
@@ -37,15 +38,23 @@ primary role assignments:
 | Alternative alias | Model:effort | Intended use |
 | --- | --- | --- |
 | `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
-| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:high` | long research fallback |
-| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
+| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:medium` | low-cost summarization |
+| `gemini-researcher-model` | `cliproxyapi/gemini-pro-agent:medium` | long research fallback |
+| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | experimental coding/testing fallback |
 
-Interactive Pi defaults to `cliproxyapi/claude-sonnet-5-5` at `medium`, as do the
-subagents (`subagents.json`, review lenses at `high`). The `advisor` mode uses
-`openai-codex/gpt-6-luna` at `high`. GGA pre-commit review uses the CLIProxyAPI mirror of
-the `reviewer` role, `cliproxyapi/claude-opus-5-5` at `high` (`.gga` and the
-`agents/gga-pi/` bridge, see [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)).
+Managed role aliases, subagent review profiles, optional modes and GGA use
+`medium` effort. This policy changes no provider/model identifiers or role tool
+permissions. GGA retains the CLIProxyAPI mirror of the reviewer role
+(`.gga` and the `agents/gga-pi/` bridge; see
+[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)). An unavailable review
+model remains a blocker, not permission to bypass the gate or choose another one.
+
+Verify this policy with `node --test tests/medium-effort-policy.test.mjs` and
+`bash tests/role-tool-policy.sh` from the repository root. Existing sessions
+retain their recorded thinking level: use `/thinking medium` in an idle session
+and verify the confirmation before assigning new work. New workflow calls
+should specify `:medium` explicitly; changing configuration is not proof that
+an already-running agent or review has changed effort.
 
 ### CLIProxyAPI
 
@@ -64,10 +73,10 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 | Native | CLIProxyAPI |
 | --- | --- |
 | `native-cheap-model` (Sonnet 5.5 medium) | `cliproxy-cheap-model` → `cliproxyapi/claude-sonnet-5-5:medium` |
-| `native-luna` (GPT-6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-6-luna:high` |
-| `native-reviewer-model` (Opus 5.5 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-5-5:high` |
+| `native-luna` (GPT-6 Luna medium) | `cliproxy-luna` → `cliproxyapi/gpt-6-luna:medium` |
+| `native-reviewer-model` (Opus 4.6 medium) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-4-6-thinking:medium` |
 | `native-sol` (GPT-6.1 Sol medium) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:medium` |
-| `native-astra` (GPT-6 Astra high) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:high` |
+| `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
 
 `check-config.sh` fails when a native alias, an enabled model or a startup thinking
 level has no `cliproxyapi` mirror on the same model and effort, so the two routes

@@ -1,27 +1,6 @@
-# Gentleman Guardian Angel Configuration
-# https://github.com/Gentleman-Programming/gga
-
-# AI provider. GGA has no Pi provider, so reviews go through the repo-owned bridge
-# `agents/gga-pi/bin/kilo`, which GGA runs as its `kilo` provider and which answers
-# with `pi --print` through the CLIProxyAPI gateway (cliproxyapi/* models).
-# The value after `kilo:` is a Pi model pattern with an effort suffix; check-config.sh
-# requires it to match the model and effort resolved from the workflow reviewer role.
-# Start GGA through `agents/gga-pi/run-gga.sh`; the pre-commit hook block in
-# docs/gentle-ai-gga.md does this and falls back to plain `gga run` elsewhere.
-PROVIDER="kilo:cliproxyapi/claude-opus-5-5:high"
-
-# This is a dotfiles / Pi-config repo: bash installer + JSON/TS Pi config +
-# Markdown directives. The generated npm lockfile is excluded (huge, machine
-# derived, and carries pre-existing recursive-path churn).
+PROVIDER="kilo:cliproxyapi/claude-opus-4-6-thinking:medium"
 FILE_PATTERNS="*.sh,*.json,*.ts,*.mjs,*.md,*.lua,*.toml"
 EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
-
-# Dedicated review rules for this repo (not the pi agent AGENTS.md).
 RULES_FILE="REVIEW_RULES.md"
-
-# Strict mode is the fail-closed default: an unparseable verdict blocks the
-# commit instead of passing it.
 STRICT_MODE="true"
-
-# Larger changesets (upstream syncs) need a longer window.
 TIMEOUT="900"
