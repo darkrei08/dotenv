@@ -21,8 +21,8 @@ const report = {
       state: "ready",
       selected: { route: "anthropic/model:high", id: "anthropic/model", provider: "anthropic", model: "model", effort: "high", state: "reachable" },
       entries: [
-        { route: "anthropic/primary:high", id: "anthropic/primary", provider: "anthropic", model: "primary", effort: "high", state: "unavailable" },
-        { route: "anthropic/model:high", id: "anthropic/model", provider: "anthropic", model: "model", effort: "high", state: "reachable" },
+        { route: "anthropic/primary:high", id: "anthropic/primary:high", provider: "anthropic", model: "primary", effort: "high", state: "unavailable" },
+        { route: "anthropic/model:high", id: "anthropic/model:high", provider: "anthropic", model: "model", effort: "high", state: "reachable" },
       ],
     },
   },

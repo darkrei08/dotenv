@@ -3,20 +3,21 @@ import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { fileURLToPath } from "node:url";
 
 const execFile = promisify(execFileCallback);
 export const DEFAULT_REFRESH_MS = 15 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 35 * 1000;
-export const DEFAULT_HA_CONFIG_PATH = fileURLToPath(new URL("../ha-failover.example.json", import.meta.url));
+export const DEFAULT_HA_CONFIG_PATH = join(homedir(), ".pi", "agent", "ha.json");
+
+export function normalizeRouteId(value) {
+  return String(value ?? "").replace(/:(off|minimal|low|medium|high|xhigh|max)$/, "");
+}
 
 export function routeKey(model) {
   const provider = model?.provider;
   const id = model?.modelId ?? model?.id;
   if (!provider || !id) return null;
-  return String(id).replace(/:([A-Za-z][A-Za-z0-9_-]*)$/, "")
-    ? `${provider}/${String(id).replace(/:([A-Za-z][A-Za-z0-9_-]*)$/, "")}`
-    : null;
+  return `${provider}/${normalizeRouteId(id)}`;
 }
 
 export function isFresh(report, now = Date.now()) {
@@ -36,7 +37,7 @@ export function getRefreshIntervalMs(value = process.env.PI_MODEL_PREFLIGHT_REFR
 export function findGroupForRoute(report, currentRoute) {
   if (!currentRoute) return null;
   for (const [groupId, group] of Object.entries(report?.matrix ?? {})) {
-    if ((group.entries ?? []).some((entry) => entry.id === currentRoute)) return groupId;
+    if ((group.entries ?? []).some((entry) => normalizeRouteId(entry.id) === currentRoute)) return groupId;
   }
   return null;
 }
@@ -48,7 +49,7 @@ export function isReady(report, groupId) {
 export function chooseFallback(report, currentRoute, groupId = findGroupForRoute(report, currentRoute)) {
   if (!isReady(report, groupId)) return null;
   const group = report.matrix[groupId];
-  const current = (group.entries ?? []).find((entry) => entry.id === currentRoute);
+  const current = (group.entries ?? []).find((entry) => normalizeRouteId(entry.id) === currentRoute);
   if (!current || current.state === "reachable") return null;
   return group.selected?.state === "reachable" ? group.selected : null;
 }
@@ -177,7 +178,7 @@ export default function modelPreflight(pi, options = {}) {
     const groupId = findGroupForRoute(report, currentRoute);
     if (!groupId) throw new Error(`model preflight blocked: ${currentRoute ?? "current model"} is not bound to a failover group`);
     if (!isReady(report, groupId)) throw new Error(`model preflight blocked: ${groupId} evidence is stale, unknown, or has no reachable fallback`);
-    const current = report.matrix[groupId].entries.find((entry) => entry.id === currentRoute);
+    const current = report.matrix[groupId].entries.find((entry) => normalizeRouteId(entry.id) === currentRoute);
     if (current?.state !== "reachable" && !(await applyFallback(ctx, currentRoute, groupId))) {
       throw new Error(`model preflight blocked: no reachable fallback for ${currentRoute}`);
     }

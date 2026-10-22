@@ -7,6 +7,7 @@ import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
 const aliases = JSON.parse(readFileSync(new URL("pi/agent/pi-ext-roles/settings.json", root), "utf8")).modelAliases;
+const ha = JSON.parse(readFileSync(new URL("pi/agent/ha-failover.example.json", root), "utf8"));
 
 function resolveModel(reference, seen = []) {
   const match = reference.match(/^(.*?)(?::(off|minimal|low|medium|high|xhigh|max))?$/);
@@ -23,12 +24,12 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "native-cheap-model": { model: "openai-codex/gpt-5.6-luna", effort: "medium" },
     "native-luna": { model: "openai-codex/gpt-5.6-luna", effort: "high" },
     "native-reviewer-model": { model: "anthropic/claude-opus-5-5", effort: "high" },
-    "native-sol": { model: "openai-codex/gpt-6.1-sol", effort: "high" },
+    "native-sol": { model: "openai-codex/gpt-6-sol", effort: "high" },
     "native-astra": { model: "openai-codex/gpt-6-astra", effort: "medium" },
     "cliproxy-cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
     "cliproxy-luna": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
     "cliproxy-reviewer-model": { model: "cliproxyapi/claude-opus-5-5", effort: "high" },
-    "cliproxy-sol": { model: "cliproxyapi/gpt-6.1-sol", effort: "high" },
+    "cliproxy-sol": { model: "cliproxyapi/gpt-6-sol", effort: "high" },
     "cliproxy-astra": { model: "cliproxyapi/gpt-6-astra", effort: "medium" },
     "cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
     "scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
@@ -62,7 +63,9 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   }
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];
   assert.ok(gga, "GGA must keep its Pi bridge provider");
-  assert.deepEqual(resolveModel(gga), resolveModel("reviewer-model"), "GGA and reviewer must share the route");
+  const ggaRoute = resolveModel(gga);
+  assert.deepEqual(ggaRoute, { model: "cliproxyapi/gpt-6-luna", effort: "high" });
+  assert.ok(ha.groups.reviewer.entries.some((entry) => entry.id.split(":")[0] === ggaRoute.model), "GGA must use a reviewer HA route");
 });
 
 test("configuration checker accepts the matrix and rejects mismatched GGA effort without writes", () => {
@@ -112,10 +115,9 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const settingsBefore = readFileSync(settingsPath, "utf8");
     const aliasesBefore = readFileSync(aliasesPath, "utf8");
     const invalid = run();
-    const { model } = resolveModel("reviewer-model");
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stderr, "");
-    assert.equal(invalid.stdout, `${ggaPath}: PROVIDER must match the Pi workflow reviewer role (kilo:${model}:high, found: kilo:${model}:medium)\n`);
+    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/gpt-6-luna:medium)\n`);
     assert.equal(readFileSync(ggaPath, "utf8"), rejected);
     assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore);
     assert.equal(readFileSync(aliasesPath, "utf8"), aliasesBefore);

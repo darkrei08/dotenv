@@ -70,29 +70,24 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
 fi
 
 reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-ext-roles/roles/reviewer.md")
-gga_expected=$(jq -er --arg ref "$reviewer_role_model" '
-  .modelAliases as $aliases |
-  def splitref: if test(":.*$") then [sub(":.*$"; ""), match(":([^:]+)$").captures[0].string] else [., null] end;
-  def resolve($ref; $effort; $depth):
-    if $depth > 10 then error("model alias chain exceeds 10 steps") else
-      ($ref | splitref) as $parts |
-      ($effort // $parts[1]) as $resolved_effort |
-      if $aliases[$parts[0]] then resolve($aliases[$parts[0]]; $resolved_effort; $depth + 1)
-      elif ($parts[0] | contains("/")) and ($resolved_effort != null) then {model: $parts[0], effort: $resolved_effort}
-      else error("unresolved model alias or effort") end
-    end;
-  resolve($ref; null; 0) | .model + ":" + .effort | sub("^(anthropic|openai-codex)/"; "cliproxyapi/")
-' "$WORKFLOWS_SETTINGS" 2>/dev/null) || gga_expected=""
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
-gga_model=${gga_expected%:*}
-gga_effort=${gga_expected##*:}
+gga_route=${gga_provider#kilo:}
+gga_model=${gga_route%:*}
+gga_effort=${gga_route##*:}
 if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
 fi
-if [[ -z "$reviewer_role_model" || -z "$gga_expected" || "$gga_provider" != "kilo:$gga_expected" ]]; then
-  printf '%s: PROVIDER must match the Pi workflow reviewer role (kilo:%s, found: %s)\n' \
-    "$GGA_CONFIG" "${gga_expected:-unresolved-model-or-effort}" "${gga_provider:-missing}"
+if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* ]]; then
+  printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
+    "$GGA_CONFIG" "${gga_provider:-missing}"
+  failures=1
+elif ! jq -e --arg route "$gga_route" '
+  (.groups.reviewer.entries // []) |
+  any(.[]; ((.id // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) ==
+    ($route | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")))
+' "$HA_EXAMPLE" >/dev/null 2>&1; then
+  printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -214,12 +209,12 @@ if ! jq -e '
   $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
   $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
   $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
-  $aliases["native-sol"] == "openai-codex/gpt-6.1-sol:high" and
+  $aliases["native-sol"] == "openai-codex/gpt-6-sol:high" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
   $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
-  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6.1-sol:high" and
+  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
@@ -249,7 +244,7 @@ if ! jq -e '
   .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
   (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
   (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
-  (.enabledModels | index("cliproxyapi/gpt-6.1-sol") != null)
+  (.enabledModels | index("cliproxyapi/gpt-6-sol") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with gateway-only enabledModels\n' "$SETTINGS"
   failures=1

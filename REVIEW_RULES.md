@@ -28,13 +28,17 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   `cliproxyapi/claude-haiku-5-5:low`. Explicit `gemini-*` aliases and HA groups are
   allowed as alternatives/fallbacks; they do not replace the primary role targets. Native aliases
   remain defined as a manual fallback and native models are hidden from the active picker. Do not
-  configure Fable (not included in Claude Pro). Preserve the expanded `skills` list.
+  configure Fable (not included in Claude Pro). Preserve the expanded `skills` list. When a primary
+  route is unavailable in the authenticated catalog, the role may use the first reachable route in
+  its committed HA group at the configured effort; this is the explicit failover path, not a silent
+  alias rewrite.
 - `pi/agent/settings.json`: the Pi baseline is `defaultProvider: cliproxyapi`,
   `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`, and matching
   `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native catalogs remain defined
-  for manual fallback. `.gga` remains on the Pi bridge with the CLIProxyAPI mirror of the workflow
-  `reviewer` role (`cliproxyapi/claude-opus-5-5:high`), enforced by `check-config.sh`; there
-  is no automatic fallback to another model.
+  for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer route:
+  it mirrors `cliproxyapi/claude-opus-5-5:high` when available, otherwise the reachable reviewer HA
+  fallback `cliproxyapi/gpt-6-luna:high`. `check-config.sh` requires the route to be enabled and
+  listed in the reviewer HA group.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.

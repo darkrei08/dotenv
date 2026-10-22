@@ -9,59 +9,57 @@
   },
   "groups": {
     "development": {
-      "name": "Development",
+      "name": "development",
       "entries": [
-        { "id": "cliproxyapi/claude-sonnet-5-5" },
-        { "id": "openai-codex/gpt-6-luna" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
-        { "id": "cliproxyapi/gemini-pro-agent" }
+        { "id": "cliproxyapi/claude-sonnet-5-5:medium" },
+        { "id": "cliproxyapi/gpt-6-luna:high" },
+        { "id": "cliproxyapi/gpt-6-sol:medium"},
+        { "id": "cliproxyapi/gemini-pro-agent:high" }
       ]
     },
     "scout": {
-      "name": "Scout fallback",
+      "name": "scout",
       "entries": [
-        { "id": "cliproxyapi/gemini-3.8-flash-high" },
-        { "id": "opencode-go/cat-jam-free" }
+        { "id": "cliproxyapi/gemini-3.8-flash-high:medium" },
+        { "id": "cliproxyapi/gpt-6-luna:medium" }
       ]
     },
     "fast": {
-      "name": "Fast workflow fallback",
+      "name": "fast",
       "entries": [
-        { "id": "cliproxyapi/claude-sonnet-5-5" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high" }
+        { "id": "cliproxyapi/claude-sonnet-5-5:medium" },
+        { "id": "cliproxyapi/gemini-3.8-flash-high:medium" }
       ]
     },
     "research": {
-      "name": "Research fallback",
+      "name": "research",
       "entries": [
-        { "id": "cliproxyapi/gpt-5.6-luna" },
-        { "id": "openai-codex/gpt-6-luna" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
-        { "id": "cliproxyapi/gemini-pro-agent" }
+        { "id": "cliproxyapi/gpt-5.6-luna:xhigh" },
+        { "id": "cliproxyapi/gpt-6-luna:xhigh" },
+        { "id": "cliproxyapi/gemini-pro-agent:high" }
       ]
     },
     "summary": {
-      "name": "Summary fallback",
+      "name": "summary",
       "entries": [
-        { "id": "cliproxyapi/claude-haiku-5-5" },
-        { "id": "cliproxyapi/gemini-3.5-flash-lite" }
+        { "id": "cliproxyapi/claude-haiku-5-5:low" },
+        { "id": "cliproxyapi/gemini-3.5-flash-lite:low" }
       ]
     },
     "testing": {
-      "name": "Testing fallback",
+      "name": "testing",
       "entries": [
-        { "id": "cliproxyapi/gpt-5.6-luna" },
-        { "id": "openai-codex/gpt-6-luna" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high" }
+        { "id": "cliproxyapi/gpt-5.6-luna:high" },
+        { "id": "cliproxyapi/gpt-6-luna:high" },
+        { "id": "cliproxyapi/gemini-3.8-flash-high:high" }
       ]
     },
     "reviewer": {
       "name": "Reviewer fallback",
       "entries": [
-        { "id": "cliproxyapi/claude-opus-5-5" },
-        { "id": "opencode-go/gemini-4-argon-contributor" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high" },
-        { "id": "openai-codex/gpt-6-luna" }
+        { "id": "cliproxyapi/claude-opus-5-5:high" },
+        { "id": "cliproxyapi/gpt-6-luna:high" },
+        { "id": "cliproxyapi/gemini-pro-agent:high" }
       ]
     }
   }
