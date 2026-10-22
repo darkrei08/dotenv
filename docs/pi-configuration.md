@@ -19,7 +19,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `settings.json` entry | Why it is not a plain `pi-packages.txt` line |
 | --- | --- |
 | `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). |
-| `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts` and `extensions/pi-pretty.ts`, the same two exclusions `setup-ai`'s `handle_quiet_tools_conflict` applies at runtime. `npm:pi-tool-display` registers `read`/`bash`/`find`/`grep`/`ls`, and both of those gentle-pi files register the same built-in tool names, which makes `pi` abort at startup with `Tool "read" conflicts with ...`. The manifest line carries the source only. |
+| `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts`, `extensions/pi-pretty.ts`, and `extensions/codegraph-tools.ts`. The first two avoid the visual-shell conflict and the third avoids duplicate `codegraph` registration with `pi-extension-pack`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
@@ -42,7 +42,7 @@ Third-party packages:
 | `npm:pi-markdown-preview` | Rendered markdown and LaTeX preview, terminal/browser/PDF. |
 | `npm:@narumitw/pi-goal` | Autonomous single-objective `/goal` completion. |
 | `git:github.com/DietrichGebert/ponytail` | Lazy-senior-dev ruleset: injects the rules each turn and registers the `/ponytail*` commands. Installed for the other agent CLIs by `agents/install-agent-extensions.sh`. |
-| `npm:pi-tool-display` | Compact tool-call rendering, diff visualization, output truncation. |
+| `npm:pi-tool-display` | Compact tool-call rendering, diff visualization, output truncation. Its ownership config leaves `read`/`edit` to `tool-fixer` and `grep`/`ls` to `command-artifacts`. |
 | `git:github.com/vekexasia/pi-notify@feat/customizable-notifications` | Desktop notifications via OSC 777/99/9 and Windows toast. |
 | `npm dependency: @sting8k/pi-vcc` | Loaded for workflow children through the `pi-extensible-workflows` extensions glob; it is not a Pi package because its second `session_before_compact` provider conflicts with `pi-codex-context`, which requires sole compaction ownership. |
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
@@ -110,7 +110,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: claude-sonnet-5-5`, and `defaultThinkingLevel: medium`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 

@@ -49,7 +49,8 @@
       "source": "npm:gentle-pi",
       "extensions": [
         "-extensions/quiet-tools.ts",
-        "-extensions/pi-pretty.ts"
+        "-extensions/pi-pretty.ts",
+        "-extensions/codegraph-tools.ts"
       ]
     },
     "npm:gentle-engram",

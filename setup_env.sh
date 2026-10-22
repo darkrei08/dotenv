@@ -217,7 +217,11 @@ install_cli_anything_hub() (
 # idempotent and never delete auth.json, sessions/, or pi-managed installs
 # (npm/, packages pi resolves from settings.json).
 sync_pi() {
-  local src="$REPO_DIR/pi/agent" target="$HOME/.pi/agent"
+  local src="$REPO_DIR/pi/agent" target="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
+  case "$target" in
+    '~') target="$HOME" ;;
+    '~/'*) target="$HOME/${target#\~/}" ;;
+  esac
 
   # A leftover symlink from the old model would make rsync write back into the
   # repo; replace it with a real directory first, backing up anything real.
@@ -249,6 +253,9 @@ sync_pi() {
     rsync -a --exclude='*.test.ts' --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
       "$src/extensions" "$target/"
   fi
+  # Pi loads direct TypeScript files as extensions. Remove test files left by older
+  # syncs; they are intentionally excluded above but rsync does not prune them.
+  find "$target/extensions" -maxdepth 1 -type f -name '*.test.ts' -delete
   # gentle-pi owns the visual shell; remove the retired local footer override.
   rm -f "$target/extensions/gentle-bar.ts"
 
@@ -279,6 +286,10 @@ sync_pi() {
       ]
     ' "$target/settings.json" > "$tmp_settings" 2>/dev/null; then
       cat "$tmp_settings" > "$target/settings.json"
+    else
+      printf 'sync_pi: failed to normalize %s\n' "$target/settings.json" >&2
+      rm -f "$tmp_settings"
+      return 1
     fi
     rm -f "$tmp_settings"
   fi

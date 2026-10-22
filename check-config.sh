@@ -7,6 +7,7 @@ GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
+PI_TOOL_DISPLAY_CONFIG="$ROOT/pi/agent/extensions/pi-tool-display/config.json"
 PI_PACKAGE="$ROOT/pi/agent/package.json"
 HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
 HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
@@ -78,7 +79,7 @@ if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels 
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
 fi
-if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* ]]; then
+if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* || "$gga_model" != cliproxyapi/* ]]; then
   printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
     "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
@@ -134,10 +135,19 @@ if ! jq -e '
     ((.extensions? // []) |
       if type == "array" then
         index("-extensions/quiet-tools.ts") != null and
-        index("-extensions/pi-pretty.ts") != null
+        index("-extensions/pi-pretty.ts") != null and
+        index("-extensions/codegraph-tools.ts") != null
       else false end))
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: npm:gentle-pi must be an object with both excluded extensions\n' "$SETTINGS"
+  printf '%s: npm:gentle-pi must be an object with all conflicting extensions excluded\n' "$SETTINGS"
+  failures=1
+fi
+
+if ! jq -e '
+  .registerToolOverrides as $overrides |
+  all(["read", "edit", "grep", "ls"][]; $overrides[.] == false)
+' "$PI_TOOL_DISPLAY_CONFIG" >/dev/null 2>&1; then
+  printf '%s: pi-tool-display must leave command-artifacts and tool-fixer ownership untouched\n' "$PI_TOOL_DISPLAY_CONFIG"
   failures=1
 fi
 
@@ -272,6 +282,13 @@ fi
 
 if ! jq -e '(.providers | has("tuxevil-rotator") | not)' "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
   printf '%s: the retired tuxevil-rotator provider is back in the catalog\n' "$ROOT/pi/agent/models.json"
+  failures=1
+fi
+if ! jq -e '
+  (.providers["openai-codex"].models // [] | map(.id)) as $ids |
+  ($ids | index("gpt-6-luna") != null) and ($ids | index("gpt-6-sol") != null)
+' "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
+  printf '%s: the openai-codex catalog must retain gpt-6-luna and gpt-6-sol\n' "$ROOT/pi/agent/models.json"
   failures=1
 fi
 
