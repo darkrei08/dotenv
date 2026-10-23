@@ -110,7 +110,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps native mirrors and current CLIProxyAPI targets; `enabledModels` lists only catalog-backed CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for review profiles. GGA uses the configured reviewer HA route (`kilo:cliproxyapi/gpt-6-luna:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -135,11 +135,11 @@ Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, 
 
 Workflow roles follow the current `roleRecommendations` source in
 `pi-model-fit/scripts/report.mjs`: developer, QA, release, and SRE use
-`cliproxyapi/claude-sonnet-5-5:medium`; architect, security, reviewer, and oracle
-use `cliproxyapi/claude-opus-5-5:high`; tests use
+`cliproxyapi/claude-sonnet-4-6:off`; architect, security, reviewer, and oracle
+use `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort; tests use
 `cliproxyapi/gpt-5.6-luna:high`; researcher uses the same model at `xhigh`; Scout
 uses `cliproxyapi/gemini-3.8-flash-high:medium`; and summarizer uses
-`cliproxyapi/claude-haiku-5-5:low`. Native aliases remain manual mirrors, and
+`cliproxyapi/gemini-3.5-flash-lite:low`. Native aliases remain manual mirrors, and
 OpenCode Go remains a separate direct provider. These assignments describe
 configuration only: catalog visibility, entitlement, inference, and quota are
 not interchangeable evidence.
@@ -150,7 +150,9 @@ the current model is present in a bound group; an unknown model returns an empty
 list. The `model-preflight.mjs` extension invokes the reusable pi-model-fit
 preflight at session start and through `/model-preflight`, refreshes using the
 TTL cache every 15 minutes by default, and blocks agent routing when evidence is
-stale, unknown, malformed, or unavailable. Set
+stale, unknown, malformed, or unavailable. Use `/model-preflight apply` after an
+explicit refresh request to atomically apply only reachable matrix routes to
+`~/.pi/agent/ha.json`; credentials and non-group HA settings are preserved. Set
 `PI_MODEL_FIT_ROOT` or `PI_MODEL_PREFLIGHT_SCRIPT` to locate the shared
 `preflight.mjs`, `PI_MODEL_PREFLIGHT_CACHE` for the mode-600 cache path,
 `PI_MODEL_PREFLIGHT_HA_CONFIG` for the redacted HA config, and

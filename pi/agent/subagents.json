@@ -1,22 +1,22 @@
 {
-  "default_model": "cliproxyapi/claude-sonnet-5-5",
+  "default_model": "cliproxyapi/claude-sonnet-4-6",
   "default_effort": "medium",
   "model_profiles": {
     "review-risk": {
-      "model": "cliproxyapi/claude-opus-5-5",
-      "effort": "high"
+      "model": "cliproxyapi/claude-opus-4-6-thinking",
+      "effort": "off"
     },
     "review-resilience": {
-      "model": "cliproxyapi/claude-opus-5-5",
-      "effort": "high"
+      "model": "cliproxyapi/claude-opus-4-6-thinking",
+      "effort": "off"
     },
     "review-readability": {
-      "model": "cliproxyapi/claude-opus-5-5",
-      "effort": "high"
+      "model": "cliproxyapi/claude-opus-4-6-thinking",
+      "effort": "off"
     },
     "review-reliability": {
-      "model": "cliproxyapi/claude-opus-5-5",
-      "effort": "high"
+      "model": "cliproxyapi/claude-opus-4-6-thinking",
+      "effort": "off"
     }
   }
 }

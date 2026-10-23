@@ -1,5 +1,5 @@
 import { execFile as execFileCallback } from "node:child_process";
-import { existsSync } from "node:fs";
+import { chmodSync, existsSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -7,7 +7,13 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 export const DEFAULT_REFRESH_MS = 15 * 60 * 1000;
 const DEFAULT_TIMEOUT_MS = 35 * 1000;
+const MAX_TIMEOUT_MS = 5 * 60 * 1000;
 export const DEFAULT_HA_CONFIG_PATH = join(homedir(), ".pi", "agent", "ha.json");
+const CONFIG_LOCK_OPTIONS = {
+  retries: { retries: 10, factor: 2, minTimeout: 100, maxTimeout: 10_000, randomize: true },
+  stale: 30_000,
+  realpath: false,
+};
 
 export function normalizeRouteId(value) {
   return String(value ?? "").replace(/:(off|minimal|low|medium|high|xhigh|max)$/, "");
@@ -32,6 +38,12 @@ export function getRefreshIntervalMs(value = process.env.PI_MODEL_PREFLIGHT_REFR
   const parsed = Number(value ?? DEFAULT_REFRESH_MS);
   if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_REFRESH_MS;
   return Math.max(60_000, parsed);
+}
+
+export function getTimeoutMs(value = process.env.PI_MODEL_PREFLIGHT_TIMEOUT_MS) {
+  const parsed = Number(value ?? DEFAULT_TIMEOUT_MS);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_TIMEOUT_MS;
+  return Math.min(MAX_TIMEOUT_MS, parsed);
 }
 
 export function findGroupForRoute(report, currentRoute) {
@@ -90,12 +102,74 @@ export async function runPreflightCommand({
   args.push("--ha-config", env.PI_MODEL_PREFLIGHT_HA_CONFIG ?? DEFAULT_HA_CONFIG_PATH);
   const result = await execImpl("node", args, {
     encoding: "utf8",
-    timeout: Number(env.PI_MODEL_PREFLIGHT_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS),
+    timeout: getTimeoutMs(env.PI_MODEL_PREFLIGHT_TIMEOUT_MS),
     maxBuffer: 2 * 1024 * 1024,
     windowsHide: true,
     env,
   });
   return parsePreflightOutput(result.stdout ?? result);
+}
+
+export function applyMatrixToConfig(config, report) {
+  if (report?.probe?.status !== "ok") throw new Error("cannot apply an unknown model matrix");
+  const matrix = report.matrix ?? {};
+  if (Object.keys(matrix).length === 0) throw new Error("cannot apply an empty model matrix");
+  const groups = { ...(config.groups ?? {}) };
+  for (const [groupId, group] of Object.entries(matrix)) {
+    if (group?.state !== "ready") throw new Error(`cannot apply blocked failover group: ${groupId}`);
+    const entries = (group.entries ?? [])
+      .filter((entry) => entry.state === "reachable" && entry.route)
+      .map((entry) => ({ id: entry.route }));
+    if (entries.length === 0) throw new Error(`cannot apply failover group without reachable routes: ${groupId}`);
+    groups[groupId] = {
+      ...(config.groups?.[groupId] ?? {}),
+      name: group.name ?? config.groups?.[groupId]?.name ?? groupId,
+      entries,
+    };
+  }
+  return { ...config, groups };
+}
+
+async function loadLockfile(lockImpl) {
+  if (lockImpl) return lockImpl;
+  try {
+    const module = await import("proper-lockfile");
+    return module.default ?? module;
+  } catch {
+    throw new Error("proper-lockfile is unavailable; refusing to modify the HA config");
+  }
+}
+
+export async function applyMatrixToHaConfig({
+  configPath = DEFAULT_HA_CONFIG_PATH,
+  report,
+  lockImpl,
+} = {}) {
+  const lockfile = await loadLockfile(lockImpl);
+  if (!lockfile?.lock) throw new Error("HA config locking is unavailable; refusing to modify the HA config");
+  const release = await lockfile.lock(configPath, CONFIG_LOCK_OPTIONS);
+  const temporaryPath = `${configPath}.${process.pid}.tmp`;
+  try {
+    const current = JSON.parse(readFileSync(configPath, "utf8"));
+    const updated = applyMatrixToConfig(current, report);
+    writeFileSync(temporaryPath, `${JSON.stringify(updated, null, 2)}\n`, { encoding: "utf8", mode: 0o600 });
+    chmodSync(temporaryPath, statSync(configPath).mode & 0o777);
+    renameSync(temporaryPath, configPath);
+    return updated;
+  } catch (error) {
+    try {
+      unlinkSync(temporaryPath);
+    } catch (cleanupError) {
+      if (cleanupError?.code !== "ENOENT") {
+        const originalMessage = error instanceof Error ? error.message : "unknown HA config error";
+        const cleanupMessage = cleanupError instanceof Error ? cleanupError.message : "unknown cleanup error";
+        throw new Error(`${originalMessage}; could not remove temporary HA config: ${cleanupMessage}`);
+      }
+    }
+    throw error;
+  } finally {
+    await release();
+  }
 }
 
 function statusMessage(report) {
@@ -107,6 +181,8 @@ function statusMessage(report) {
 export default function modelPreflight(pi, options = {}) {
   const runCommand = options.runCommand ?? runPreflightCommand;
   const now = options.now ?? (() => Date.now());
+  const haConfigPath = options.haConfigPath ?? DEFAULT_HA_CONFIG_PATH;
+  const lockImpl = options.lockImpl;
   let report = null;
   let refreshPromise = null;
   let timer = null;
@@ -144,10 +220,17 @@ export default function modelPreflight(pi, options = {}) {
   };
 
   pi.registerCommand("model-preflight", {
-    description: "Refresh and show the redacted model availability matrix",
-    handler: async (_args, ctx) => {
+    description: "Refresh and show the redacted model matrix; use 'apply' to update HA routes",
+    handler: async (args, ctx) => {
       try {
         const value = await refresh(true);
+        if (String(args ?? "").trim().toLowerCase() === "apply") {
+          if (typeof ctx.reload !== "function") throw new Error("runtime reload is unavailable; refusing to leave HA state stale");
+          await applyMatrixToHaConfig({ configPath: haConfigPath, report: value, lockImpl });
+          await ctx.reload();
+          ctx.ui.notify(`${statusMessage(value)}; applied reachable routes to HA`, "info");
+          return;
+        }
         ctx.ui.notify(statusMessage(value), value.probe.status === "ok" ? "info" : "warning");
       } catch (error) {
         ctx.ui.notify(`Model preflight blocked: ${error instanceof Error ? error.message : "unavailable"}`, "error");
@@ -164,7 +247,12 @@ export default function modelPreflight(pi, options = {}) {
       ctx.ui.notify(`Model preflight blocked: ${error instanceof Error ? error.message : "unavailable"}`, "error");
     }
     const refreshMs = getRefreshIntervalMs();
-    timer = setInterval(() => { refresh(false).catch(() => { report = null; }); }, refreshMs);
+    timer = setInterval(() => {
+      refresh(false).catch((error) => {
+        report = null;
+        ctx.ui.notify(`Model preflight refresh failed: ${error instanceof Error ? error.message : "unavailable"}`, "warning");
+      });
+    }, refreshMs);
     timer.unref?.();
   });
 

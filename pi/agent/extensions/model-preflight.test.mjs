@@ -1,8 +1,14 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 import modelPreflight, {
   DEFAULT_HA_CONFIG_PATH,
   DEFAULT_REFRESH_MS,
+  getTimeoutMs,
+  applyMatrixToConfig,
+  applyMatrixToHaConfig,
   chooseFallback,
   getRefreshIntervalMs,
   isFresh,
@@ -69,6 +75,79 @@ test("parses valid output and rejects malformed output", () => {
   assert.throws(() => parsePreflightOutput("not-json"), /invalid|Unexpected/);
 });
 
+test("applies reachable matrix routes without changing credentials or other HA settings", () => {
+  const config = {
+    defaultGroup: "development",
+    credentials: { cliproxyapi: { primary: { refresh: "secret" } } },
+    errorHandling: { maxRetriesPerTurn: 2 },
+    groups: {
+      development: { name: "old", entries: [{ id: "old/model" }] },
+      legacy: { name: "legacy", entries: [{ id: "legacy/model" }] },
+    },
+  };
+  const updated = applyMatrixToConfig(config, report);
+  assert.deepEqual(updated.groups.development.entries, [{ id: "anthropic/model:high" }]);
+  assert.deepEqual(updated.groups.legacy, config.groups.legacy);
+  assert.equal(updated.groups.development.name, "old");
+  assert.deepEqual(updated.credentials, config.credentials);
+  assert.deepEqual(updated.errorHandling, config.errorHandling);
+  assert.equal(updated.defaultGroup, "development");
+});
+
+test("refuses to apply blocked groups", () => {
+  assert.throws(
+    () => applyMatrixToConfig({ groups: {} }, { ...report, matrix: { development: { state: "blocked", entries: [] } } }),
+    /blocked failover group/,
+  );
+});
+
+test("the explicit apply command refreshes and atomically preserves the live HA config", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-model-preflight-apply-"));
+  const configPath = join(root, "ha.json");
+  const original = {
+    defaultGroup: "development",
+    credentials: { cliproxyapi: { primary: { refresh: "secret" } } },
+    groups: { development: { name: "old", entries: [{ id: "old/model" }] } },
+  };
+  writeFileSync(configPath, `${JSON.stringify(original)}\n`);
+  let released = false;
+  const lockImpl = { lock: async () => async () => { released = true; } };
+  let reloaded = false;
+  const pi = fakePi();
+  modelPreflight(pi, {
+    now: () => Date.parse("2026-10-22T00:14:00.000Z"),
+    haConfigPath: configPath,
+    lockImpl,
+    runCommand: async () => report,
+  });
+  await pi.commands.get("model-preflight").handler("apply", {
+    ...ctx(),
+    ui: { notify() {} },
+    reload: async () => { reloaded = true; },
+  });
+  const updated = JSON.parse(readFileSync(configPath, "utf8"));
+  assert.deepEqual(updated.groups.development.entries, [{ id: "anthropic/model:high" }]);
+  assert.deepEqual(updated.credentials, original.credentials);
+  assert.equal(reloaded, true);
+  assert.equal(released, true);
+});
+
+test("unknown evidence leaves the HA config untouched", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-model-preflight-no-apply-"));
+  const configPath = join(root, "ha.json");
+  const original = JSON.stringify({ credentials: { cliproxyapi: { primary: { refresh: "secret" } } }, groups: {} });
+  writeFileSync(configPath, `${original}\n`);
+  const pi = fakePi();
+  modelPreflight(pi, {
+    now: () => Date.parse("2026-10-22T00:14:00.000Z"),
+    haConfigPath: configPath,
+    lockImpl: { lock: async () => { throw new Error("lock must not be acquired"); } },
+    runCommand: async () => ({ ...report, probe: { status: "unknown" } }),
+  });
+  await pi.commands.get("model-preflight").handler("apply", { ...ctx(), ui: { notify() {} } });
+  assert.equal(readFileSync(configPath, "utf8"), `${original}\n`);
+});
+
 test("uses an explicit preflight script and bounded command", async () => {
   let invocation;
   const value = await runPreflightCommand({
@@ -87,6 +166,8 @@ test("uses an explicit preflight script and bounded command", async () => {
 });
 
 test("bounds malformed and non-finite refresh intervals to a safe default", () => {
+  assert.equal(getTimeoutMs("not-a-number"), 35_000);
+  assert.equal(getTimeoutMs("999999999"), 300_000);
   assert.equal(getRefreshIntervalMs("not-a-number"), DEFAULT_REFRESH_MS);
   assert.equal(getRefreshIntervalMs("Infinity"), DEFAULT_REFRESH_MS);
   assert.equal(getRefreshIntervalMs("0"), DEFAULT_REFRESH_MS);
