@@ -21,30 +21,34 @@ const integrationResultSchema = Type.Object(
     issue: Type.Integer(),
     status: Type.Union([
       Type.Literal("integrated"),
+      Type.Literal("integration-ready"),
       Type.Literal("failed"),
       Type.Literal("not-approved"),
     ]),
     stage: Type.String(),
     findings: Type.Array(Type.String()),
+    mainHead: Type.Optional(Type.String()),
+    reviewedHead: Type.Optional(Type.String()),
   },
   { additionalProperties: false },
 );
 
 export const developIssues = defineWorkflowFunction({
   description:
-    "Develop issues in parallel worktrees and integrate approved results in readiness order",
+    "Develop issues in parallel worktrees and return reviewed branches for Master-owned integration",
   async run(
     { issueDetails, maxIterations = 5 },
     { agent, log, invoke, phase, shell, parallel, prompt, withWorktree, run },
   ) {
     const tasks: Record<string, () => Promise<IssueResult>> = {};
     let integrationTail: Promise<unknown> = Promise.resolve();
-    let firstIntegrationFailure: string | undefined;
+    const integrationOrder: number[] = [];
 
     const enqueueIntegration = (
       issue: IssueDetail,
       worktree: WorkflowWorktreeReference,
     ): Promise<IntegrationResult> => {
+      integrationOrder.push(issue.number);
       const queued = integrationTail.then(async () => {
         const result = await integrateIssue(
           issue,
@@ -53,14 +57,10 @@ export const developIssues = defineWorkflowFunction({
           maxIterations,
           { invoke, shell },
         );
-        if (
-          result.status === "failed" &&
-          firstIntegrationFailure === undefined
-        ) {
-          const message = `Integration failed for issue #${String(result.issue)} at ${result.stage}: ${result.findings.join("; ")} Worktree retained: ${worktree.path} (${worktree.branch}).`;
-          firstIntegrationFailure = message;
-          log(message);
-        }
+        if (result.status === "failed")
+          log(
+            `Integration failed for issue #${String(result.issue)} at ${result.stage}: ${result.findings.join("; ")} Worktree retained: ${worktree.path} (${worktree.branch}).`,
+          );
         return result;
       });
       integrationTail = queued;
@@ -98,24 +98,11 @@ export const developIssues = defineWorkflowFunction({
     if (failedIssueNames.length > 0)
       log(`Skipping failed issue worktrees: ${failedIssueNames.join(", ")}`);
 
-    const integratedWorktrees = entries
-      .filter(([, result]) => result.integration.status === "integrated")
-      .map(([, result]) => result.worktree);
-    let cleanupFailure: string | undefined;
-    if (integratedWorktrees.length === 0) {
-      log("No successfully integrated issue worktrees to clean up");
-    } else {
-      const cleanup = await cleanupMergedWorktrees(shell, integratedWorktrees);
-      log(`Integrated worktree cleanup: ${JSON.stringify(cleanup)}`);
-      if (cleanup.failed.length > 0)
-        cleanupFailure = `Worktree cleanup failed: ${cleanup.failed.join("; ")}`;
-    }
-
     phase("summary");
     const issues = issueDetails.map((issue) => issue.number);
     const summary = await agent(
       prompt(
-        `Summarize what succeeded, what failed review, what was tested, and what was integrated. Do not change files.
+        `Summarize what succeeded, what failed review, and what is ready for Master-owned integration. Do not change files.
 
 Issues:
 {issues}
@@ -134,11 +121,7 @@ Failed issues:
       { role: "summarizer" },
     );
 
-    if (firstIntegrationFailure !== undefined)
-      throw new Error(firstIntegrationFailure);
-    if (cleanupFailure !== undefined) throw new Error(cleanupFailure);
-
-    return { issues, issueResults, summary };
+    return { issues, issueResults, integrationOrder, summary };
   },
   input: Type.Object(
     {
@@ -166,6 +149,7 @@ Failed issues:
           ),
         },
       ),
+      integrationOrder: Type.Array(Type.Integer()),
       summary: Type.Any(),
     },
     { additionalProperties: false },
@@ -174,6 +158,89 @@ Failed issues:
 
 export const developIssuesInputSchema = developIssues.input;
 export const developIssuesOutputSchema = developIssues.output;
+const issueResultsSchema = developIssues.output.properties.issueResults;
+const cleanupSchema = Type.Object(
+  {
+    removed: Type.Array(Type.String()),
+    skipped: Type.Array(Type.String()),
+    failed: Type.Array(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+export const integrateReviewedIssues = defineWorkflowFunction({
+  description:
+    "Master-owned re-review, fast-forward, and cleanup for reviewed issue worktrees",
+  async run(
+    { issueResults, integrationOrder, issueDetails, maxIterations = 5 },
+    { log, phase, shell, run, invoke },
+  ) {
+    const updatedResults = { ...issueResults } as Record<string, IssueResult>;
+    const detailsByIssue = new Map(issueDetails.map((issue) => [issue.number, issue]));
+    const integratedWorktrees: WorkflowWorktreeReference[] = [];
+
+    phase("master-integration");
+    for (const issue of integrationOrder) {
+      const entry = Object.entries(updatedResults).find(
+        ([, result]) => result.integration.issue === issue,
+      );
+      if (!entry) continue;
+      const [name, result] = entry;
+      if (result.integration.status === "integrated") {
+        integratedWorktrees.push(result.worktree);
+        continue;
+      }
+      if (result.integration.status !== "integration-ready") continue;
+
+      const detail = detailsByIssue.get(issue);
+      const reviewed = detail
+        ? await integrateIssue(
+            detail,
+            result.worktree,
+            run.cwd,
+            maxIterations,
+            { invoke, shell },
+          )
+        : integrationResult(
+            issue,
+            "failed",
+            "master-precondition",
+            ["Issue details were not supplied for Master re-review"],
+          );
+      const integration =
+        reviewed.status === "integration-ready"
+          ? await fastForwardIssue(reviewed, result.worktree, run.cwd, shell)
+          : reviewed;
+      updatedResults[name] = { ...result, integration };
+      if (integration.status === "integrated")
+        integratedWorktrees.push(result.worktree);
+    }
+
+    const cleanup = await cleanupMergedWorktrees(
+      shell,
+      run.cwd,
+      integratedWorktrees,
+    );
+    log(`Master integration cleanup: ${JSON.stringify(cleanup)}`);
+    return { issueResults: updatedResults, cleanup };
+  },
+  input: Type.Object(
+    {
+      issueResults: issueResultsSchema,
+      integrationOrder: Type.Array(Type.Integer()),
+      issueDetails: fetchIssueDetailsOutputSchema.properties.issueDetails,
+      maxIterations: reviewLoopInputSchema.properties.maxIterations,
+    },
+    { additionalProperties: false },
+  ),
+  output: Type.Object(
+    { issueResults: issueResultsSchema, cleanup: cleanupSchema },
+    { additionalProperties: false },
+  ),
+});
+
+export const integrateReviewedIssuesInputSchema = integrateReviewedIssues.input;
+export const integrateReviewedIssuesOutputSchema = integrateReviewedIssues.output;
 
 type IntegrationResult = Static<typeof integrationResultSchema>;
 
@@ -358,18 +425,97 @@ Resolve any rebase conflicts in the current issue worktree, complete the integra
     if (mainHeadAfterReview.stdout.trim() !== capturedMainHead)
       return fail(["Main HEAD changed during integration review"]);
 
-    stage = "fast-forward";
-    const fastForward = await shell(
-      'test -z "$(git -C "$PI_MAIN_PATH" status --porcelain)" && test "$(git -C "$PI_MAIN_PATH" rev-parse --verify HEAD)" = "$PI_MAIN_HEAD" && git -C "$PI_MAIN_PATH" merge-base --is-ancestor "$PI_MAIN_HEAD" "$PI_REVIEWED_HEAD" && git -C "$PI_MAIN_PATH" merge --ff-only "$PI_REVIEWED_HEAD"',
-      options,
-    );
-    if (fastForward.exitCode !== 0)
-      return fail([shellFailure("fast-forward", fastForward)]);
-
-    return integrationResult(issue.number, "integrated", "fast-forward", []);
+    return {
+      ...integrationResult(issue.number, "integration-ready", "review", []),
+      mainHead: capturedMainHead,
+      reviewedHead: branchHead.stdout.trim(),
+    };
   } catch (error) {
     return fail([errorMessage(error)]);
   }
+}
+
+async function fastForwardIssue(
+  prepared: IntegrationResult,
+  worktree: WorkflowWorktreeReference,
+  mainPath: string,
+  shell: WorkflowFunctionContext["shell"],
+): Promise<IntegrationResult> {
+  let stage = "master-precondition";
+  const fail = (findings: readonly string[]): IntegrationResult =>
+    integrationResult(
+      prepared.issue,
+      "failed",
+      stage,
+      findings.length > 0 ? findings : ["Integration failed without findings"],
+    );
+  const options = {
+    env: {
+      PI_MAIN_PATH: mainPath,
+      PI_WORKTREE_PATH: worktree.path,
+      PI_WORKTREE_BRANCH: worktree.branch,
+      PI_MAIN_HEAD: prepared.mainHead ?? "",
+      PI_REVIEWED_HEAD: prepared.reviewedHead ?? "",
+    },
+  };
+
+  if (!prepared.mainHead || !prepared.reviewedHead)
+    return fail(["Reviewed integration evidence is incomplete"]);
+  const mainStatus = await shell(
+    'git -C "$PI_MAIN_PATH" status --porcelain',
+    options,
+  );
+  if (mainStatus.exitCode !== 0)
+    return fail([shellFailure("main status", mainStatus)]);
+  if (mainStatus.stdout.trim()) return fail(["Main working tree is not clean"]);
+
+  const mainHead = await shell(
+    'git -C "$PI_MAIN_PATH" rev-parse --verify HEAD',
+    options,
+  );
+  if (mainHead.exitCode !== 0)
+    return fail([shellFailure("main HEAD", mainHead)]);
+  if (mainHead.stdout.trim() !== prepared.mainHead)
+    return fail(["Main HEAD changed after integration review"]);
+
+  stage = "master-worktree";
+  const worktreeStatus = await shell(
+    'git -C "$PI_WORKTREE_PATH" status --porcelain',
+    options,
+  );
+  if (worktreeStatus.exitCode !== 0)
+    return fail([shellFailure("issue worktree status", worktreeStatus)]);
+  if (worktreeStatus.stdout.trim())
+    return fail(["Issue worktree is dirty after integration review"]);
+
+  const branchHead = await shell(
+    'git -C "$PI_WORKTREE_PATH" rev-parse --verify "$PI_WORKTREE_BRANCH"',
+    options,
+  );
+  if (branchHead.exitCode !== 0)
+    return fail([shellFailure("reviewed branch HEAD", branchHead)]);
+  if (branchHead.stdout.trim() !== prepared.reviewedHead)
+    return fail(["Reviewed branch HEAD changed after integration review"]);
+
+  stage = "master-fast-forward";
+  const ancestry = await shell(
+    'git -C "$PI_MAIN_PATH" merge-base --is-ancestor "$PI_MAIN_HEAD" "$PI_REVIEWED_HEAD"',
+    options,
+  );
+  if (ancestry.exitCode !== 0)
+    return fail([shellFailure("reviewed branch ancestry", ancestry)]);
+  const fastForward = await shell(
+    'git -C "$PI_MAIN_PATH" merge --ff-only "$PI_REVIEWED_HEAD"',
+    options,
+  );
+  if (fastForward.exitCode !== 0)
+    return fail([shellFailure("fast-forward", fastForward)]);
+
+  return {
+    ...prepared,
+    status: "integrated",
+    stage: "fast-forward",
+  };
 }
 
 function shellFailure(name: string, result: ShellResult): string {
@@ -380,6 +526,7 @@ function shellFailure(name: string, result: ShellResult): string {
 
 async function cleanupMergedWorktrees(
   shell: WorkflowFunctionContext["shell"],
+  mainPath: string,
   references: readonly WorkflowWorktreeReference[],
 ): Promise<WorktreeCleanup> {
   const cleanup: WorktreeCleanup = { removed: [], skipped: [], failed: [] };
@@ -388,12 +535,13 @@ async function cleanupMergedWorktrees(
     const name = reference.branch;
     const options = {
       env: {
+        PI_MAIN_PATH: mainPath,
         PI_WORKTREE_BRANCH: reference.branch,
         PI_WORKTREE_PATH: reference.path,
       },
     };
     const ancestry = await shell(
-      'git merge-base --is-ancestor "$PI_WORKTREE_BRANCH" HEAD',
+      'git -C "$PI_MAIN_PATH" merge-base --is-ancestor "$PI_WORKTREE_BRANCH" HEAD',
       options,
     );
 

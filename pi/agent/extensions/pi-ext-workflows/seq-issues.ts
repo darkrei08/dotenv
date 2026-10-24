@@ -9,7 +9,12 @@ import {
   fetchIssueDetailsInputSchema,
   fetchIssueDetailsOutputSchema,
 } from "./fetch-issue-details.js";
-import { developIssues, developIssuesOutputSchema } from "./develop-issues.js";
+import {
+  developIssues,
+  developIssuesOutputSchema,
+  integrateReviewedIssues,
+  integrateReviewedIssuesOutputSchema,
+} from "./develop-issues.js";
 import { reviewLoopInputSchema } from "./review-loop.js";
 
 const masterNarrativeSchema = Type.Object(
@@ -30,6 +35,17 @@ export const masterSummarySchema = Type.Object(
     failedIssues: Type.Integer({ minimum: 0 }),
     batchCount: Type.Integer({ minimum: 0 }),
     summary: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+const batchResultSchema = Type.Object(
+  {
+    issues: developIssuesOutputSchema.properties.issues,
+    issueResults: developIssuesOutputSchema.properties.issueResults,
+    integrationOrder: developIssuesOutputSchema.properties.integrationOrder,
+    summary: developIssuesOutputSchema.properties.summary,
+    cleanup: integrateReviewedIssuesOutputSchema.properties.cleanup,
   },
   { additionalProperties: false },
 );
@@ -70,7 +86,7 @@ Issue details:
     const detailsByNumber = new Map(
       issueDetails.map((issue) => [issue.number, issue]),
     );
-    const batchResults: Static<typeof developIssuesOutputSchema>[] = [];
+    const batchResults: Static<typeof batchResultSchema>[] = [];
     for (const [index, batch] of plan.batches.entries()) {
       phase(`batch-${index + 1}`);
       log(`Developing batch ${index + 1}/${plan.batches.length}`);
@@ -82,12 +98,25 @@ Issue details:
           );
         return detail;
       });
-      batchResults.push(
-        await developIssues.run(
-          { issueDetails: batchDetails, maxIterations },
-          context,
-        ),
+      const batchResult = await developIssues.run(
+        { issueDetails: batchDetails, maxIterations },
+        context,
       );
+      const integrated = await invoke("integrateReviewedIssues", {
+        issueResults: batchResult.issueResults,
+        integrationOrder: batchResult.integrationOrder,
+        issueDetails: batchDetails,
+        maxIterations,
+      });
+      if (!Value.Check(integrateReviewedIssuesOutputSchema, integrated))
+        throw new Error(
+          "integrateReviewedIssues returned an unexpected result",
+        );
+      batchResults.push({
+        ...batchResult,
+        issueResults: integrated.issueResults,
+        cleanup: integrated.cleanup,
+      });
     }
 
     phase("master-summary");
@@ -103,7 +132,12 @@ Issue details:
     const failedIssues = issueResults.filter(
       (result) => result.integration.status === "failed",
     ).length;
-    const status = failedIssues > 0
+    const cleanupIncomplete = batchResults.some(
+      (batchResult) =>
+        batchResult.cleanup.failed.length > 0 ||
+        batchResult.cleanup.skipped.length > 0,
+    );
+    const status = cleanupIncomplete || failedIssues > 0
       ? "failed"
       : notApprovedIssues > 0 || integratedIssues !== issues.length
         ? "partial"
@@ -143,7 +177,7 @@ Issue details:
     {
       issues: Type.Array(Type.Integer()),
       batches: Type.Array(Type.Array(Type.Integer())),
-      batchResults: Type.Array(developIssuesOutputSchema),
+      batchResults: Type.Array(batchResultSchema),
       masterSummary: masterSummarySchema,
     },
     { additionalProperties: false },
@@ -155,7 +189,7 @@ export const seqIssuesOutputSchema = devIssuesInBatches.output;
 const extension: WorkflowExtension = {
   version: "1.0.0",
   headline: "Batch issue development",
-  functions: { devIssuesInBatches },
+  functions: { devIssuesInBatches, integrateReviewedIssues },
 };
 
 export default function (): void {
