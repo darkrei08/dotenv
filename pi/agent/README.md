@@ -48,8 +48,8 @@ primary role assignments:
 | `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
 
 Managed role aliases, subagent review profiles, optional modes and GGA use the
-configured effort for their route. GGA retains the CLIProxyAPI mirror of the
-reviewer role (`.gga` and the `agents/gga-pi/` bridge; see
+configured effort for their route. GGA uses the dedicated CLIProxyAPI reviewer
+HA route (`.gga` and the `agents/gga-pi/` bridge; see
 [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)). An unavailable review
 model remains a blocker, not permission to bypass the gate or choose another one.
 
@@ -81,8 +81,8 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 | `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
 
 `check-config.sh` fails when a native alias, an enabled model or a startup thinking
-level has no `cliproxyapi` mirror on the same model and effort, so the two routes
-cannot drift apart. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
+level has no `cliproxyapi` mirror for the same model and configured route, so the two
+routes cannot drift apart by model identifier. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
 as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
 models, which is why Codex stays on its native login.
