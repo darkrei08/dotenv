@@ -85,34 +85,18 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
-reviewer_role_model=$(sed -nE 's/^model:[[:space:]]*([^[:space:]]+).*/\1/p;T;q' "$ROOT/pi/agent/pi-ext-roles/roles/reviewer.md")
+gga_expected_route='cliproxyapi/gpt-6-luna:high'
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
 gga_effort=${gga_route##*:}
-reviewer_role_route=$(ROOT_FOR_GGA="$ROOT" REVIEWER_ROLE_MODEL="$reviewer_role_model" node --input-type=module <<'NODE'
-import { readFileSync } from "node:fs";
-import { pathToFileURL } from "node:url";
-const root = process.env.ROOT_FOR_GGA;
-const reference = process.env.REVIEWER_ROLE_MODEL;
-const { resolveAlias } = await import(pathToFileURL(`${root}/pi/agent/extensions/pi-ha-role-groups/bind.mjs`));
-const aliases = JSON.parse(readFileSync(`${root}/pi/agent/pi-ext-roles/settings.json`, "utf8")).modelAliases;
-const resolved = resolveAlias(reference, aliases);
-if (!resolved.model || !resolved.effort) process.exit(1);
-process.stdout.write(`${resolved.model}:${resolved.effort}`);
-NODE
-) || reviewer_role_route=""
 if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
 fi
-if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* || "$gga_model" != cliproxyapi/* ]]; then
-  printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
-    "$GGA_CONFIG" "${gga_provider:-missing}"
-  failures=1
-elif [[ -z "$reviewer_role_route" || "$gga_route" != "$reviewer_role_route" ]]; then
-  printf '%s: GGA route must match reviewer role primary (expected: %s, found: %s)\n' \
-    "$GGA_CONFIG" "${reviewer_role_route:-unresolved}" "${gga_provider:-missing}"
+if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
+  printf '%s: GGA route must use the reviewer HA route (expected: kilo:%s, found: %s)\n' \
+    "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
 if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
@@ -130,12 +114,15 @@ for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
 done
 
 # If this clone already has a hook, keep it on the repo-owned bridge path.
-git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null || printf '')
-if [[ -n "$git_common_dir" && "$git_common_dir" != /* ]]; then
-  git_common_dir="$ROOT/$git_common_dir"
+git_common_dir=''
+pre_commit_hook=''
+if git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null); then
+  if [[ "$git_common_dir" != /* ]]; then
+    git_common_dir="$ROOT/$git_common_dir"
+  fi
+  pre_commit_hook="$git_common_dir/hooks/pre-commit"
 fi
-pre_commit_hook="$git_common_dir/hooks/pre-commit"
-if [[ -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
+if [[ -n "$pre_commit_hook" && -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
   printf '%s: installed pre-commit hook must invoke agents/gga-pi/run-gga.sh\n' "$pre_commit_hook"
   failures=1
 fi
