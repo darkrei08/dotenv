@@ -19,24 +19,56 @@ done
 [ -n "$model" ] || { printf 'gga-pi: set PROVIDER="kilo:<pi-model>[:effort]" in .gga\n' >&2; exit 2; }
 command -v pi >/dev/null 2>&1 || { printf 'gga-pi: pi is not on PATH\n' >&2; exit 127; }
 
-# cliproxyapi/* models only exist once the provider extension is loaded; load just that one.
-ext=()
-if [[ $model == cliproxyapi/* ]]; then
-  provider_ext="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
-  [ -f "$provider_ext" ] || { printf 'gga-pi: CLIProxyAPI provider extension not found: %s\n' "$provider_ext" >&2; exit 1; }
-  ext=(-e "$provider_ext")
-fi
-
 # Pure review call: no tools, extensions, skills or project context, so the model only
 # answers the prompt GGA built. Use the Keeper-backed model cache instead of refreshing
 # the gateway catalog; a successful empty catalog must not erase usable cached models.
 offline=(--offline)
+
+prompt_file=$(mktemp)
 err=$(mktemp)
-trap 'rm -f "$err"' EXIT
-if ! pi --print --no-session --no-tools --no-extensions --no-skills --no-prompt-templates \
-  --no-themes --no-context-files --no-mcp "${offline[@]}" "${ext[@]}" \
-  --system-prompt 'You are a strict code reviewer. Follow the review instructions in the prompt exactly and reply in the requested format.' \
-  --model "$model" 2>"$err"; then
+trap 'rm -f "$prompt_file" "$err"' EXIT
+cat > "$prompt_file"
+
+models_to_try=("$model")
+ha_file="${PI_HA_CONFIG:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/ha.json}"
+if [ -f "$ha_file" ] && command -v jq >/dev/null 2>&1; then
+  if jq -e --arg m "$model" '.groups.reviewer.entries[]? | select(.id == $m)' "$ha_file" >/dev/null 2>&1; then
+    while IFS= read -r fallback_model; do
+      [ -n "$fallback_model" ] && models_to_try+=("$fallback_model")
+    done < <(jq -r --arg m "$model" '.groups.reviewer.entries[]?.id | select(. != null and . != "" and . != $m)' "$ha_file" 2>/dev/null || true)
+  fi
+fi
+
+success=0
+total_models=${#models_to_try[@]}
+for idx in "${!models_to_try[@]}"; do
+  current_model="${models_to_try[$idx]}"
+  ext=()
+  if [[ $current_model == cliproxyapi/* ]]; then
+    provider_ext="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
+    if [ ! -f "$provider_ext" ]; then
+      printf 'gga-pi: CLIProxyAPI provider extension not found: %s\n' "$provider_ext" >&2
+      exit 1
+    fi
+    ext=(-e "$provider_ext")
+  fi
+
+  if pi --print --no-session --no-tools --no-extensions --no-skills --no-prompt-templates \
+    --no-themes --no-context-files --no-mcp "${offline[@]}" "${ext[@]}" \
+    --system-prompt 'You are a strict code reviewer. Follow the review instructions in the prompt exactly and reply in the requested format.' \
+    --model "$current_model" < "$prompt_file" 2>"$err"; then
+    success=1
+    break
+  fi
+
+  if (( idx + 1 < total_models )); then
+    next_model="${models_to_try[$((idx + 1))]}"
+    last_err=$(tr '\n' ' ' < "$err" | sed 's/[[:space:]]*$//')
+    printf 'gga-pi: model %s failed (%s); failing over to %s\n' "$current_model" "${last_err:-error}" "$next_model" >&2
+  fi
+done
+
+if [ "$success" -eq 0 ]; then
   cat "$err" >&2
   exit 1
 fi
