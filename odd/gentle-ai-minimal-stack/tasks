@@ -1,0 +1,8 @@
+Minimal Gentle AI stack and Pi workflow ownership tasks mirror
+
+T1 [S1-S3]: pi-vcc sole main-session compaction owner; pi-codex-context unregistered.
+T2 [S1-S2, S4]: minimal Gentle AI components and one authoritative install path.
+T3 [S1, S5]: pi-extensible-workflows remains authoritative for workflow children.
+T4 [S1-S5]: docs, regression checks, and live/configuration verification.
+
+Status: T1-T3 complete; T4 source/docs complete, live sync blocked pending authorization to update ~/.pi/agent.

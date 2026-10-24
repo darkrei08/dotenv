@@ -10,9 +10,11 @@
 // copy is reported and, with --apply, moved to a backup directory.
 //
 // Dry-run by default: it reports what --apply would do and mutates nothing.
-// Nothing is ever deleted. An identical copy is moved to a backup directory; a
-// copy that differs from the canonical entry is reported as a conflict and left
-// exactly as it is. A conflict makes the run exit non-zero.
+// Nothing is ever deleted. An identical copy in a canonical-reading root is
+// moved to a backup directory; an identical harness copy is reported as a
+// conflict and left in place to avoid a missing-path window. A copy that
+// differs from the canonical entry is also reported as a conflict. Conflicts
+// make the run exit non-zero.
 //
 // Usage:
 //   node agents/link-skills.mjs                 report only (default)
@@ -23,10 +25,12 @@
 //   node agents/link-skills.mjs --root <dir>    canonical root override
 //   node agents/link-skills.mjs --backup-dir <dir>
 //
-import { execFileSync } from 'node:child_process';
 import {
+  closeSync,
+  constants as fsConstants,
   lstatSync,
   mkdirSync,
+  openSync,
   readdirSync,
   readFileSync,
   readlinkSync,
@@ -35,6 +39,7 @@ import {
   statSync,
   symlinkSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
@@ -45,9 +50,59 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const MANIFEST_PATH = join(SCRIPT_DIR, 'skills.manifest.json');
 
 // Actions that mutate the tree. `drop-copy` and `drop-link` remove a duplicate
-// from a root that already reads the canonical root; `fold-in` replaces a
-// canonical entry that is a symlink to somewhere else with the real directory.
-const MUTATING = new Set(['link', 'replace-copy-with-link', 'drop-copy', 'drop-link']);
+// from a root that already reads the canonical root. External canonical links
+// are conflicts and are never rewritten automatically.
+const MUTATING = new Set(['link', 'drop-copy', 'drop-link']);
+
+// Unsafe path components that must not appear in manifest skill or harness names
+// used as filesystem path segments.
+const SAFE_NAME_RE = /^[^/\\\x00]+$/;
+function validateName(kind, name) {
+  if (!SAFE_NAME_RE.test(name) || name === '..' || name === '.') {
+    fail(`${kind} name contains an unsafe path component: ${JSON.stringify(name)}`);
+  }
+}
+
+// --- process lock for --apply ------------------------------------------------
+// Uses O_CREAT|O_EXCL so only one process owns the lock file at a time.
+// The lock file is written with the current PID for diagnostic use.
+// Cleanup runs on normal exit and on SIGINT/SIGTERM.
+
+let _lockPath = null;
+
+function acquireLock(lockFile) {
+  mkdirSync(dirname(lockFile), { recursive: true });
+  let fd;
+  try {
+    fd = openSync(lockFile, fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL, 0o600);
+    writeFileSync(fd, String(process.pid));
+    closeSync(fd);
+    _lockPath = lockFile;
+  } catch (error) {
+    if (fd !== undefined) {
+      try { closeSync(fd); } catch {}
+    }
+    if (error.code === 'EEXIST') {
+      let holder = '';
+      try { holder = readFileSync(lockFile, 'utf8').trim(); } catch { /* ignore */ }
+      fail(`--apply is already running (lock ${lockFile}${holder ? `, pid ${holder}` : ''}); wait for it to finish or remove the lock file`);
+    }
+    try { unlinkSync(lockFile); } catch {}
+    throw error;
+  }
+}
+
+function releaseLock() {
+  if (!_lockPath) return;
+  try { unlinkSync(_lockPath); } catch { /* already gone */ }
+  _lockPath = null;
+}
+
+function installLockCleanup() {
+  process.on('exit', releaseLock);
+  process.on('SIGINT', () => { releaseLock(); process.exit(130); });
+  process.on('SIGTERM', () => { releaseLock(); process.exit(143); });
+}
 
 function fail(message) {
   process.stderr.write(`link-skills: ${message}\n`);
@@ -131,12 +186,7 @@ function sameContent(a, b) {
 
 function createLink(linkPath, target) {
   mkdirSync(dirname(linkPath), { recursive: true });
-  if (IS_WINDOWS) {
-    // mklink /J creates a directory junction, which needs no elevation.
-    execFileSync('cmd', ['/c', 'mklink', '/J', linkPath, target], { stdio: 'pipe' });
-  } else {
-    symlinkSync(target, linkPath, 'dir');
-  }
+  symlinkSync(target, linkPath, IS_WINDOWS ? 'junction' : 'dir');
 }
 
 function loadManifest() {
@@ -146,9 +196,11 @@ function loadManifest() {
   if (manifest.skills === null || typeof manifest.skills !== 'object') fail('manifest has no skills');
   for (const [name, harness] of Object.entries(manifest.harnesses)) {
     if (harness === null || typeof harness !== 'object' || typeof harness.root !== 'string') fail(`harness ${name} has no root`);
+    validateName('harness', name);
   }
   for (const [name, policy] of Object.entries(manifest.skills)) {
     if (policy === null || typeof policy !== 'object') fail(`skill ${name} has no policy`);
+    validateName('skill', name);
     for (const harnessName of policy.except ?? []) {
       if (!manifest.harnesses[harnessName]) fail(`skill ${name} excepts unknown harness ${harnessName}`);
     }
@@ -157,8 +209,7 @@ function loadManifest() {
 }
 
 function harnessPresent(harness) {
-  const root = expandPath(harness.root);
-  return exists(root) || exists(dirname(root));
+  return exists(expandPath(harness.root));
 }
 
 // A harness that reads the canonical root already reaches every skill there, so
@@ -185,17 +236,21 @@ function planCanonical(manifest, canonicalRoot, selectedSkills) {
         ? { action: 'conflict', name: skill, detail: 'canonical entry is a dangling link' }
         : isInside(canonicalRoot, target)
           ? { action: 'skip', name: skill, detail: `canonical entry is a link inside the canonical root: ${target}` }
-          : { action: 'fold-in', name: skill, detail: `${target} -> ${path}` });
+          : { action: 'conflict', name: skill, detail: `canonical entry is an external link; refusing automatic fold-in: ${target}` });
     }
   }
   return entries;
 }
 
-function planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills) {
+function planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills, canonicalConflicts) {
   const root = expandPath(harness.root);
   const entries = [];
   for (const skill of Object.keys(manifest.skills).sort()) {
     if (selectedSkills && !selectedSkills.has(skill)) continue;
+    if (canonicalConflicts.has(skill)) {
+      entries.push({ action: 'conflict', name: skill, detail: 'canonical entry is conflicting; refusing harness action' });
+      continue;
+    }
     const policy = manifest.skills[skill];
     const canonicalPath = join(canonicalRoot, skill);
     const target = join(root, skill);
@@ -220,7 +275,9 @@ function planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkil
       } else if (!statSync(target).isDirectory()) {
         entries.push({ action: 'conflict', name: skill, detail: 'existing entry is a file, not a directory' });
       } else if (sameContent(target, canonicalPath)) {
-        entries.push({ action: 'replace-copy-with-link', name: skill, detail: '' });
+        // shortcut: directory replacement is not atomic portably; report the
+        // identical copy for manual reconciliation instead of creating a gap.
+        entries.push({ action: 'conflict', name: skill, detail: 'identical copy requires manual reconciliation to avoid a missing-path window' });
       } else {
         entries.push({ action: 'conflict', name: skill, detail: 'existing copy differs from the canonical entry' });
       }
@@ -229,8 +286,11 @@ function planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkil
 
     if (!present) continue;
     if (harness.readsCanonical === true) {
-      if (isLink(target)) entries.push({ action: 'drop-link', name: skill, detail: 'redundant link; the canonical root already reaches this harness' });
-      else if (statSync(target).isDirectory() && sameContent(target, canonicalPath)) {
+      if (isLink(target)) {
+        entries.push(sameTarget(target, canonicalPath)
+          ? { action: 'drop-link', name: skill, detail: 'redundant link; the canonical root already reaches this harness' }
+          : { action: 'conflict', name: skill, detail: `link points at ${readlinkSync(target)}` });
+      } else if (statSync(target).isDirectory() && sameContent(target, canonicalPath)) {
         entries.push({ action: 'drop-copy', name: skill, detail: 'identical duplicate; the canonical root already reaches this harness' });
       } else {
         entries.push({ action: 'conflict', name: skill, detail: 'duplicate differs from the canonical entry' });
@@ -256,25 +316,8 @@ function moveToBackup(options, path, harnessName, skill) {
   return destination;
 }
 
-function applyCanonical(entries, canonicalRoot, report) {
-  for (const entry of entries) {
-    if (entry.action !== 'fold-in') {
-      report(entry.action, entry.name, entry.detail);
-      continue;
-    }
-    const path = join(canonicalRoot, entry.name);
-    const temporary = join(canonicalRoot, `.${entry.name}.fold-in-tmp`);
-    const target = realpathSync(path);
-    try {
-      renameSync(target, temporary);
-      unlinkSync(path);
-      renameSync(temporary, path);
-    } catch (error) {
-      report('conflict', entry.name, `FAILED: ${error.message}`);
-      continue;
-    }
-    report(entry.action, entry.name, `${target} -> ${path}; the source directory can now be removed`);
-  }
+function applyCanonical(entries, _canonicalRoot, report) {
+  for (const entry of entries) report(entry.action, entry.name, entry.detail);
 }
 
 function applyHarness(harnessName, planned, options, report) {
@@ -288,9 +331,6 @@ function applyHarness(harnessName, planned, options, report) {
     try {
       let detail = entry.detail;
       if (entry.action === 'link') {
-        createLink(target, canonicalPath);
-      } else if (entry.action === 'replace-copy-with-link') {
-        detail = `backup ${moveToBackup(options, target, harnessName, entry.name)}`;
         createLink(target, canonicalPath);
       } else if (entry.action === 'drop-copy') {
         detail = `backup ${moveToBackup(options, target, harnessName, entry.name)}`;
@@ -374,6 +414,12 @@ function main() {
     return;
   }
 
+  if (options.apply) {
+    const lockFile = join(homedir(), '.pi', 'link-skills.lock');
+    installLockCleanup();
+    acquireLock(lockFile);
+  }
+
   options.canonicalRoot = canonicalRoot;
   options.timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
@@ -388,7 +434,10 @@ function main() {
     if (action === 'conflict') conflicts.push(`${name}  ${detail}`);
   };
 
-  const canonicalPlan = options.only ? [] : planCanonical(manifest, canonicalRoot, selectedSkills);
+  const canonicalPlan = planCanonical(manifest, canonicalRoot, selectedSkills);
+  const canonicalConflicts = new Set(
+    canonicalPlan.filter((entry) => entry.action === 'conflict').map((entry) => entry.name),
+  );
   if (canonicalPlan.length > 0) {
     process.stdout.write('\ncanonical\n');
     if (options.apply) applyCanonical(canonicalPlan, canonicalRoot, report);
@@ -401,7 +450,7 @@ function main() {
       report('skip', 'harness', `not installed (${harness.root})`);
       continue;
     }
-    const planned = planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills);
+    const planned = planHarness(harnessName, harness, manifest, canonicalRoot, selectedSkills, canonicalConflicts);
     if (planned.entries.length === 0) process.stdout.write('  (nothing to do)\n');
     if (options.apply) applyHarness(harnessName, planned, options, report);
     else for (const entry of planned.entries) report(entry.action, entry.name, entry.detail);

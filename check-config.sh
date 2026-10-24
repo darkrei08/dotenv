@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
@@ -7,8 +7,11 @@ GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
+MODEL_PREFLIGHT_LOADER="$ROOT/pi/agent/extensions/model-preflight.js"
 PI_TOOL_DISPLAY_CONFIG="$ROOT/pi/agent/extensions/pi-tool-display/config.json"
+VCC_CONFIG="$ROOT/pi/agent/pi-vcc-config.json"
 PI_PACKAGE="$ROOT/pi/agent/package.json"
+PI_PACKAGES="$ROOT/pi/agent/pi-packages.txt"
 HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
 HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
@@ -19,8 +22,12 @@ failures=0
 
 check_json_file() {
   local path=$1
-  if [[ ! -f "$path" ]]; then
+  if [[ ! -e "$path" && ! -L "$path" ]]; then
     printf '%s: missing file\n' "$path"
+    return 1
+  fi
+  if [[ -L "$path" && ! -e "$path" ]]; then
+    printf '%s: dangling symlink\n' "$path"
     return 1
   fi
   if ! jq empty "$path" >/dev/null 2>&1; then
@@ -53,15 +60,23 @@ check_main_compaction_owner() {
   jq -e '
     [(.packages // [])[]? |
       (if type == "string" then . else (.source // "") end)] as $packages |
-    ([ $packages[] | select(test("pi-codex-context")) ] | length) == 1 and
-    ([ $packages[] | select(test("pi-vcc")) ] | length) == 0
+    ([ $packages[] | select(. == "npm:@sting8k/pi-vcc") ] | length) == 1 and
+    ([ $packages[] | select(test("pi-codex-context")) ] | length) == 0
   ' "$path" >/dev/null 2>&1
 }
 
-# pi-codex-context owns the main session. pi-vcc remains an npm dependency for
-# workflow-child extensions only and must not be registered in main packages.
+# pi-vcc owns the main session. pi-codex-context remains source-only and
+# unregistered, matching the upstream Vekexasia compaction ownership model.
 if ! check_main_compaction_owner "$SETTINGS"; then
-  printf '%s: main Pi settings must register exactly pi-codex-context and not pi-vcc\n' "$SETTINGS"
+  printf '%s: main Pi settings must register exactly npm:@sting8k/pi-vcc and not pi-codex-context\n' "$SETTINGS"
+  failures=1
+fi
+if ! jq -e '
+  .overrideDefaultCompaction == true and
+  .smartKeepTail == true and
+  .continueAfterThresholdCompact == true
+' "$VCC_CONFIG" >/dev/null 2>&1; then
+  printf '%s: pi-vcc must own compaction with upstream-compatible settings\n' "$VCC_CONFIG"
   failures=1
 fi
 
@@ -75,6 +90,18 @@ gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
 gga_effort=${gga_route##*:}
+reviewer_role_route=$(ROOT_FOR_GGA="$ROOT" REVIEWER_ROLE_MODEL="$reviewer_role_model" node --input-type=module <<'NODE'
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const root = process.env.ROOT_FOR_GGA;
+const reference = process.env.REVIEWER_ROLE_MODEL;
+const { resolveAlias } = await import(pathToFileURL(`${root}/pi/agent/extensions/pi-ha-role-groups/bind.mjs`));
+const aliases = JSON.parse(readFileSync(`${root}/pi/agent/pi-ext-roles/settings.json`, "utf8")).modelAliases;
+const resolved = resolveAlias(reference, aliases);
+if (!resolved.model || !resolved.effort) process.exit(1);
+process.stdout.write(`${resolved.model}:${resolved.effort}`);
+NODE
+) || reviewer_role_route=""
 if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
@@ -83,10 +110,14 @@ if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* || "$gga_model" != 
   printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
     "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
-elif ! jq -e --arg route "$gga_route" '
+elif [[ -z "$reviewer_role_route" || "$gga_route" != "$reviewer_role_route" ]]; then
+  printf '%s: GGA route must match reviewer role primary (expected: %s, found: %s)\n' \
+    "$GGA_CONFIG" "${reviewer_role_route:-unresolved}" "${gga_provider:-missing}"
+  failures=1
+fi
+if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
   (.groups.reviewer.entries // []) |
-  any(.[]; ((.id // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) ==
-    ($route | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")))
+  any(.[]; (.id // "") == $route)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
   printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
@@ -111,6 +142,7 @@ fi
 
 required_packages=(
   npm:pi-extensible-workflows
+  npm:@sting8k/pi-vcc
   npm:gentle-pi
   npm:gentle-engram
   npm:@router-for-me/pi-cliproxyapi-provider
@@ -126,6 +158,17 @@ for package in "${required_packages[@]}"; do
 done
 if ((${#missing_packages[@]})); then
   printf '%s: missing package registration(s): %s\n' "$SETTINGS" "${missing_packages[*]}"
+  failures=1
+fi
+
+if [[ $(grep -Ec '^[[:space:]]*npm:@sting8k/pi-vcc[[:space:]]*$' "$PI_PACKAGES") -ne 1 ]]; then
+  printf '%s: pi-vcc must appear exactly once in the package manifest\n' "$PI_PACKAGES"
+  failures=1
+fi
+if awk '!/^[[:space:]]*#/ && $0 ~ /^[[:space:]]*(npm:gentle-pi|npm:pi-extensible-workflows|.*pi-codex-context.*)[[:space:]]*$/ { found=1 } END { exit found }' "$PI_PACKAGES"; then
+  :
+else
+  printf '%s: module-owned Gentle AI packages and pi-codex-context must stay out of the package manifest\n' "$PI_PACKAGES"
   failures=1
 fi
 
@@ -169,19 +212,27 @@ if ! jq -e '
   printf '%s: subagents.enabled must be explicitly false under extensionSettings\n' "$ROOT/pi/agent/pi-extensible-workflows/settings.json"
   failures=1
 fi
+if ! jq -e '
+  (.extensions // []) as $extensions |
+  ($extensions | index("**/@sting8k/pi-vcc/**")) != null and
+  all($extensions[]?; test("pi-codex-context") | not)
+' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow children must load pi-vcc and not pi-codex-context\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+fi
 
 versioned_workflows_ok=1
 live_workflows_ok=1
 live_settings_ok=1
 check_json_file "$WORKFLOWS_SETTINGS" || { versioned_workflows_ok=0; failures=1; }
-if [[ ! -f "$LIVE_WORKFLOWS_SETTINGS" ]]; then
+if [[ ! -e "$LIVE_WORKFLOWS_SETTINGS" && ! -L "$LIVE_WORKFLOWS_SETTINGS" ]]; then
   printf '%s: missing file; skipping live workflow comparison\n' "$LIVE_WORKFLOWS_SETTINGS"
   live_workflows_ok=0
 elif ! check_json_file "$LIVE_WORKFLOWS_SETTINGS"; then
   live_workflows_ok=0
   failures=1
 fi
-if [[ ! -f "$LIVE_SETTINGS" ]]; then
+if [[ ! -e "$LIVE_SETTINGS" && ! -L "$LIVE_SETTINGS" ]]; then
   printf '%s: missing file; skipping live package comparison\n' "$LIVE_SETTINGS"
   live_settings_ok=0
 elif ! check_json_file "$LIVE_SETTINGS"; then
@@ -189,7 +240,7 @@ elif ! check_json_file "$LIVE_SETTINGS"; then
   failures=1
 fi
 if ((live_settings_ok)) && ! check_main_compaction_owner "$LIVE_SETTINGS"; then
-  printf '%s: live main Pi settings must match the pi-codex-context-only compaction policy\n' "$LIVE_SETTINGS"
+  printf '%s: live main Pi settings must match the pi-vcc-only compaction policy\n' "$LIVE_SETTINGS"
   failures=1
 fi
 
@@ -218,32 +269,32 @@ if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
   $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-5-5:high" and
+  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:high" and
   $aliases["native-sol"] == "openai-codex/gpt-6-sol:high" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
   $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["architect-model"] == "cliproxyapi/claude-opus-5-5:high" and
-  $aliases["security-model"] == "cliproxyapi/claude-opus-5-5:high" and
-  $aliases["qa-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["release-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
-  $aliases["sre-model"] == "cliproxyapi/claude-sonnet-5-5:medium" and
+  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
-  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:low" and
+  $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:high" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["reviewer-model"] == "cliproxyapi/claude-opus-5-5:high" and
-  $aliases["oracle-model"] == "cliproxyapi/claude-opus-5-5:high" and
+  $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["oracle-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
@@ -261,22 +312,23 @@ if ! jq -e '
 fi
 
 # Native definitions remain available as a manual fallback, while the active picker
-# exposes only CLIProxyAPI models. Native and gateway aliases and startup thinking levels
-# must still mirror each other.
+# exposes only CLIProxyAPI models. Native and gateway aliases must mirror model IDs;
+# provider-specific thinking support may legitimately differ.
 if ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
   def mirror: sub("^cliproxyapi/"; "");
+  def route: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
   .modelAliases as $aliases |
   all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
-      ($aliases["native-" + .] | native) == ($aliases["cliproxy-" + .] | mirror))
+      (($aliases["native-" + .] | native | route) == ($aliases["cliproxy-" + .] | mirror | route)))
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
   ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
   def mirror: sub("^cliproxyapi/"; "");
-  ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror), v: .value}] | sort_by(.k)) ==
-    ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native), v: .value}] | sort_by(.k))
+  ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror)}] | sort_by(.k)) ==
+    ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native)}] | sort_by(.k))
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: native and CLIProxyAPI aliases, enabledModels or thinking levels do not mirror each other\n' "$WORKFLOWS_SETTINGS and $SETTINGS"
+  printf '%s: native and CLIProxyAPI aliases, enabledModels or model identifiers do not mirror each other\n' "$WORKFLOWS_SETTINGS and $SETTINGS"
   failures=1
 fi
 
@@ -334,7 +386,11 @@ if ((${#missing_roles[@]})); then
 fi
 
 if [[ ! -s "$MODEL_PREFLIGHT_EXTENSION" ]]; then
-  printf '%s: model availability preflight extension is missing\n' "$MODEL_PREFLIGHT_EXTENSION"
+  printf '%s: model availability preflight implementation is missing\n' "$MODEL_PREFLIGHT_EXTENSION"
+  failures=1
+fi
+if [[ ! -s "$MODEL_PREFLIGHT_LOADER" ]]; then
+  printf '%s: model availability preflight default-loadable adapter is missing\n' "$MODEL_PREFLIGHT_LOADER"
   failures=1
 fi
 if ! jq -e '.pi.extensions | index("extensions") != null' "$PI_PACKAGE" >/dev/null 2>&1; then
@@ -372,7 +428,7 @@ then
   failures=1
 fi
 
-if [[ -e "$RETIRED_EXTENSION" ]]; then
+if [[ -e "$RETIRED_EXTENSION" || -L "$RETIRED_EXTENSION" ]]; then
   printf '%s: retired repository extension must not exist\n' "$RETIRED_EXTENSION"
   failures=1
 fi
@@ -382,6 +438,46 @@ if grep -vE '^[[:space:]]*#' "$SETUP" |
     grep -Eq "GENTLE_PI_QUIET_TOOLS[[:space:]]*=[[:space:]]*[\"']?0[\"']?([[:space:];]|$)"; then
   printf '%s: writes GENTLE_PI_QUIET_TOOLS=0\n' "$SETUP"
   failures=1
+fi
+
+# Skill collision audit (S3/S15): every skill declared as managed in
+# agents/skills.manifest.json must NOT appear as a physical directory in
+# ~/.pi/agent/skills. Pi already reads the canonical root (~/.agents/skills)
+# directly (readsCanonical:true in the manifest), so a pi-local copy would be
+# loaded twice. The linker's drop-copy action (run with --apply) removes these;
+# this check detects regressions after install, upgrade or reload.
+PI_SKILLS_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills"
+MANIFEST="$ROOT/agents/skills.manifest.json"
+manifest_ok=1
+if ! check_json_file "$MANIFEST"; then
+  manifest_ok=0
+  failures=1
+fi
+if ((manifest_ok)) && [[ -d "$PI_SKILLS_DIR" ]]; then
+  collisions=()
+  if ! managed_skills=$(jq -r '.skills | to_entries[] | select(.value.managed != false) | .key' "$MANIFEST"); then
+    printf '%s: manifest skill list could not be parsed\n' "$MANIFEST"
+    failures=1
+  else
+    while IFS= read -r skill; do
+      [[ -z "$skill" ]] && continue
+      pi_entry="$PI_SKILLS_DIR/$skill"
+      # Only an existing symlink to the canonical skill is a linker artifact (expected;
+      # skip it). A real directory, a dangling link, or a link to elsewhere is a collision.
+      if [[ -L "$pi_entry" ]] && [[ -e "$pi_entry" ]] &&
+         [[ "$(readlink -f "$pi_entry")" == "${HOME}/.agents/skills/$skill" ]]; then
+        continue
+      fi
+      if [[ -e "$pi_entry" || -L "$pi_entry" ]]; then
+        collisions+=("$skill")
+      fi
+    done <<< "$managed_skills"
+  fi
+  if ((${#collisions[@]})); then
+    printf '%s: skill(s) exist in the Pi-local root and would load twice — run: node agents/link-skills.mjs --apply --only pi\n  collisions: %s\n' \
+      "$PI_SKILLS_DIR" "${collisions[*]}"
+    failures=1
+  fi
 fi
 
 if ((failures)); then

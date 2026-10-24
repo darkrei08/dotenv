@@ -12,6 +12,28 @@ import {
 import { developIssues, developIssuesOutputSchema } from "./develop-issues.js";
 import { reviewLoopInputSchema } from "./review-loop.js";
 
+const masterNarrativeSchema = Type.Object(
+  { summary: Type.String() },
+  { additionalProperties: false },
+);
+
+export const masterSummarySchema = Type.Object(
+  {
+    status: Type.Union([
+      Type.Literal("completed"),
+      Type.Literal("partial"),
+      Type.Literal("failed"),
+    ]),
+    totalIssues: Type.Integer({ minimum: 0 }),
+    integratedIssues: Type.Integer({ minimum: 0 }),
+    notApprovedIssues: Type.Integer({ minimum: 0 }),
+    failedIssues: Type.Integer({ minimum: 0 }),
+    batchCount: Type.Integer({ minimum: 0 }),
+    summary: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
 export const devIssuesInBatches = defineWorkflowFunction({
   description:
     "Analyze issue dependencies and invoke parallel issue development once per sequential batch",
@@ -68,7 +90,47 @@ Issue details:
       );
     }
 
-    return { issues, batches: plan.batches, batchResults };
+    phase("master-summary");
+    const issueResults = batchResults.flatMap((batchResult) =>
+      Object.values(batchResult.issueResults),
+    );
+    const integratedIssues = issueResults.filter(
+      (result) => result.integration.status === "integrated",
+    ).length;
+    const notApprovedIssues = issueResults.filter(
+      (result) => result.integration.status === "not-approved",
+    ).length;
+    const failedIssues = issueResults.filter(
+      (result) => result.integration.status === "failed",
+    ).length;
+    const status = failedIssues > 0
+      ? "failed"
+      : notApprovedIssues > 0 || integratedIssues !== issues.length
+        ? "partial"
+        : "completed";
+    const narrative = await agent(
+      prompt(
+        `You are the master architect. Summarize the completed sequential issue batches into one parent result. Do not change files. Mention the status, integrated issues, not-approved issues, failed issues, and any remaining findings.\n\nIssues:\n{issues}\n\nBatches:\n{batches}\n\nChild results:\n{batchResults}`,
+        { issues, batches: plan.batches, batchResults },
+      ),
+      { role: "architect", tools: [], outputSchema: masterNarrativeSchema },
+    );
+    if (!Value.Check(masterNarrativeSchema, narrative))
+      throw new Error("Master architect returned an unexpected summary");
+
+    const masterSummary = {
+      status,
+      totalIssues: issues.length,
+      integratedIssues,
+      notApprovedIssues,
+      failedIssues,
+      batchCount: plan.batches.length,
+      summary: narrative.summary,
+    };
+    if (!Value.Check(masterSummarySchema, masterSummary))
+      throw new Error("Master result failed schema validation");
+
+    return { issues, batches: plan.batches, batchResults, masterSummary };
   },
   input: Type.Object(
     {
@@ -82,6 +144,7 @@ Issue details:
       issues: Type.Array(Type.Integer()),
       batches: Type.Array(Type.Array(Type.Integer())),
       batchResults: Type.Array(developIssuesOutputSchema),
+      masterSummary: masterSummarySchema,
     },
     { additionalProperties: false },
   ),

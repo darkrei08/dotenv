@@ -27,15 +27,15 @@ claim that a live gateway can use them:
 
 | Role alias | Resolves to | Effort | Used by |
 | --- | --- | --- | --- |
-| `developer-model` | `cliproxyapi/claude-sonnet-5-5` | medium | developer |
-| `architect-model` | `cliproxyapi/claude-opus-5-5` | high | architect |
-| `security-model` | `cliproxyapi/claude-opus-5-5` | high | security |
-| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-5-5` | medium | qa, release, sre |
+| `developer-model` | `cliproxyapi/claude-sonnet-4-6` | off | developer |
+| `architect-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | architect |
+| `security-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | security |
+| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6` | off | qa, release, sre |
 | `tests-expert` | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
 | `researcher-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | researcher |
 | `scout-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5` | low | summarizer |
-| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-5-5` | high | reviewer, oracle |
+| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summarizer |
+| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | reviewer, oracle |
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
 primary role assignments:
@@ -44,7 +44,7 @@ primary role assignments:
 | --- | --- | --- |
 | `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
 | `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
-| `gemini-researcher-model` | `cliproxyapi/gemini-3-flash:high` | long research fallback |
+| `gemini-researcher-model` | `cliproxyapi/gemini-3.8-flash-high:high` | long research fallback |
 | `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
 
 Managed role aliases, subagent review profiles, optional modes and GGA use the
@@ -76,8 +76,8 @@ Every native alias has a CLIProxyAPI mirror that targets the same model through 
 | --- | --- |
 | `native-cheap-model` (GPT-5.6 Luna medium) | `cliproxy-cheap-model` → `cliproxyapi/gpt-5.6-luna:medium` |
 | `native-luna` (GPT-5.6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-5.6-luna:high` |
-| `native-reviewer-model` (Opus 5.5 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-5-5:high` |
-| `native-sol` (GPT-6.1 Sol high) | `cliproxy-sol` → `cliproxyapi/gpt-6.1-sol:high` |
+| `native-reviewer-model` (native Opus 4.6 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-4-6-thinking:off` |
+| `native-sol` (GPT-6 Sol high) | `cliproxy-sol` → `cliproxyapi/gpt-6-sol:high` |
 | `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
 
 `check-config.sh` fails when a native alias, an enabled model or a startup thinking
@@ -92,7 +92,7 @@ For automatic quota/capacity fallback, `~/.pi/agent/ha.json` contains `developme
 `scout`, `fast`, `research`, `summary`, and `testing` groups. Select one with
 `/ha-group <name> <model-id>...`; the repository template is
 `pi/agent/ha-failover.example.json`. The default development chain ends with
-`cliproxyapi/gemini-pro-agent` after the existing GPT and Claude entries.
+`cliproxyapi/gpt-6-astra` after the existing GPT and Claude entries.
 
 ### Gemini
 
@@ -134,7 +134,7 @@ To prevent duplicate subagent UI/tools when running alongside Gentle AI, standal
 
 Pi compacts when the reported context exceeds `contextWindow - reserveTokens`, not at a fixed percentage. With Pi's default `reserveTokens: 16384` and `keepRecentTokens: 20000`, the approximate trigger is 87.50% for a 131,072-token window, 91.81% for 200,000, and 98.36% for 1,000,000. `keepRecentTokens` controls the retained tail after compaction; it does not change the trigger.
 
-Measure the effective limit for the exact `provider/model` before changing settings: use `pi --list-models`, `/session`, or the RPC session stats, and treat a gateway's `/v1/models` catalog as authoritative for that gateway. For long, tool-heavy sessions prefer a measured reserve that leaves room for the verified output budget rather than disabling compaction. The repository's `pi-codex-context` package adds session windows and history tools; it must remain the sole compaction provider for managed sessions.
+Measure the effective limit for the exact `provider/model` before changing settings: use `pi --list-models`, `/session`, or the RPC session stats, and treat a gateway's `/v1/models` catalog as authoritative for that gateway. For long, tool-heavy sessions prefer a measured reserve that leaves room for the verified output budget rather than disabling compaction. `npm:@sting8k/pi-vcc` is the sole compaction provider for managed sessions and workflow children; the retained `pi-codex-context` source is not registered.
 
 For model selection, keep `contextWindow >= 200K` for repository-wide scout work and `>= 272K` for researcher work. Keep `maxTokens >= 32K` for developer, tests-expert, reviewer, and oracle roles; scout has a 16K minimum, and summarizer has an 8K minimum. Gateway-registered limits are authoritative when the provider is dynamic; an absent gateway catalog is reported as unverified rather than guessed.
 

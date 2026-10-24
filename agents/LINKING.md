@@ -48,11 +48,9 @@ one conflict was reported, and `2` for a bad invocation.
 | --- | --- |
 | `link` | create the junction/symlink |
 | `already-linked` | the link already resolves to the canonical entry |
-| `replace-copy-with-link` | move the identical real directory to a backup, then link |
 | `drop-copy` | move an identical duplicate out of a canonical-reading root (pi); no link is created |
+| `conflict` | something differs, or an identical harness copy would require a missing-path window; nothing is changed and the run exits non-zero |
 | `drop-link` | remove a redundant link from a canonical-reading root |
-| `fold-in` | a canonical entry was a symlink outside the canonical root; move the real directory in |
-| `conflict` | something differs; nothing is changed and the run exits non-zero |
 | `skip` | unmanaged or excluded entry, or a harness that is not installed |
 
 Backups default to `~/.pi/backups/link-skills-<timestamp>/<harness>/<skill>`. A
@@ -61,9 +59,10 @@ earlier backup. The linker never deletes anything.
 
 ## When a conflict is reported
 
-A conflict means a real directory differs from the canonical entry or a link
-points somewhere else. The linker leaves it exactly as it was. Resolve it by
-hand:
+A conflict means a real directory differs from the canonical entry, an
+identical harness copy would require a missing-path window to replace, or a
+link points somewhere else. The linker leaves it exactly as it was. Resolve it
+by hand:
 
 1. Read the reported path and compare it with the canonical entry.
 2. If the harness copy is stale, delete it or move it aside and re-run the
@@ -84,9 +83,10 @@ hand:
 4. Verify with `node agents/link-skills.mjs --verify --skill <name>`.
 
 `agents/install-agent-extensions.sh` copies the skills this repository ships
-(for example `phantom-ui`) into every harness root. That is compatible: the next
-`--apply` sees an identical copy and folds it back into a link. Run the linker
-after that installer when a copy must become a link again.
+(for example `phantom-ui`) into every harness root. An identical harness copy is
+reported as a conflict by the linker and is left in place: replacing a live
+directory with a link cannot be atomic portably, so the operator must reconcile
+it manually rather than accept a missing-path window.
 
 ## What is not managed, and why
 
@@ -104,11 +104,10 @@ after that installer when a copy must become a link again.
 
 `find-skills` was moved to `~/skills-canonical/find-skills` during the junction
 tests, with a symlink left at `~/.agents/skills/find-skills`. The linker does
-not adopt that directory as a second canonical root. On `--apply` it treats any
-canonical entry that is a symlink to outside the canonical root as `fold-in`:
-the real directory is moved to `~/.agents/skills/<name>` and the symlink is
-replaced. After that, `~/skills-canonical` is empty and can be removed by hand;
-the linker itself never deletes a directory.
+not adopt that directory as a second canonical root. On `--apply` it reports a
+canonical entry that is a symlink outside the canonical root as a conflict and
+leaves both paths unchanged. Resolve that migration by hand, then re-run
+`--apply`; the linker never deletes or moves an external directory.
 
 ## Caveats
 

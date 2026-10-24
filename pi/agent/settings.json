@@ -7,22 +7,18 @@
     "+tool_search"
   ],
   "modelThinkingLevels": {
-    "anthropic/claude-sonnet-5-5": "medium",
-    "anthropic/claude-opus-5-5": "high",
-    "anthropic/claude-opus-4-6-thinking": "medium",
-    "anthropic/claude-haiku-5-5": "medium",
+    "anthropic/claude-sonnet-4-6": "medium",
+    "anthropic/claude-opus-4-6-thinking": "high",
     "openai-codex/gpt-5.6-luna": "high",
     "openai-codex/gpt-6-sol": "high",
     "openai-codex/gpt-6-luna": "high",
-    "cliproxyapi/claude-sonnet-5-5": "medium",
-    "cliproxyapi/claude-opus-5-5": "high",
-    "cliproxyapi/claude-opus-4-6-thinking": "medium",
-    "cliproxyapi/claude-haiku-5-5": "medium",
+    "openai-codex/gpt-6-astra": "medium",
+    "cliproxyapi/claude-sonnet-4-6": "off",
+    "cliproxyapi/claude-opus-4-6-thinking": "off",
     "cliproxyapi/gpt-5.6-luna": "high",
     "cliproxyapi/gpt-6-sol": "high",
     "cliproxyapi/gpt-6-luna": "high",
-    "cliproxyapi/gpt-6-astra": "medium",
-    "openai-codex/gpt-6-astra": "medium"
+    "cliproxyapi/gpt-6-astra": "medium"
   },
   "theme": "dark",
   "packages": [
@@ -35,7 +31,7 @@
     "npm:@narumitw/pi-goal",
     "git:github.com/DietrichGebert/ponytail",
     "packages/pi-omplike-advisor",
-    "packages/pi-codex-context",
+    "npm:@sting8k/pi-vcc",
     "npm:pi-tool-display",
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",
@@ -45,6 +41,7 @@
         "!dist/subagents/index.js"
       ]
     },
+    "npm:@piewf/pi-ext-roles",
     {
       "source": "npm:gentle-pi",
       "extensions": [
@@ -84,9 +81,8 @@
     "cliproxyapi/gpt-6-luna",
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-astra",
-    "cliproxyapi/claude-opus-5-5",
-    "cliproxyapi/claude-sonnet-5-5",
-    "cliproxyapi/claude-haiku-5-5",
+    "cliproxyapi/claude-opus-4-6-thinking",
+    "cliproxyapi/claude-sonnet-4-6",
     "cliproxyapi/gemini-3-flash",
     "cliproxyapi/gemini-3.5-flash-lite",
     "cliproxyapi/gemini-3.8-flash-high",

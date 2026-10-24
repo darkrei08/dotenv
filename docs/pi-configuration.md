@@ -21,7 +21,6 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). |
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts`, `extensions/pi-pretty.ts`, and `extensions/codegraph-tools.ts`. The first two avoid the visual-shell conflict and the third avoids duplicate `codegraph` registration with `pi-extension-pack`. The manifest line carries the source only. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
-| `packages/pi-codex-context` | The manifest writes the same directory as `~/.pi/agent/packages/pi-codex-context`; it provides session context management and compaction, with known limitations listed in its `TODO.md`. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
 
@@ -44,9 +43,9 @@ Third-party packages:
 | `git:github.com/DietrichGebert/ponytail` | Lazy-senior-dev ruleset: injects the rules each turn and registers the `/ponytail*` commands. Installed for the other agent CLIs by `agents/install-agent-extensions.sh`. |
 | `npm:pi-tool-display` | Compact tool-call rendering, diff visualization, output truncation. Its ownership config leaves `read`/`edit` to `tool-fixer` and `grep`/`ls` to `command-artifacts`. |
 | `git:github.com/vekexasia/pi-notify@feat/customizable-notifications` | Desktop notifications via OSC 777/99/9 and Windows toast. |
-| `npm dependency: @sting8k/pi-vcc` | Loaded for workflow children through the `pi-extensible-workflows` extensions glob; it is not a Pi package because its second `session_before_compact` provider conflicts with `pi-codex-context`, which requires sole compaction ownership. |
+| `npm:@sting8k/pi-vcc` | Deterministic compaction and recall for the main session and workflow children. Its `pi-vcc-config.json` enables the upstream-compatible ownership and tail-retention settings. |
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
-| `pi/agent/packages/pi-codex-context` | In-repo session context-management and compaction provider; its `TODO.md` lists known limitations. |
+| `pi/agent/packages/pi-codex-context` | Retained source-only for historical tests and comparison; it is not registered in `settings.json` or `pi-packages.txt`. |
 
 ### In-repo extensions
 
@@ -62,7 +61,7 @@ Third-party packages:
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
-| `extensions/model-preflight.mjs` | `/model-preflight`, session-start and TTL refresh of the reusable model availability preflight; blocks routing on stale or unknown evidence | `node`, pi-model-fit `preflight.mjs` |
+| `extensions/model-preflight.js` + `model-preflight.mjs` | The `.js` adapter is the default-loadable Pi entrypoint; the tested `.mjs` implementation registers `/model-preflight`, session-start and TTL refresh of the reusable model availability preflight and blocks routing on stale or unknown evidence | `node`, pi-model-fit `preflight.mjs` |
 | `extensions/pi-ext-workflows/*.ts` | Workflow functions registered through `pi-extensible-workflows`: `fetchIssueDetails` (`fetch-issue-details.ts`), `developUntilApproved` (`review-loop.ts`), `devIssuesInBatches` (`seq-issues.ts`), `tddDev` (`tdd.ts`); re-exported by `extensions/piextworkflows.ts` | `gh` / `glab` for issue lookup; the `pi-extensible-workflows` package must be installed |
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
 | `extensions/show-system-prompt.ts` | `/system-prompt` command: writes the current system prompt to `/tmp/system-prompt.md` | none |
@@ -98,7 +97,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
 | `pi/agent/AGENTS.md` | Project instructions Pi loads for this repository. |
 | `pi/agent/keybindings.json` | Editor keybinding overrides (`ctrl+w`, `alt+d`, ...). |
-| `pi/agent/pi-vcc-config.json` | `pi-vcc` settings retained for workflow children: `overrideDefaultCompaction`, `smartKeepTail`, `continueAfterThresholdCompact`. |
+| `pi/agent/pi-vcc-config.json` | `pi-vcc` settings for the main session and workflow children: `overrideDefaultCompaction`, `smartKeepTail`, `continueAfterThresholdCompact`. |
 | `pi/agent/bin/` | `open-nvim.sh` (herdr-gated operator review helper, requires `HERDR_ENV=1` and `HERDR_PANE_ID`), `session-stats.mjs` (session metrics), `cdp` (pointer to the chrome-cdp script). |
 | `pi/agent/npm/` | npm manifest and lockfile for the npm-backed packages. |
 | `pi/agent/.pii-allowlist` | Regex allowlist for git-shield false positives in this repository. |
@@ -110,7 +109,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps both native fallback definitions and CLIProxyAPI targets; `enabledModels` lists only the CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses the same Sonnet 5.5 default. The GGA pre-commit reviewer follows the workflow `reviewer` role (`cliproxyapi/claude-opus-5-5:high`) through Pi (`.gga`, `agents/gga-pi/`), so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps native mirrors and current CLIProxyAPI targets; `enabledModels` lists only catalog-backed CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for review profiles. GGA uses the primary route resolved from the `reviewer` role (`kilo:cliproxyapi/claude-opus-4-6-thinking:off`) through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -135,11 +134,11 @@ Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, 
 
 Workflow roles follow the current `roleRecommendations` source in
 `pi-model-fit/scripts/report.mjs`: developer, QA, release, and SRE use
-`cliproxyapi/claude-sonnet-5-5:medium`; architect, security, reviewer, and oracle
-use `cliproxyapi/claude-opus-5-5:high`; tests use
+`cliproxyapi/claude-sonnet-4-6:off`; architect, security, reviewer, and oracle
+use `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort; tests use
 `cliproxyapi/gpt-5.6-luna:high`; researcher uses the same model at `xhigh`; Scout
 uses `cliproxyapi/gemini-3.8-flash-high:medium`; and summarizer uses
-`cliproxyapi/claude-haiku-5-5:low`. Native aliases remain manual mirrors, and
+`cliproxyapi/gemini-3.5-flash-lite:low`. Native aliases remain manual mirrors, and
 OpenCode Go remains a separate direct provider. These assignments describe
 configuration only: catalog visibility, entitlement, inference, and quota are
 not interchangeable evidence.
@@ -150,7 +149,9 @@ the current model is present in a bound group; an unknown model returns an empty
 list. The `model-preflight.mjs` extension invokes the reusable pi-model-fit
 preflight at session start and through `/model-preflight`, refreshes using the
 TTL cache every 15 minutes by default, and blocks agent routing when evidence is
-stale, unknown, malformed, or unavailable. Set
+stale, unknown, malformed, or unavailable. Use `/model-preflight apply` after an
+explicit refresh request to atomically apply only reachable matrix routes to
+`~/.pi/agent/ha.json`; credentials and non-group HA settings are preserved. Set
 `PI_MODEL_FIT_ROOT` or `PI_MODEL_PREFLIGHT_SCRIPT` to locate the shared
 `preflight.mjs`, `PI_MODEL_PREFLIGHT_CACHE` for the mode-600 cache path,
 `PI_MODEL_PREFLIGHT_HA_CONFIG` for the redacted HA config, and

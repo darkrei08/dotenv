@@ -21,11 +21,11 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   return. Do not reintroduce obsolete OpenCode workflow targets.
 - `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): workflow roles use
   CLIProxyAPI first. Developer, QA, release, and SRE use
-  `cliproxyapi/claude-sonnet-5-5:medium`; reviewer, oracle, architect, and security use
-  `cliproxyapi/claude-opus-5-5:high`; tests use
+  `cliproxyapi/claude-sonnet-4-6:off`; reviewer, oracle, architect, and security use
+  `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort; tests use
   `cliproxyapi/gpt-5.6-luna:high`; research uses that Luna route at `xhigh`; scouting uses
   `cliproxyapi/gemini-3.8-flash-high:medium` when available; and summarization uses
-  `cliproxyapi/claude-haiku-5-5:low`. Explicit `gemini-*` aliases and HA groups are
+  `cliproxyapi/gemini-3.5-flash-lite:low`. Explicit `gemini-*` aliases and HA groups are
   allowed as alternatives/fallbacks; they do not replace the primary role targets. Native aliases
   remain defined as a manual fallback and native models are hidden from the active picker. Do not
   configure Fable (not included in Claude Pro). Preserve the expanded `skills` list. When a primary
@@ -35,9 +35,8 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
 - `pi/agent/settings.json`: the Pi baseline is `defaultProvider: cliproxyapi`,
   `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`, and matching
   `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native catalogs remain defined
-  for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer route:
-  it mirrors `cliproxyapi/claude-opus-5-5:high` when available, otherwise the reachable reviewer HA
-  fallback `cliproxyapi/gpt-6-luna:high`. `check-config.sh` requires the route to be enabled and
+  for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer HA
+  route `cliproxyapi/gpt-6-luna:high`. `check-config.sh` requires the route to be enabled and
   listed in the reviewer HA group.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses

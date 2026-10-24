@@ -100,15 +100,17 @@ installing the repository's Pi configuration, restart Pi and run:
 Use the inbound `api-keys` value from `config.yaml`. Pi stores its local
 provider credentials in ignored files under `~/.pi/agent/`. After accounts are
 authenticated, use `/cliproxyapi-refresh` and select a live `cliproxyapi/...`
-model. The standard workflow aliases use native providers by default, so
-workflows do not stop when this gateway is offline. To route a child agent
-through CLIProxyAPI, use these explicit aliases as its per-agent model override:
+model. The configured workflow role aliases use CLIProxyAPI by default, so role
+routing follows the shared gateway-backed matrix. Native aliases remain explicit
+alternatives when the gateway is unavailable. To route a child agent through
+CLIProxyAPI with a specific route, use these explicit aliases as its per-agent
+model override:
 
-- `cliproxy-cheap-model=cliproxyapi/claude-sonnet-5-5:medium`
-- `cliproxy-luna=cliproxyapi/gpt-6-luna:high`
-- `cliproxy-reviewer-model=cliproxyapi/claude-opus-5-5:high`
-- `cliproxy-sol=cliproxyapi/gpt-6.1-sol:medium`
-- `cliproxy-astra=cliproxyapi/gpt-6-astra:high`
+- `cliproxy-cheap-model=cliproxyapi/gpt-5.6-luna:medium`
+- `cliproxy-luna=cliproxyapi/gpt-5.6-luna:high`
+- `cliproxy-reviewer-model=cliproxyapi/claude-opus-4-6-thinking:off`
+- `cliproxy-sol=cliproxyapi/gpt-6-sol:high`
+- `cliproxy-astra=cliproxyapi/gpt-6-astra:medium`
 
 These aliases resolve only after the CLIProxyAPI catalog is authenticated. No
 second dashboard is required.
