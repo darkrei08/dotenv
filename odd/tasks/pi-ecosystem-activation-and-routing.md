@@ -55,7 +55,7 @@ S19. "Existing user configuration and credentials are preserved."
 - T2 [S7, S14, S18] route: make model-preflight a default-loadable Pi extension without changing its runtime contract; commit: bac5e67.
 - T3 [S4-S13, S17] route: add a deterministic, catalog-backed natural-language workflow intent adapter with explicit-command precedence and ordinary-question guard; commit: 8981788, 5e4212c.
 - T4 [S16] route: verify canonical role settings and workflow aliases remain the sole role/model authority; commit: verified, no source change.
-- T5 [S14-S19] route: run isolated startup, reload, catalog, workflow, memory, and failover checks; record evidence and limitations; commit: pending.
+- T5 [S14-S19] route: run isolated startup, reload, catalog, workflow, memory, and failover checks; record evidence and limitations; commits: 8aea335 and current target evidence; live runtime/linker repair remains pending explicit authorization.
 
 ## Log
 
@@ -69,3 +69,5 @@ L7. Documentation: `docs/pi-ecosystem-ownership.md` records the responsibility m
 L8. Current validation: P EXTIL `workflow_catalog`, `parallelReviewAndSecurity`, and `tddDev` executed; Node tests pass 67/67, Bun tests 11/11, and a real symlinked preflight wrapper returned valid JSON with 70 models. The canonical root has 58 readable managed skills. The live Pi runtime is still stale and the live linker reports five missing non-Pi `project-memory` links; external repair remains pending explicit authorization.
 L9. The routing and parallel-review implementation is now split into commits `8981788` and `5e4212c`. Native review for the second slice completed and was acknowledged after the provider accepted the exact fresh STATUS binding; push remains pending explicit delivery authorization.
 L10. Final verification rerun: Bun extension tests pass 12/12. Node tests pass 84/85; the single non-root setup failure is environmental because `runuser` cannot execute its copied fixture below the root-only `/root` path (exit 126).
+
+L11. Follow-up branch `fix/pi-agent-session-remediation` records the remaining live-only gaps and review-boundary limitation; no source fix is inferred for external runtime state.

@@ -9,7 +9,8 @@ import test from 'node:test';
 const script = fileURLToPath(new URL('./ensure-claude-root-mode.sh', import.meta.url));
 
 function fixture(t, settings) {
-  const home = mkdtempSync(join(tmpdir(), 'dotenv-claude-root-mode-'));
+  const base = process.getuid?.() === 0 && process.platform !== 'win32' ? '/tmp' : tmpdir();
+  const home = mkdtempSync(join(base, 'dotenv-claude-root-mode-'));
   const claude = join(home, '.claude');
   mkdirSync(claude);
   chmodSync(home, 0o755);
