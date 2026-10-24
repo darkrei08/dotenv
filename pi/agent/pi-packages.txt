@@ -23,10 +23,9 @@
 #     `pi install npm:gentle-pi` and verifies it in settings.json.
 #   * pi-mcp-adapter: not installed. Gentle AI 4 retires it and Pi's built-in
 #     MCP reads ~/.pi/agent/mcp.json.
-#   * @sting8k/pi-vcc: dropped as a Pi package (it is a second
-#     session_before_compact provider and conflicts with pi-codex-context, which
-#     requires sole compaction ownership). It stays only as an npm dependency in
-#     pi/agent/npm and is loaded for workflow children via the extensions glob.
+#   * pi-codex-context: retained in the tree for source-level history and tests,
+#     but intentionally not registered as a Pi package. pi-vcc is the sole
+#     compaction owner, matching the upstream Vekexasia configuration.
 #
 # KEEPING THIS IN SYNC
 #   The list mirrors the remote sources in pi/agent/settings.json. A package
@@ -53,6 +52,7 @@ npm:@narumitw/pi-goal
 git:github.com/DietrichGebert/ponytail
 
 npm:pi-tool-display
+npm:@sting8k/pi-vcc
 git:github.com/vekexasia/pi-notify@feat/customizable-notifications
 git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
@@ -66,4 +66,3 @@ git:github.com/gwelinder/pi-extension-pack
 # settings.json registers these as relative paths (e.g. "packages/pi-omplike-advisor");
 # both forms resolve to the same directory under ~/.pi/agent.
 ~/.pi/agent/packages/pi-omplike-advisor
-~/.pi/agent/packages/pi-codex-context

@@ -9,6 +9,7 @@ RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
 MODEL_PREFLIGHT_LOADER="$ROOT/pi/agent/extensions/model-preflight.js"
 PI_TOOL_DISPLAY_CONFIG="$ROOT/pi/agent/extensions/pi-tool-display/config.json"
+VCC_CONFIG="$ROOT/pi/agent/pi-vcc-config.json"
 PI_PACKAGE="$ROOT/pi/agent/package.json"
 HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
 HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
@@ -58,15 +59,23 @@ check_main_compaction_owner() {
   jq -e '
     [(.packages // [])[]? |
       (if type == "string" then . else (.source // "") end)] as $packages |
-    ([ $packages[] | select(test("pi-codex-context")) ] | length) == 1 and
-    ([ $packages[] | select(test("pi-vcc")) ] | length) == 0
+    ([ $packages[] | select(. == "npm:@sting8k/pi-vcc") ] | length) == 1 and
+    ([ $packages[] | select(test("pi-codex-context")) ] | length) == 0
   ' "$path" >/dev/null 2>&1
 }
 
-# pi-codex-context owns the main session. pi-vcc remains an npm dependency for
-# workflow-child extensions only and must not be registered in main packages.
+# pi-vcc owns the main session. pi-codex-context remains source-only and
+# unregistered, matching the upstream Vekexasia compaction ownership model.
 if ! check_main_compaction_owner "$SETTINGS"; then
-  printf '%s: main Pi settings must register exactly pi-codex-context and not pi-vcc\n' "$SETTINGS"
+  printf '%s: main Pi settings must register exactly npm:@sting8k/pi-vcc and not pi-codex-context\n' "$SETTINGS"
+  failures=1
+fi
+if ! jq -e '
+  .overrideDefaultCompaction == true and
+  .smartKeepTail == true and
+  .continueAfterThresholdCompact == true
+' "$VCC_CONFIG" >/dev/null 2>&1; then
+  printf '%s: pi-vcc must own compaction with upstream-compatible settings\n' "$VCC_CONFIG"
   failures=1
 fi
 
@@ -132,6 +141,7 @@ fi
 
 required_packages=(
   npm:pi-extensible-workflows
+  npm:@sting8k/pi-vcc
   npm:gentle-pi
   npm:gentle-engram
   npm:@router-for-me/pi-cliproxyapi-provider
@@ -210,7 +220,7 @@ elif ! check_json_file "$LIVE_SETTINGS"; then
   failures=1
 fi
 if ((live_settings_ok)) && ! check_main_compaction_owner "$LIVE_SETTINGS"; then
-  printf '%s: live main Pi settings must match the pi-codex-context-only compaction policy\n' "$LIVE_SETTINGS"
+  printf '%s: live main Pi settings must match the pi-vcc-only compaction policy\n' "$LIVE_SETTINGS"
   failures=1
 fi
 
