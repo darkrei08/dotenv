@@ -11,6 +11,7 @@ MODEL_PREFLIGHT_LOADER="$ROOT/pi/agent/extensions/model-preflight.js"
 PI_TOOL_DISPLAY_CONFIG="$ROOT/pi/agent/extensions/pi-tool-display/config.json"
 VCC_CONFIG="$ROOT/pi/agent/pi-vcc-config.json"
 PI_PACKAGE="$ROOT/pi/agent/package.json"
+PI_PACKAGES="$ROOT/pi/agent/pi-packages.txt"
 HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
 HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
@@ -157,6 +158,15 @@ for package in "${required_packages[@]}"; do
 done
 if ((${#missing_packages[@]})); then
   printf '%s: missing package registration(s): %s\n' "$SETTINGS" "${missing_packages[*]}"
+  failures=1
+fi
+
+if [[ $(grep -Ec '^[[:space:]]*npm:@sting8k/pi-vcc[[:space:]]*$' "$PI_PACKAGES") -ne 1 ]]; then
+  printf '%s: pi-vcc must appear exactly once in the package manifest\n' "$PI_PACKAGES"
+  failures=1
+fi
+if grep -Eq '^[[:space:]]*(npm:gentle-pi|npm:pi-extensible-workflows|.*pi-codex-context.*)[[:space:]]*$' "$PI_PACKAGES"; then
+  printf '%s: module-owned Gentle AI packages and pi-codex-context must stay out of the package manifest\n' "$PI_PACKAGES"
   failures=1
 fi
 

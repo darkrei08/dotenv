@@ -6,9 +6,10 @@ Run these on the machine, after `setup_env.sh`:
 
 ```bash
 # This checkout's own config invariants: settings.json parses, carries the
-# module-owned packages and gentle-pi exclusions, enforces Claude-via-CLIProxyAPI
-# and native Codex aliases, the GGA reviewer model, plus enabledModels, has no ../../ path, and
-# setup_env.sh never writes GENTLE_PI_QUIET_TOOLS=0
+# module-owned packages and gentle-pi exclusions, makes pi-vcc the sole compaction
+# owner, enforces Claude-via-CLIProxyAPI and native Codex aliases, the GGA reviewer
+# model, plus enabledModels, has no ../../ path, and setup_env.sh never writes
+# GENTLE_PI_QUIET_TOOLS=0
 bash check-config.sh
 
 # The versioned Pi configuration was copied into the live config
@@ -17,6 +18,7 @@ test -d ~/.pi/agent/pi-ext-roles/roles
 
 # Pi's effective settings and packages
 node -e "const s=require(process.env.HOME+'/.pi/agent/settings.json');console.log(s.defaultProvider, s.defaultModel, s.packages.length)"
+jq -e '.overrideDefaultCompaction and .smartKeepTail and .continueAfterThresholdCompact' ~/.pi/agent/pi-vcc-config.json
 cat ~/.pi/agent/pi-packages.txt
 
 # The declared packages are the installed ones

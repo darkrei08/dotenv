@@ -60,6 +60,7 @@ not run such a cycle or auto-adopt proposals.
 | Pi | Pi CLI, community packages, in-repo extensions, prompts, themes. `~/.pi/agent` is a real directory filled by a selective `rsync`; credentials and sessions are kept. | `pi/agent/settings.json`, `pi/agent/pi-packages.txt`, `pi/agent/extensions/`; [docs/pi-configuration.md](docs/pi-configuration.md) |
 | Models and roles | Claude Pro and ChatGPT Plus models, workflow aliases and 12 workflow roles. | `pi/agent/pi-extensible-workflows/`, `pi/agent/models.json`; [pi/agent/MODELS.md](pi/agent/MODELS.md) |
 | Workflows | `pi-extensible-workflows`, installed by `@darkrei08/setup-ai` (`pi-workflows` module), not by `setup_env.sh`; in-repo workflow functions. | `pi/agent/extensions/pi-ext-workflows/`; [docs/pi-configuration.md](docs/pi-configuration.md) |
+| Compaction | `@sting8k/pi-vcc` is the sole compaction owner for the main session and workflow children; `pi-codex-context` is source-only. | `pi/agent/settings.json`, `pi/agent/pi-vcc-config.json`; [docs/compaction-evaluation.md](docs/compaction-evaluation.md) |
 | Commit review gate | GGA reviews staged files through Pi. Gentle AI and gentle-pi. | `.gga`, `agents/gga-pi/`; [docs/gentle-ai-gga.md](docs/gentle-ai-gga.md) |
 | Local usage | `ccusage` and the `/agent-usage` command. | `pi/agent/extensions/agent-usage/`, `setup_env.sh` |
 | Skills | Shared skills installed once and linked into every agent. | `agents/skills.manifest.json`, `agents/link-skills.mjs`; [docs/skills-and-agents.md](docs/skills-and-agents.md) |
