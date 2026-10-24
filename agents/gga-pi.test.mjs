@@ -103,3 +103,42 @@ test('run-gga.sh puts the bridge ahead of any real kilo on PATH', (t) => {
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout.trim(), shim);
 });
+
+test('fails over to the next reviewer model when the primary model fails', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'gga-pi-failover-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+  const haPath = join(dir, 'ha.json');
+  writeFileSync(haPath, JSON.stringify({
+    groups: {
+      reviewer: {
+        entries: [{ id: 'provider/primary-model' }, { id: 'provider/fallback-model' }]
+      }
+    }
+  }));
+
+  const fakePi = join(dir, 'pi');
+  writeFileSync(fakePi, `#!/usr/bin/env bash
+for arg in "$@"; do
+  if [ "$arg" = "provider/primary-model" ]; then
+    printf 'quota exceeded\\n' >&2
+    exit 1
+  elif [ "$arg" = "provider/fallback-model" ]; then
+    printf 'STATUS: PASSED\\n'
+    exit 0
+  fi
+done
+exit 2
+`);
+  chmodSync(fakePi, 0o755);
+
+  const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, PI_HA_CONFIG: haPath };
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'provider/primary-model'], {
+    env, input: 'review prompt', encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'STATUS: PASSED\n');
+  assert.match(result.stderr, /failing over to provider\/fallback-model/);
+});
+
