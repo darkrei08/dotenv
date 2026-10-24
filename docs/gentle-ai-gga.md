@@ -128,7 +128,7 @@ shadows a real Kilo install. Pi accepts `provider/model:effort` and reads the pr
 from stdin, which is why the value after `kilo:` is a Pi model pattern:
 
 ```bash
-PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"
+PROVIDER="kilo:cliproxyapi/claude-opus-4-6-thinking:off"
 ```
 
 `check-config.sh` reads the Pi workflow `reviewer` role, resolves its alias chain and effort, maps it to the `cliproxyapi/` mirror (GGA always goes through CLIProxyAPI; the bridge loads only that provider extension), checks the pair is enabled in Pi settings, and requires `.gga` to match exactly. A missing alias or mismatch fails the check; this is configuration validation, not a live authentication or inference test, and there is no automatic model substitution.
@@ -138,14 +138,14 @@ If GGA says "Kilo CLI not found", it was started without the wrapper: use
 
 ### Which model, and at what effort
 
-GGA uses the configured CLIProxyAPI reviewer HA route `cliproxyapi/gpt-6-luna` at `high`. The workflow reviewer role uses `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort; GGA's explicit route is selected from that role's HA group.
+GGA uses the primary route resolved by the workflow `reviewer` role, `cliproxyapi/claude-opus-4-6-thinking:off`, through the CLIProxyAPI reviewer HA group. If that primary is unavailable, Pi's HA failover keeps the configured reviewer-group fallbacks (`gpt-6-luna` and Gemini Flash High) available in order.
 
 - Opus is the stronger reviewer for hard changes: CodeRabbit measured 8 of 13 hard known bugs at standard effort (66.7% precision) and 10 of 13 at max (52% precision), against 6 of 13 at 41% precision for Sonnet 5.5, at about twice the list price ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)). The benchmark has 13 cases: a direction, not a verdict.
 - Reasoning curves show low to medium to high as the useful steps and xhigh as much costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)). Anthropic documents the effort parameter at <https://platform.claude.com/docs/en/build-with-claude/effort>.
 
 | Need | `PROVIDER` | Notes |
 | --- | --- | --- |
-| Default, every commit | `kilo:cliproxyapi/gpt-6-luna:high` | CLIProxyAPI reviewer HA route; needs the gateway running |
+| Default, every commit | `kilo:cliproxyapi/claude-opus-4-6-thinking:off` | Primary route resolved from the reviewer role; uses the CLIProxyAPI reviewer HA group |
 | Lower-cost one-off review | `kilo:cliproxyapi/claude-sonnet-4-6:off` | Explicit per-command override; the gateway exposes no Claude thinking effort; `.gga` remains unchanged |
 
 One-off override, without editing `.gga`:
@@ -154,7 +154,7 @@ One-off override, without editing `.gga`:
 GGA_PROVIDER=kilo:cliproxyapi/claude-sonnet-4-6:off git commit
 ```
 
-`check-config.sh` asserts that `.gga` matches the model and effort resolved from the reviewer role. It never switches models when the gateway or model is unavailable; choose an override explicitly.
+`check-config.sh` asserts that `.gga` matches the model and effort resolved from the reviewer role and is present in that role's HA group. It never switches models when the gateway or model is unavailable; the Pi HA extension performs only the configured reviewer-group failover.
 
 ### Use GGA with other agents
 

@@ -41,6 +41,7 @@
         "!dist/subagents/index.js"
       ]
     },
+    "npm:@piewf/pi-ext-roles",
     {
       "source": "npm:gentle-pi",
       "extensions": [

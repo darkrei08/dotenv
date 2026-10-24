@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cpSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -64,14 +64,17 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];
   assert.ok(gga, "GGA must keep its Pi bridge provider");
   const ggaRoute = resolveModel(gga);
-  assert.deepEqual(ggaRoute, { model: "cliproxyapi/gpt-6-luna", effort: "high" });
+  const reviewer = readFileSync(new URL("pi/agent/pi-ext-roles/roles/reviewer.md", root), "utf8").match(/^model:\s*(\S+)\s*$/m)?.[1];
+  assert.ok(reviewer, "reviewer role must declare a model");
+  const reviewerRoute = resolveModel(reviewer);
+  assert.deepEqual(ggaRoute, reviewerRoute, "GGA must use the reviewer role primary route");
   assert.ok(ha.groups.reviewer.entries.some((entry) => entry.id === `${ggaRoute.model}:${ggaRoute.effort}`), "GGA must use the exact reviewer HA route");
 });
 
 test("configuration checker accepts the matrix and rejects mismatched GGA effort without writes", () => {
   const fixture = mkdtempSync(join(tmpdir(), "pi-medium-policy-"));
   try {
-    for (const file of ["check-config.sh", "setup_env.sh", ".gga", "pi/agent", "agents/gga-pi"]) {
+    for (const file of ["check-config.sh", "setup_env.sh", ".gga", "pi/agent", "agents/gga-pi", "agents/skills.manifest.json"]) {
       cpSync(new URL(file, root), join(fixture, file), { recursive: true });
     }
     const run = () => spawnSync("bash", [join(fixture, "check-config.sh")], {
@@ -97,6 +100,18 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const distinctResult = runDistinct();
     assert.equal(distinctResult.status, 0, distinctResult.stdout + distinctResult.stderr);
 
+    const piSkillsDir = join(fixture, "pi/agent/skills");
+    mkdirSync(piSkillsDir, { recursive: true });
+    symlinkSync(join(fixture, ".agents/skills/project-memory"), join(piSkillsDir, "project-memory"), "dir");
+    const danglingCollision = spawnSync("bash", [join(fixture, "check-config.sh")], {
+      encoding: "utf8",
+      env: { ...process.env, HOME: fixture, PI_CODING_AGENT_DIR: join(fixture, "pi/agent") },
+      timeout: 10000,
+    });
+    assert.equal(danglingCollision.status, 1);
+    assert.match(danglingCollision.stdout, /skill\(s\) exist in the Pi-local root/);
+    rmSync(join(piSkillsDir, "project-memory"), { force: true });
+
     // Mutate live alias effort: check-config must fail when live diverges from canonical
     const liveAliasesPath = join(liveDir, "pi-ext-roles/settings.json");
     const liveAliases = JSON.parse(readFileSync(liveAliasesPath, "utf8"));
@@ -110,16 +125,16 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const haPath = join(fixture, "pi/agent/ha-failover.example.json");
     const haBefore = readFileSync(haPath, "utf8");
     const haMismatch = JSON.parse(haBefore);
-    haMismatch.groups.reviewer.entries[1].id = "cliproxyapi/gpt-6-luna:medium";
+    haMismatch.groups.reviewer.entries[0].id = "cliproxyapi/gpt-6-luna:high";
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "");
-    assert.equal(routeMismatch.stdout, `${fixture}/.gga: GGA route must be listed in the reviewer HA group (found: kilo:cliproxyapi/gpt-6-luna:high)\n`);
+    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\nreviewer: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\narchitect: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\nsecurity: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stdout, `${fixture}/.gga: GGA route must be listed in the reviewer HA group (found: kilo:cliproxyapi/claude-opus-4-6-thinking:off)\n${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 
     const ggaPath = join(fixture, ".gga");
-    const rejected = readFileSync(ggaPath, "utf8").replace(/:high"/, ":medium\"");
+    const rejected = readFileSync(ggaPath, "utf8").replace(/claude-opus-4-6-thinking:off/, "claude-opus-4-6-thinking:high");
     writeFileSync(ggaPath, rejected);
     const settingsPath = join(fixture, "pi/agent/settings.json");
     const aliasesPath = join(fixture, "pi/agent/pi-ext-roles/settings.json");
@@ -128,7 +143,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const invalid = run();
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stderr, "");
-    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/gpt-6-luna:medium)\n${fixture}/.gga: GGA route must be listed in the reviewer HA group (found: kilo:cliproxyapi/gpt-6-luna:medium)\n`);
+    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/claude-opus-4-6-thinking:high)\n${fixture}/.gga: GGA route must match reviewer role primary (expected: cliproxyapi/claude-opus-4-6-thinking:off, found: kilo:cliproxyapi/claude-opus-4-6-thinking:high)\n${fixture}/.gga: GGA route must be listed in the reviewer HA group (found: kilo:cliproxyapi/claude-opus-4-6-thinking:high)\n`);
     assert.equal(readFileSync(ggaPath, "utf8"), rejected);
     assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore);
     assert.equal(readFileSync(aliasesPath, "utf8"), aliasesBefore);

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync, statSync, symlinkSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -55,6 +55,12 @@ const ctx = (route = "anthropic/primary") => ({
   ui: { notify() {} },
 });
 
+test("the default-loadable adapter re-exports the tested implementation", async () => {
+  const loader = await import("./model-preflight.js");
+  assert.equal(loader.default, modelPreflight);
+  assert.equal(loader.runPreflightCommand, runPreflightCommand);
+});
+
 test("recognizes fresh ready evidence and rejects stale or unknown evidence", () => {
   assert.equal(isFresh(report, Date.parse("2026-10-22T00:14:59.000Z")), true);
   assert.equal(isFresh(report, Date.parse("2026-10-22T00:15:00.000Z")), false);
@@ -72,7 +78,25 @@ test("selects a reachable fallback only for a bound, unavailable primary", () =>
 
 test("parses valid output and rejects malformed output", () => {
   assert.deepEqual(parsePreflightOutput(JSON.stringify(report)), report);
-  assert.throws(() => parsePreflightOutput("not-json"), /invalid|Unexpected/);
+  assert.throws(() => parsePreflightOutput("not-json"), /malformed JSON/);
+  assert.throws(
+    () => parsePreflightOutput(JSON.stringify({ probe: { status: "ok" }, matrix: { development: { state: "ready", entries: [{ route: 42, id: "bad", state: "reachable" }] } } })),
+    /invalid failover route/,
+  );
+  assert.throws(
+    () => parsePreflightOutput(JSON.stringify({ ...report, matrix: { development: { ...report.matrix.development, selected: { ...report.matrix.development.selected, effort: "bogus" } } } })),
+    /invalid selected route/,
+  );
+});
+
+test("accepts producer-shaped matrix entries without redacted ids", () => {
+  const producerReport = structuredClone(report);
+  for (const group of Object.values(producerReport.matrix)) {
+    for (const entry of group.entries) delete entry.id;
+    delete group.selected.id;
+  }
+  assert.deepEqual(parsePreflightOutput(JSON.stringify(producerReport)), producerReport);
+  assert.equal(chooseFallback(producerReport, "anthropic/primary").route, "anthropic/model:high");
 });
 
 test("applies reachable matrix routes without changing credentials or other HA settings", () => {
@@ -146,6 +170,16 @@ test("unknown evidence leaves the HA config untouched", async () => {
   });
   await pi.commands.get("model-preflight").handler("apply", { ...ctx(), ui: { notify() {} } });
   assert.equal(readFileSync(configPath, "utf8"), `${original}\n`);
+});
+
+test("normalizes missing child stdout to the invalid JSON diagnostic", async () => {
+  await assert.rejects(
+    runPreflightCommand({
+      env: { PI_MODEL_PREFLIGHT_SCRIPT: process.execPath },
+      execImpl: async () => ({ stdout: null, stderr: "empty preflight" }),
+    }),
+    /invalid model preflight output: empty output/,
+  );
 });
 
 test("uses an explicit preflight script and bounded command", async () => {
@@ -223,6 +257,121 @@ test("fails closed when the preflight launcher is unavailable", async () => {
     }),
     /unavailable/,
   );
+  const root = mkdtempSync(join(tmpdir(), "pi-preflight-directory-"));
+  await assert.rejects(
+    runPreflightCommand({
+      env: { PI_MODEL_PREFLIGHT_SCRIPT: root, HOME: "/missing-home" },
+      execImpl: async () => ({ stdout: "{}" }),
+    }),
+    /unavailable/,
+  );
+});
+
+test("runPreflightCommand resolves symlinked script path before invoking node (S3)", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-preflight-symlink-"));
+  const realScript = join(root, "preflight-real.mjs");
+  const linkScript = join(root, "preflight-link.mjs");
+  writeFileSync(realScript, "// real script");
+  symlinkSync(realScript, linkScript);
+  let capturedArgs;
+  const value = await runPreflightCommand({
+    env: { PI_MODEL_PREFLIGHT_SCRIPT: linkScript, PI_MODEL_PREFLIGHT_CACHE: join(root, "cache.json") },
+    refresh: false,
+    execImpl: async (...args) => {
+      capturedArgs = args;
+      return { stdout: JSON.stringify(report) };
+    },
+  });
+  // The first arg to node must be the real path, not the symlink.
+  assert.equal(capturedArgs[1][0], realScript, "script arg must be realpath, not symlink");
+  assert.deepEqual(value, report);
+});
+
+test("applyMatrixToHaConfig rejects a pre-created symlink at the temp path (S9)", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-ha-symlink-"));
+  const configPath = join(root, "ha.json");
+  const victim = join(root, "victim.txt");
+  const originalBytes = `${JSON.stringify({ groups: { development: { name: "x", entries: [{ id: "old" }] } } })}\n`;
+  writeFileSync(configPath, originalBytes);
+  writeFileSync(victim, "original");
+  const suffix = "a1b2c3d4e5f6";
+  const temporaryPath = `${configPath}.${suffix}.tmp`;
+  symlinkSync(victim, temporaryPath);
+  const lockImpl = { lock: async () => async () => {} };
+
+  try {
+    await assert.rejects(
+      applyMatrixToHaConfig({
+        configPath,
+        report,
+        lockImpl,
+        randomBytesImpl: () => Buffer.from(suffix, "hex"),
+      }),
+      { code: "EEXIST" },
+      "atomic HA write must reject a pre-created symlink",
+    );
+  } finally {
+    unlinkSync(temporaryPath);
+  }
+  assert.equal(readFileSync(victim, "utf8"), "original", "symlink target must remain unchanged");
+  assert.equal(readFileSync(configPath, "utf8"), originalBytes, "HA config must remain unchanged");
+});
+
+test("applyMatrixToHaConfig keeps HA config owner-only while preserving private mode (S10)", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-ha-mode-"));
+  const original = { groups: { development: { name: "old", entries: [{ id: "old" }], state: "ready" } } };
+  const lockImpl = { lock: async () => async () => {} };
+
+  const writableConfigPath = join(root, "writable-ha.json");
+  writeFileSync(writableConfigPath, `${JSON.stringify(original)}\n`, { mode: 0o644 });
+  chmodSync(writableConfigPath, 0o644);
+  await applyMatrixToHaConfig({ configPath: writableConfigPath, report, lockImpl });
+  assert.equal(statSync(writableConfigPath).mode & 0o777, 0o600, "normal writable config must become owner-only");
+
+  const privateConfigPath = join(root, "private-ha.json");
+  writeFileSync(privateConfigPath, `${JSON.stringify(original)}\n`, { mode: 0o400 });
+  chmodSync(privateConfigPath, 0o400);
+  await applyMatrixToHaConfig({ configPath: privateConfigPath, report, lockImpl });
+  assert.equal(statSync(privateConfigPath).mode & 0o777, 0o400, "already-private config must preserve its owner-only mode");
+});
+
+test("apply command rolls back HA config atomically when ctx.reload() fails (S11)", async () => {
+  const root = mkdtempSync(join(tmpdir(), "pi-ha-rollback-"));
+  const configPath = join(root, "ha.json");
+  const original = {
+    defaultGroup: "development",
+    credentials: { cliproxyapi: { primary: { refresh: "secret" } } },
+    groups: { development: { name: "old", entries: [{ id: "old/model" }] } },
+  };
+  const originalBytes = `${JSON.stringify(original)}\n`;
+  writeFileSync(configPath, originalBytes);
+  let lockCallCount = 0;
+  const lockImpl = {
+    lock: async () => {
+      lockCallCount += 1;
+      return async () => {};
+    },
+  };
+  const pi = fakePi();
+  modelPreflight(pi, {
+    now: () => Date.parse("2026-10-22T00:14:00.000Z"),
+    haConfigPath: configPath,
+    lockImpl,
+    runCommand: async () => report,
+  });
+  let notified;
+  await pi.commands.get("model-preflight").handler("apply", {
+    ...ctx(),
+    ui: { notify(msg, level) { notified = { msg, level }; } },
+    reload: async () => { throw new Error("runtime restart failed"); },
+  });
+  // The handler catches errors and notifies, so check the notification message.
+  assert.match(notified.msg, /rolled back|reload failed|runtime restart failed/, "must report rollback");
+  assert.equal(notified.level, "error");
+  // The config on disk must be the original bytes (rolled back).
+  assert.equal(readFileSync(configPath, "utf8"), originalBytes, "config must be restored to pre-apply state");
+  // Lock must have been acquired twice: once for apply, once for rollback.
+  assert.ok(lockCallCount >= 2, `expected at least 2 lock acquisitions, got ${lockCallCount}`);
 });
 
 console.log("model preflight extension checks passed");

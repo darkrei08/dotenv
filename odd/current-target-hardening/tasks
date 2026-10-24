@@ -1,0 +1,11 @@
+Current target hardening tasks mirror
+
+T1: model-preflight and HA persistence — complete; uncommitted
+T2: transactional and serialized skill linking plus setup invocation — complete; uncommitted
+T3: atomic setup and fail-closed config checks — complete; uncommitted
+T4: verification — complete; full Node tests 83/83, Bun tests 12/12, syntax/config/whitespace checks passed; Debian 13 and Arch latest final rows rerun after canonical-conflict hardening
+T5: GGA reviewer-primary HA alignment — complete; `.gga` resolves to the `reviewer` role primary and remains covered by reviewer-group CLIProxyAPI fallbacks
+
+Residual fixes: workflow-intent fails closed with a visible diagnostic when pi-extensible-workflows is unavailable; S9 exercises applyMatrixToHaConfig and proves a pre-created temp symlink cannot alter the target or HA config; setup skips shared-skill reconciliation when SETUP_AI_SKIP_SKILLS=1 and provisions diffutils for the final Arch config check.
+
+Adversarial status: Judgment Day dual judges were unavailable with invalid-published-state, so no independent adversarial verdict was obtained. The first GGA commit review also caught missing linker rollback and a cross-filesystem settings temp path; both are fixed with red/green regression tests. Herdr live smoke remains blocked because the active status reports session=null.

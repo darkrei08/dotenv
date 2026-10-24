@@ -7,6 +7,7 @@ GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
+MODEL_PREFLIGHT_LOADER="$ROOT/pi/agent/extensions/model-preflight.js"
 PI_TOOL_DISPLAY_CONFIG="$ROOT/pi/agent/extensions/pi-tool-display/config.json"
 PI_PACKAGE="$ROOT/pi/agent/package.json"
 HA_EXAMPLE="$ROOT/pi/agent/ha-failover.example.json"
@@ -19,8 +20,12 @@ failures=0
 
 check_json_file() {
   local path=$1
-  if [[ ! -f "$path" ]]; then
+  if [[ ! -e "$path" && ! -L "$path" ]]; then
     printf '%s: missing file\n' "$path"
+    return 1
+  fi
+  if [[ -L "$path" && ! -e "$path" ]]; then
+    printf '%s: dangling symlink\n' "$path"
     return 1
   fi
   if ! jq empty "$path" >/dev/null 2>&1; then
@@ -75,6 +80,18 @@ gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
 gga_effort=${gga_route##*:}
+reviewer_role_route=$(ROOT_FOR_GGA="$ROOT" REVIEWER_ROLE_MODEL="$reviewer_role_model" node --input-type=module <<'NODE'
+import { readFileSync } from "node:fs";
+import { pathToFileURL } from "node:url";
+const root = process.env.ROOT_FOR_GGA;
+const reference = process.env.REVIEWER_ROLE_MODEL;
+const { resolveAlias } = await import(pathToFileURL(`${root}/pi/agent/extensions/pi-ha-role-groups/bind.mjs`));
+const aliases = JSON.parse(readFileSync(`${root}/pi/agent/pi-ext-roles/settings.json`, "utf8")).modelAliases;
+const resolved = resolveAlias(reference, aliases);
+if (!resolved.model || !resolved.effort) process.exit(1);
+process.stdout.write(`${resolved.model}:${resolved.effort}`);
+NODE
+) || reviewer_role_route=""
 if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
   failures=1
@@ -83,7 +100,12 @@ if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* || "$gga_model" != 
   printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
     "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
-elif ! jq -e --arg route "$gga_route" '
+elif [[ -z "$reviewer_role_route" || "$gga_route" != "$reviewer_role_route" ]]; then
+  printf '%s: GGA route must match reviewer role primary (expected: %s, found: %s)\n' \
+    "$GGA_CONFIG" "${reviewer_role_route:-unresolved}" "${gga_provider:-missing}"
+  failures=1
+fi
+if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
   (.groups.reviewer.entries // []) |
   any(.[]; (.id // "") == $route)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
@@ -173,14 +195,14 @@ versioned_workflows_ok=1
 live_workflows_ok=1
 live_settings_ok=1
 check_json_file "$WORKFLOWS_SETTINGS" || { versioned_workflows_ok=0; failures=1; }
-if [[ ! -f "$LIVE_WORKFLOWS_SETTINGS" ]]; then
+if [[ ! -e "$LIVE_WORKFLOWS_SETTINGS" && ! -L "$LIVE_WORKFLOWS_SETTINGS" ]]; then
   printf '%s: missing file; skipping live workflow comparison\n' "$LIVE_WORKFLOWS_SETTINGS"
   live_workflows_ok=0
 elif ! check_json_file "$LIVE_WORKFLOWS_SETTINGS"; then
   live_workflows_ok=0
   failures=1
 fi
-if [[ ! -f "$LIVE_SETTINGS" ]]; then
+if [[ ! -e "$LIVE_SETTINGS" && ! -L "$LIVE_SETTINGS" ]]; then
   printf '%s: missing file; skipping live package comparison\n' "$LIVE_SETTINGS"
   live_settings_ok=0
 elif ! check_json_file "$LIVE_SETTINGS"; then
@@ -334,7 +356,11 @@ if ((${#missing_roles[@]})); then
 fi
 
 if [[ ! -s "$MODEL_PREFLIGHT_EXTENSION" ]]; then
-  printf '%s: model availability preflight extension is missing\n' "$MODEL_PREFLIGHT_EXTENSION"
+  printf '%s: model availability preflight implementation is missing\n' "$MODEL_PREFLIGHT_EXTENSION"
+  failures=1
+fi
+if [[ ! -s "$MODEL_PREFLIGHT_LOADER" ]]; then
+  printf '%s: model availability preflight default-loadable adapter is missing\n' "$MODEL_PREFLIGHT_LOADER"
   failures=1
 fi
 if ! jq -e '.pi.extensions | index("extensions") != null' "$PI_PACKAGE" >/dev/null 2>&1; then
@@ -372,7 +398,7 @@ then
   failures=1
 fi
 
-if [[ -e "$RETIRED_EXTENSION" ]]; then
+if [[ -e "$RETIRED_EXTENSION" || -L "$RETIRED_EXTENSION" ]]; then
   printf '%s: retired repository extension must not exist\n' "$RETIRED_EXTENSION"
   failures=1
 fi
@@ -382,6 +408,46 @@ if grep -vE '^[[:space:]]*#' "$SETUP" |
     grep -Eq "GENTLE_PI_QUIET_TOOLS[[:space:]]*=[[:space:]]*[\"']?0[\"']?([[:space:];]|$)"; then
   printf '%s: writes GENTLE_PI_QUIET_TOOLS=0\n' "$SETUP"
   failures=1
+fi
+
+# Skill collision audit (S3/S15): every skill declared as managed in
+# agents/skills.manifest.json must NOT appear as a physical directory in
+# ~/.pi/agent/skills. Pi already reads the canonical root (~/.agents/skills)
+# directly (readsCanonical:true in the manifest), so a pi-local copy would be
+# loaded twice. The linker's drop-copy action (run with --apply) removes these;
+# this check detects regressions after install, upgrade or reload.
+PI_SKILLS_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills"
+MANIFEST="$ROOT/agents/skills.manifest.json"
+manifest_ok=1
+if ! check_json_file "$MANIFEST"; then
+  manifest_ok=0
+  failures=1
+fi
+if ((manifest_ok)) && [[ -d "$PI_SKILLS_DIR" ]]; then
+  collisions=()
+  if ! managed_skills=$(jq -r '.skills | to_entries[] | select(.value.managed != false) | .key' "$MANIFEST"); then
+    printf '%s: manifest skill list could not be parsed\n' "$MANIFEST"
+    failures=1
+  else
+    while IFS= read -r skill; do
+      [[ -z "$skill" ]] && continue
+      pi_entry="$PI_SKILLS_DIR/$skill"
+      # Only an existing symlink to the canonical skill is a linker artifact (expected;
+      # skip it). A real directory, a dangling link, or a link to elsewhere is a collision.
+      if [[ -L "$pi_entry" ]] && [[ -e "$pi_entry" ]] &&
+         [[ "$(readlink -f "$pi_entry")" == "${HOME}/.agents/skills/$skill" ]]; then
+        continue
+      fi
+      if [[ -e "$pi_entry" || -L "$pi_entry" ]]; then
+        collisions+=("$skill")
+      fi
+    done <<< "$managed_skills"
+  fi
+  if ((${#collisions[@]})); then
+    printf '%s: skill(s) exist in the Pi-local root and would load twice — run: node agents/link-skills.mjs --apply --only pi\n  collisions: %s\n' \
+      "$PI_SKILLS_DIR" "${collisions[*]}"
+    failures=1
+  fi
 fi
 
 if ((failures)); then

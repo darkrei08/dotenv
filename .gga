@@ -1,4 +1,4 @@
-PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"
+PROVIDER="kilo:cliproxyapi/claude-opus-4-6-thinking:off"
 FILE_PATTERNS="*.sh,*.json,*.ts,*.mjs,*.md,*.lua,*.toml"
 EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
 RULES_FILE="REVIEW_RULES.md"
