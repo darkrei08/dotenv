@@ -30,11 +30,11 @@ function roleConfig(name) {
   const toolsText = frontmatter[1].match(/^tools:\s*\[([^\]]*)\]\s*$/m)?.[1];
   if (!toolsText) throw new Error(`${name}: missing inline tools selector`);
   const tools = toolsText.split(",").map((item) => item.trim().replace(/^['"]|['"]$/g, ""));
-  return { model, tools };
+  return { model, tools, content };
 }
 
 for (const name of roleFiles) {
-  const { model, tools } = roleConfig(name);
+  const { model, tools, content } = roleConfig(name);
   if (!model || model.includes("/") || !settings.modelAliases?.[model]) {
     failures.push(`${name}: model must reference a configured alias, not a provider/model ID`);
   }
@@ -55,6 +55,25 @@ for (const name of roleFiles) {
   }
   if (writeCapableRoles.includes(name) && ["bash", "edit", "write"].some((tool) => !positive.includes(tool))) {
     failures.push(`${name}: write-capable role must explicitly allow bash, edit, and write`);
+  }
+  if (name === "tests-expert") {
+    const discoveryRules = [
+      "Verify the Git repository root before reading repository files.",
+      "Check current existing tests after verifying the repository root.",
+      "Use bounded file discovery before reading a presumed source path.",
+      "Do not infer source paths solely from expected naming conventions.",
+      "If a requested path is missing, search bounded candidate paths, inspect repository history, identify the relevant module by exported symbols, explain the path mismatch, and continue with the verified implementation.",
+      "Resolve the requested symbol or behavior from discovered candidates, verify the selected file exists, then read only the relevant range.",
+      "Do not retry the same nonexistent path.",
+    ];
+    for (const rule of discoveryRules) {
+      if (!content.includes(rule)) failures.push(`${name}: missing discovery-first rule: ${rule}`);
+    }
+    const rootRuleIndex = content.indexOf("Verify the Git repository root before reading repository files.");
+    const existingTestsRuleIndex = content.indexOf("Check current existing tests");
+    if (rootRuleIndex < 0 || existingTestsRuleIndex < 0 || rootRuleIndex > existingTestsRuleIndex) {
+      failures.push(`${name}: repository-root verification must precede existing-test reads`);
+    }
   }
 }
 
