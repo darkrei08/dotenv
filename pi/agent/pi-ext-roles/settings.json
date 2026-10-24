@@ -19,7 +19,7 @@
     "developer-model": "cheap-model",
     "tests-expert": "cliproxy-luna",
     "researcher-model": "cliproxy-luna:xhigh",
-    "summarizer-model": "cliproxyapi/claude-haiku-5-5:low",
+    "summarizer-model": "gemini-summarizer-model",
     "gemini-scout-model": "cliproxyapi/gemini-3.8-flash-high:medium",
     "gemini-summarizer-model": "cliproxyapi/gemini-3.5-flash-lite:low",
     "gemini-researcher-model": "cliproxyapi/gemini-pro-agent:high",
@@ -54,7 +54,6 @@
     "**/@sting8k/pi-vcc/**",
     "**/pi-omplike-advisor/**",
     "**/pi-cliproxyapi-provider/extensions/index.ts",
-    "**/light-web-search.ts",
-    "**/ponytail/**"
+    "**/light-web-search.ts"
   ]
 }

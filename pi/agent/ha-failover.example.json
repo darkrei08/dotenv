@@ -40,7 +40,6 @@
     "summary": {
       "name": "Summary fallback",
       "entries": [
-        { "id": "cliproxyapi/claude-haiku-5-5" },
         { "id": "cliproxyapi/gemini-3.5-flash-lite" }
       ]
     },

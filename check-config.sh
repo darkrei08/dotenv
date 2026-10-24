@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -uo pipefail
+set -euo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
@@ -139,12 +139,17 @@ for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
 done
 
 # If this clone already has a hook, keep it on the repo-owned bridge path.
-git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null || printf '')
-if [[ -n "$git_common_dir" && "$git_common_dir" != /* ]]; then
-  git_common_dir="$ROOT/$git_common_dir"
+git_common_dir=''
+pre_commit_hook=''
+if git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null); then
+  if [[ "$git_common_dir" != /* ]]; then
+    git_common_dir="$ROOT/$git_common_dir"
+  fi
+  pre_commit_hook="$git_common_dir/hooks/pre-commit"
+else
+  printf '%s: Git common dir unavailable; skipping installed pre-commit hook check\n' "$ROOT" >&2
 fi
-pre_commit_hook="$git_common_dir/hooks/pre-commit"
-if [[ -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
+if [[ -n "$pre_commit_hook" && -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
   printf '%s: installed pre-commit hook must invoke agents/gga-pi/run-gga.sh\n' "$pre_commit_hook"
   failures=1
 fi
@@ -239,7 +244,7 @@ if ! jq -e '
   $aliases["developer-model"] == "cheap-model" and
   $aliases["tests-expert"] == "cliproxy-luna" and
   $aliases["researcher-model"] == "cliproxy-luna:xhigh" and
-  $aliases["summarizer-model"] == "cliproxyapi/claude-haiku-5-5:low" and
+  $aliases["summarizer-model"] == "gemini-summarizer-model" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-pro-agent:high" and
@@ -301,6 +306,12 @@ fi
 
 if ! jq -e '(.providers | has("tuxevil-rotator") | not)' "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
   printf '%s: the retired tuxevil-rotator provider is back in the catalog\n' "$ROOT/pi/agent/models.json"
+  failures=1
+fi
+if ! jq -e '
+  ([.providers["openai-codex"].models[]?.id] | index("gpt-6-luna") != null and index("gpt-6-sol") != null)
+' "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
+  printf '%s: openai-codex must retain gpt-6-luna and gpt-6-sol\n' "$ROOT/pi/agent/models.json"
   failures=1
 fi
 

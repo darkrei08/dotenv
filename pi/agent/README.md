@@ -25,7 +25,7 @@ The role mapping is CLIProxyAPI-first. Normal workflow roles use the gateway dir
 | --- | --- | --- |
 | `cheap-model` | `cliproxyapi/claude-sonnet-5-5:medium` | qa, release, sre |
 | `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | scout |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | summarizer |
+| `summarizer-model` | `gemini-summarizer-model` | summarizer |
 | `developer-model` | `cheap-model` | developer |
 | `tests-expert` | `cliproxyapi/gpt-5.6-luna:high` | tests-expert |
 | `researcher-model` | `cliproxyapi/gpt-5.6-luna:xhigh` | researcher |
@@ -74,7 +74,8 @@ level has no `cliproxyapi` mirror on the same model and effort, so the two route
 cannot drift apart. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
 as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
 Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
-models, which is why Codex stays on its native login.
+models. Codex credentials may supply the gateway account, but workflow requests still route through
+CLIProxyAPI by default.
 
 Gemini aliases are direct CLIProxyAPI routes and are selected by the automatic
 HA matrix when the primary route is unavailable, rather than requiring a manual

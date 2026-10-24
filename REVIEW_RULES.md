@@ -24,7 +24,7 @@ defect:
   `cliproxyapi/claude-sonnet-5-5:medium`, `scout-model` resolves to the direct CLIProxyAPI
   Gemini `cliproxyapi/gemini-3.8-flash-high:medium`, `tests-expert` to `cliproxy-luna`
   (`cliproxyapi/gpt-5.6-luna:high`), `researcher-model` to `cliproxy-luna:xhigh`,
-  `summarizer-model` to `cliproxyapi/claude-haiku-5-5:low`, and `reviewer-model` (also oracle)
+  `summarizer-model` to `gemini-summarizer-model` (`cliproxyapi/gemini-3.5-flash-lite:low`), and `reviewer-model` (also oracle)
   to `cliproxyapi/claude-opus-5-5:high`. Explicit `gemini-*` aliases and CLIProxyAPI HA groups
   are allowed as alternatives/fallbacks; they do not replace the primary role targets. Native and
   OpenCode Go aliases remain explicit emergency failover only and are hidden from the active picker.

@@ -368,7 +368,7 @@ defaults and must not consume the wrong provider plan.
 | `cheap-model` | `cliproxy-cheap-model` | Standard cheap alias |
 | `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Scout role, direct gateway route |
 | `developer-model` | `cheap-model` | Developer role |
-| `summarizer-model` | `cliproxyapi/claude-haiku-5-5:low` | Summarizer role |
+| `summarizer-model` | `gemini-summarizer-model` | Summarizer role |
 | `tests-expert` | `cliproxy-luna` | Tests role through CLIProxyAPI |
 | `researcher-model` | `cliproxy-luna:xhigh` | Research role through CLIProxyAPI |
 | `reviewer-model` | `cliproxy-reviewer-model` | Reviewer role |
@@ -406,7 +406,7 @@ no native or OpenCode Go route is used. Setup and alternatives:
 **Role routing policy:**
 - Developer and quality roles (`qa`, `release`, `sre`) use Claude Sonnet 5.5 at medium effort through CLIProxyAPI.
 - Scout uses Gemini 3.8 Flash High at medium effort through CLIProxyAPI; its 1M context and 65.5K output clear the scout floor without spending the OpenCode Go plan.
-- Summarizer uses Claude Haiku 5.5 at low effort through CLIProxyAPI.
+- Summarizer uses Gemini 3.5 Flash Lite at low effort through CLIProxyAPI.
 - Tests and research use GPT-5.6 Luna at high/xhigh through CLIProxyAPI; do not route Luna through OpenCode Go for normal work.
 - Advisor roles (`reviewer-model`, `oracle-model`, `architect`, `security`) use Claude Opus 5.5 at high effort through CLIProxyAPI.
 
