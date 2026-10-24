@@ -200,6 +200,14 @@ if ! jq -e '
   printf '%s: subagents.enabled must be explicitly false under extensionSettings\n' "$ROOT/pi/agent/pi-extensible-workflows/settings.json"
   failures=1
 fi
+if ! jq -e '
+  (.extensions // []) as $extensions |
+  ($extensions | index("**/@sting8k/pi-vcc/**")) != null and
+  all($extensions[]?; test("pi-codex-context") | not)
+' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow children must load pi-vcc and not pi-codex-context\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+fi
 
 versioned_workflows_ok=1
 live_workflows_ok=1

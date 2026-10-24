@@ -1,6 +1,6 @@
 # Compaction evaluation
 
-Evidence for issues #29 and #25 (which compactor, and whether to tune `reserveTokens` / `keepRecentTokens`). Measured on 2026-10-09. Nothing in `~/.pi/agent` was changed.
+Evidence for issues #29 and #25 (which compactor, and whether to tune `reserveTokens` / `keepRecentTokens`). Measured on 2026-10-09. The benchmark is historical; the repository now applies its upstream-aligned compaction decision in versioned configuration.
 
 ## What upstream does
 
@@ -9,7 +9,7 @@ Evidence for issues #29 and #25 (which compactor, and whether to tune `reserveTo
 | `vekexasia/dotenv` `settings.json` at `c419a0c` | Registers `npm:@sting8k/pi-vcc` as the compactor (`overrideDefaultCompaction`, `smartKeepTail`, `continueAfterThresholdCompact`). `compaction.enabled` is `true`. No `reserveTokens` or `keepRecentTokens` anywhere in its Pi config. |
 | Its history | `packages/pi-codex-context` was added and registered on 2026-09-15 (`6c0205e`), then removed from `settings.json` and `pi-vcc` restored on 2026-09-17 (`202143e`). The package is still in his tree, unregistered, and is byte-identical to the copy in this repository. |
 | `vekexasia/pi-extensible-workflows` | Does not configure compaction. |
-| This repository | `pi-codex-context` registered for the main session; `pi-vcc` loaded only for workflow children (`pi-vcc-config.json`, `extensions` glob). |
+| This repository | Current configuration registers `npm:@sting8k/pi-vcc` for the main session and workflow children. `pi-codex-context` remains source-only for historical tests and comparison. |
 
 ## Fixture
 
@@ -55,7 +55,7 @@ Generated output never exceeded about 29k tokens in any model. A 128K reserve wo
 ## Recommendation
 
 1. Do not change `reserveTokens` or `keepRecentTokens` now. There is no observed overflow to fix, and the vekexasia floor rule would make things worse here. Revisit if overflow recoveries show up in the logs.
-2. Compactor: align with vekexasia's current choice, `pi-vcc` as the single summary owner for the main session, only after an end-to-end check with a real agent that it calls `vcc_recall` when it needs older facts. Durable constraints (like destructive-command rules) belong in `AGENTS.md`, not in a summary. Keep `pi-codex-context` in the tree, unregistered, as upstream does.
+2. Compactor: the repository now follows vekexasia's current choice, `pi-vcc` as the single summary owner for the main session and workflow children. The end-to-end check that an agent calls `vcc_recall` when it needs older facts remains a runtime verification item. Durable constraints (like destructive-command rules) belong in `AGENTS.md`, not in a summary. Keep `pi-codex-context` in the tree, unregistered, as upstream does.
 3. If a higher in-context retention matters more than cost and determinism, native compaction is the stronger summarizer (0.73 to 0.96), at one model call per compaction.
 
 ## Limits of this evidence
