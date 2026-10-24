@@ -141,4 +141,3 @@ exit 2
   assert.equal(result.stdout, 'STATUS: PASSED\n');
   assert.match(result.stderr, /failing over to provider\/fallback-model/);
 });
-
