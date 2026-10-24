@@ -165,7 +165,9 @@ if [[ $(grep -Ec '^[[:space:]]*npm:@sting8k/pi-vcc[[:space:]]*$' "$PI_PACKAGES")
   printf '%s: pi-vcc must appear exactly once in the package manifest\n' "$PI_PACKAGES"
   failures=1
 fi
-if grep -Eq '^[[:space:]]*(npm:gentle-pi|npm:pi-extensible-workflows|.*pi-codex-context.*)[[:space:]]*$' "$PI_PACKAGES"; then
+if awk '!/^[[:space:]]*#/ && $0 ~ /^[[:space:]]*(npm:gentle-pi|npm:pi-extensible-workflows|.*pi-codex-context.*)[[:space:]]*$/ { found=1 } END { exit found }' "$PI_PACKAGES"; then
+  :
+else
   printf '%s: module-owned Gentle AI packages and pi-codex-context must stay out of the package manifest\n' "$PI_PACKAGES"
   failures=1
 fi
