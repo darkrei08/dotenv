@@ -27,11 +27,11 @@ S11. "9) MAJOR: ctx.reload() failure leaves persisted HA routes changed while ru
 
 ## Tasks
 
-- T1 [S3, S9-S11] route: harden model preflight launcher/HA persistence and add focused regression tests; commit: uncommitted.
-- T2 [S5-S7] route: make skill linking transactional and serialized, wire setup invocation, and add focused regression tests; commit: uncommitted.
-- T3 [S4, S8] route: make setup/config validation fail-closed and atomic, with shell regression coverage; commit: uncommitted.
-- T4 [S1-S11] route: run focused, syntax, repository, and applicable container checks; commit: uncommitted.
-- T5 [S12] route: align GGA with the reviewer role's primary CLIProxyAPI model while retaining the reviewer HA fallback group; update config checks, tests, and documentation; commit: uncommitted.
+- T1 [S3, S9-S11] route: harden model preflight launcher/HA persistence and add focused regression tests; commits: cd0c673, bac5e67.
+- T2 [S5-S7] route: make skill linking transactional and serialized, wire setup invocation, and add focused regression tests; commits: 61206a8, 84aae5d.
+- T3 [S4, S8] route: make setup/config validation fail-closed and atomic, with shell regression coverage; commits: 84aae5d, c8a06f6, 6760ef7.
+- T4 [S1-S11] route: run focused, syntax, repository, and applicable container checks; evidence recorded in L3-L6, with live-path checks still environment-blocked.
+- T5 [S12] route: align GGA with the reviewer role's primary CLIProxyAPI model while retaining the reviewer HA fallback group; update config checks, tests, and documentation; commit: cd0c673.
 
 ## Log
 

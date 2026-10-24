@@ -21,7 +21,7 @@ S5. "execute the full adversarial audit and final functional test"
 - T2 [S3] | #76 | route: add validated master/chief result synthesis and upward propagation after sequential issue batches | commit: 8981788
 - T3 [S4] | #13, #6 | route: repair or verify ordered Herdr child lifecycle, prompt transport, and mailbox evidence in `pi-herdr-orchestration` | commit: 5e4212c
 - T4 [S5] | #69 | route: reproduce and correct the model-preflight runtime path without touching credentials or live config | commit: bac5e67
-- T5 [S1-S5] | #75, #76, #13, #6, #69 | route: run adversarial review, focused tests, final functional smoke, and push stable repository branches | commit: pending
+- T5 [S1-S5] | #75, #76, #13, #6, #69 | route: run adversarial review, focused tests, final functional smoke, and push stable repository branches | commits: 8aea335 and current branch evidence; push pending explicit delivery authorization
 
 ## Log
 
