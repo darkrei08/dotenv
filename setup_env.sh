@@ -68,22 +68,24 @@ install_release() {
 
   # GITHUB_TOKEN wins; `gh auth token` covers an authenticated gh CLI. A gh that
   # is absent or not logged in is an expected, non-fatal case: the lookup below
-  # then warns with the unauthenticated rate limit as the likely cause. The
-  # token is passed to curl as a header and never printed.
-  local token=${GITHUB_TOKEN:-} auth=()
+  # then warns with the unauthenticated rate limit as the likely cause. Keep the
+  # token in a mode-600 curl config file instead of passing it in argv, where
+  # process listings can expose it.
+  local token=${GITHUB_TOKEN:-}
   if [ -z "$token" ] && command -v gh >/dev/null 2>&1; then
     token=$(gh auth token 2>/dev/null) || token=
-  fi
-  if [ -n "$token" ]; then
-    auth=(-H "Authorization: Bearer $token")
   fi
 
   # `first()` replaces `| head -1`, whose SIGPIPE under `pipefail` can turn a
   # large result into exit 141, and the `|| rc=$?` keeps a failed lookup from
   # reaching the plain `[ ]` tests this used to abort on.
-  # `${auth[@]+...}` guards the empty-array expansion: `set -u` aborts on it in
-  # bash before 4.4.
-  url=$(curl -fsSL --retry 3 --retry-all-errors --retry-delay 2 "${auth[@]+"${auth[@]}"}" \
+  local curl_args=(-fsSL --retry 3 --retry-all-errors --retry-delay 2)
+  if [ -n "$token" ]; then
+    local auth_config="$workdir/curl.conf"
+    (umask 077; printf 'header = "Authorization: Bearer %s"\n' "$token" > "$auth_config")
+    curl_args+=(--config "$auth_config")
+  fi
+  url=$(curl "${curl_args[@]}" \
       "https://api.github.com/repos/$repository/releases/latest" \
     | jq -r --arg pattern "$asset_pattern" \
       'first(.assets[] | select(.name | test($pattern)) | .browser_download_url) // empty') || rc=$?
@@ -170,13 +172,13 @@ install_cli_anything_pi() (
     return 1
   fi
   mkdir -p "$target/scripts"
-  rsync -a "$extension_source/index.ts" "$target/"
-  rsync -a "$plugin_source/HARNESS.md" "$target/"
+  rsync -a --delay-updates "$extension_source/index.ts" "$target/"
+  rsync -a --delay-updates "$plugin_source/HARNESS.md" "$target/"
   for resource_dir in commands guides templates; do
-    rsync -a "$plugin_source/$resource_dir/" "$target/$resource_dir/"
+    rsync -a --delay-updates "$plugin_source/$resource_dir/" "$target/$resource_dir/"
   done
-  rsync -a "$plugin_source/repl_skin.py" "$target/scripts/repl_skin.py"
-  rsync -a "$plugin_source/skill_generator.py" "$target/scripts/skill_generator.py"
+  rsync -a --delay-updates "$plugin_source/repl_skin.py" "$target/scripts/repl_skin.py"
+  rsync -a --delay-updates "$plugin_source/skill_generator.py" "$target/scripts/skill_generator.py"
 
   for asset in \
     index.ts HARNESS.md commands/cli-anything.md commands/list.md \
@@ -240,7 +242,9 @@ sync_pi() {
     tsconfig.json package.json pi-packages.txt .pii-allowlist \
     bin packages prompts skills themes pi-extensible-workflows pi-ext-roles; do
     if [ -e "$src/$item" ]; then
-      rsync -a "$src/$item" "$target/"
+      # --delay-updates writes each destination through a same-directory rename,
+      # so startup never observes a truncated versioned file.
+      rsync -a --delay-updates "$src/$item" "$target/"
     fi
   done
 
@@ -250,7 +254,7 @@ sync_pi() {
   # pi-ext-workflows/node_modules; copying them here without that node_modules
   # breaks `pi` startup ("Cannot find module 'pi-extensible-workflows'").
   if [ -d "$src/extensions" ]; then
-    rsync -a --exclude='*.test.ts' --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
+    rsync -a --delay-updates --exclude='*.test.ts' --exclude='piextworkflows.ts' --exclude='pi-ext-workflows/' \
       "$src/extensions" "$target/"
   fi
   # Pi loads direct TypeScript files as extensions. Remove test files left by older
@@ -276,7 +280,7 @@ sync_pi() {
   # Idempotently normalize pi-extensible-workflows to exclude standalone subagents UI
   if [ -f "$target/settings.json" ] && command -v jq >/dev/null 2>&1; then
     local tmp_settings
-    tmp_settings=$(mktemp)
+    tmp_settings=$(mktemp "$target/settings.json.XXXXXX")
     if jq '
       .packages = [
         (.packages // [])[] |
@@ -285,7 +289,8 @@ sync_pi() {
         else . end
       ]
     ' "$target/settings.json" > "$tmp_settings" 2>/dev/null; then
-      cat "$tmp_settings" > "$target/settings.json"
+      # Replace the complete JSON document, never truncate the live file in place.
+      mv -f -- "$tmp_settings" "$target/settings.json"
     else
       printf 'sync_pi: failed to normalize %s\n' "$target/settings.json" >&2
       rm -f "$tmp_settings"
@@ -298,13 +303,13 @@ sync_pi() {
 if [ "$PACKAGE_MANAGER" = debian ]; then
   sudo apt-get update
   package_specs=(
-    'make:make' 'gcc:gcc' 'g++:g++' 'rg:ripgrep' 'git:git' 'curl:curl' 'xclip:xclip' 'jq:jq'
+    'make:make' 'gcc:gcc' 'g++:g++' 'rg:ripgrep' 'git:git' 'curl:curl' 'diff:diffutils' 'xclip:xclip' 'jq:jq'
     'tree:tree' 'htop:htop' 'fdfind:fd-find' 'rsync:rsync' 'fzf:fzf' 'batcat:bat'
     'gh:gh' 'glab:glab' 'python3:python3' 'python3-venv:python3-venv' 'notify-send:libnotify-bin'
   )
 else
   package_specs=(
-    'make:make' 'gcc:gcc' 'g++:gcc' 'rg:ripgrep' 'git:git' 'curl:curl' 'xclip:xclip' 'jq:jq'
+    'make:make' 'gcc:gcc' 'g++:gcc' 'rg:ripgrep' 'git:git' 'curl:curl' 'diff:diffutils' 'xclip:xclip' 'jq:jq'
     'tree:tree' 'htop:htop' 'fd:fd' 'rsync:rsync' 'fzf:fzf' 'bat:bat'
     'gh:github-cli' 'glab:glab' 'python3:python' 'notify-send:libnotify'
   )
@@ -390,7 +395,7 @@ if [ -z "$nvim_version" ] || [ "$(printf '%s\n' 0.12.0 "$nvim_version" | sort -V
 fi
 
 mkdir -p "$HOME/.config"
-rsync -a --delete --exclude=node_modules/ "$REPO_DIR/nvim/" "$HOME/.config/nvim/"
+rsync -a --delay-updates --delete --exclude=node_modules/ "$REPO_DIR/nvim/" "$HOME/.config/nvim/"
 install -Dm644 "$REPO_DIR/herdr/config.toml" "$HOME/.config/herdr/config.toml"
 if [ "$(hostname -s)" = "devbox" ]; then
   sed -i '/^\[ui\]$/a copy_on_select = false' "$HOME/.config/herdr/config.toml"
@@ -399,7 +404,7 @@ install -Dm644 "$REPO_DIR/.tmux.conf" "$HOME/.tmux.conf"
 
 if [ "$IS_WSL" -eq 1 ]; then
   mkdir -p "$HOME/.local/bin"
-  rsync -a "$REPO_DIR/.local/bin/" "$HOME/.local/bin/"
+  rsync -a --delay-updates "$REPO_DIR/.local/bin/" "$HOME/.local/bin/"
   if command -v powershell.exe >/dev/null 2>&1 && command -v wslpath >/dev/null 2>&1; then
     windows_home=$(powershell.exe -NoProfile -Command '$env:USERPROFILE' | tr -d '\r')
     [ -n "$windows_home" ] && install -Dm644 "$REPO_DIR/.wezterm.lua" "$(wslpath "$windows_home")/.wezterm.lua"
@@ -489,10 +494,17 @@ fi
 # the `aimem` CLI. The skill goes through the same skills flow as the lines above;
 # the CLI installer is invoked with --no-skill to avoid installing the skill twice.
 # Pinned to a stable release tag (AIMEM_REF) instead of a moving branch.
+#
+# Pi is intentionally omitted from --agent: Pi reads the canonical root
+# (~/.agents/skills) directly, so installing project-memory into ~/.pi/agent/skills
+# would create a duplicate that Pi loads twice. The canonical copy serves Pi.
+# See agents/LINKING.md and S1-S2 in odd/tasks/pi-ecosystem-activation-and-routing.md.
 AIMEM_REF=v0.1.0
-if ! npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent pi cline --yes </dev/null; then
-  printf 'ERROR: pinned ai-memory-kit skill %s could not be installed; refusing an unpinned fallback.\n' "$AIMEM_REF" >&2
-  exit 1
+if [[ "${SETUP_AI_SKIP_SKILLS:-0}" != "1" ]]; then
+  if ! npx skills add "darkrei08/ai-memory-kit#${AIMEM_REF}" --skill project-memory --global --agent cline --yes </dev/null; then
+    printf 'ERROR: pinned ai-memory-kit skill %s could not be installed; refusing an unpinned fallback.\n' "$AIMEM_REF" >&2
+    exit 1
+  fi
 fi
 # ai-memory-kit v0.1.0 used GitHub's refs/heads codeload URL for tags.
 # Rewrite it in the streamed installer until the upstream installer is fixed.
@@ -537,6 +549,12 @@ if command -v herdr >/dev/null 2>&1; then
   [ -x /usr/local/bin/bun ] || sudo "$(command -v npm)" install -g --prefix /usr/local bun
   herdr integration install pi
   herdr plugin link "$REPO_DIR/herdr/plugins/agent-notify"
+fi
+if [[ "${SETUP_AI_SKIP_SKILLS:-0}" != "1" ]]; then
+  if ! node "$REPO_DIR/agents/link-skills.mjs" --apply; then
+    printf 'ERROR: shared skill linking failed; setup cannot continue.\n' >&2
+    exit 1
+  fi
 fi
 command -v pi >/dev/null 2>&1 && pi update --extensions
 (cd "$HOME/.config/nvim" && npm ci)

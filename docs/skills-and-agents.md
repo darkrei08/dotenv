@@ -46,9 +46,9 @@ The rule for agents working in this repository:
 3. Run `node agents/link-skills.mjs` to review, then `--apply`.
 4. Confirm with `node agents/link-skills.mjs --verify`.
 
-Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` copies the skills this repository ships (`phantom-ui`, `skillopt-sleep`) into every harness root; that is compatible, and the next `--apply` sees an identical copy and folds it back into a link.
+Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` copies the skills this repository ships (`phantom-ui`, `skillopt-sleep`) into every harness root; an identical harness copy is intentionally reported as a conflict because replacing a live directory with a link cannot be atomic portably.
 
-[`agents/LINKING.md`](../agents/LINKING.md) documents the actions (`link`, `already-linked`, `replace-copy-with-link`, `drop-copy`, `drop-link`, `fold-in`, `conflict`, `skip`), the conflict procedure, and the two unmanaged cases: `_shared/` is a support directory with no `SKILL.md` and a per-runtime copy per harness, and `impeccable` is installed per provider by its own installer, so each harness copy legitimately differs.
+[`agents/LINKING.md`](../agents/LINKING.md) documents the actions (`link`, `already-linked`, `drop-copy`, `drop-link`, `conflict`, `skip`), the conflict procedure, and the two unmanaged cases: `_shared/` is a support directory with no `SKILL.md` and a per-runtime copy per harness, and `impeccable` is installed per provider by its own installer, so each harness copy legitimately differs.
 
 ## Skill provenance
 
@@ -59,7 +59,7 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 | `pedronauck/skills` | `typescript-advanced` | `npx skills add` |
 | `humanlayer/skills` | `show-me` | `npx skills add` |
 | `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` |
-| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | Pinned `npx skills add "...#v0.1.0"`; setup fails closed if the tag cannot be fetched. The `aimem` CLI installer runs with `--no-skill` |
+| `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | Pinned `npx skills add "...#v0.1.0" --agent cline`; Pi is excluded from `--agent` because Pi reads the canonical root directly — passing `pi` would create a duplicate in `~/.pi/agent/skills` that Pi loads twice (S1-S2). The `aimem` CLI installer runs with `--no-skill`. `check-config.sh` detects any residual Pi-local copy as a collision (S3). |
 | `h3nryprod01/design-taste` | `design-taste` | `npx skills@latest add ... --global --agent <agent> --copy --yes`, per detected CLI, in `install-agent-extensions.sh` |
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
