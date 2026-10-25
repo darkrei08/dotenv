@@ -6,7 +6,11 @@ How the versioned Pi configuration in `pi/agent` is composed: packages, in-repo 
 
 `setup_env.sh` selectively copies the versioned Pi configuration from `pi/agent` into `~/.pi/agent` while preserving runtime state, so the paths below refer to corresponding repository and live configuration rather than the same files.
 
+After merging workflow changes, run `./setup_env.sh` to synchronize the live profile before starting new Pi sessions. `developIssues` returns `integration-ready` evidence; only the Master calls `integrateReviewedIssues` through `devIssuesInBatches` to integrate and clean up worktrees. A source-only test does not prove the live profile is synchronized.
+
 ### Packages
+
+`pi-herdr-orchestration` is pinned to commit `e8e52d3a358f036f5cb2bcb517b0abe572d3d216` (v1.2.6), not a mutable tag. This prevents tag drift but does not fix that release's known Pi 1.4 `/orch` loader incompatibility; live deployment still requires a compatible release or an explicitly approved runtime replacement.
 
 `pi/agent/pi-packages.txt` is the declarative list, one source per line, with `#` comments and blank lines ignored. It is consumed by `@darkrei08/setup-ai`'s `pi-packages` module, which resolves `~/.pi/agent/pi-packages.txt` (an explicit `PI_PACKAGES_FILE` wins), runs `pi install` once per line and then verifies each source landed in `~/.pi/agent/settings.json`:
 

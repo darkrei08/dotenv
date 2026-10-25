@@ -89,7 +89,7 @@ PiWorkflow is the execution owner. Agents receive only the role skills needed fo
 | `researcher` | `research`, `pi-model-fit`, `pi-herdr-orchestrator`, `engineering-excellence` | Official-source research and route evidence |
 | `reviewer` | `engineering-excellence`, `code-review`, `pi-herdr-orchestrator` | Independent findings and evidence-based review |
 
-The registered `git:github.com/darkrei08/pi-herdr-orchestration@v1.2.6` package is the intended source of the native `orch_report`, `orch_status`, `orch_ask`, `orch_reply`, and `orch_evidence` tools. Use them as the mailbox/evidence boundary from PiWorkflow; use `@piewf/herdr` only for inspectable session transport. Herdr pane labels are presentation, not authority. The local extension fix for Pi 1.4's `registerCommand(name, options)` contract passes the package tests and a temporary RPC loader smoke; the pinned global tag needs a release/update before claiming the live global `/orch` command.
+The registered `git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216` package (the immutable commit behind v1.2.6) is the intended source of the native `orch_report`, `orch_status`, `orch_ask`, `orch_reply`, and `orch_evidence` tools. Use them as the mailbox/evidence boundary from PiWorkflow; use `@piewf/herdr` only for inspectable session transport. Herdr pane labels are presentation, not authority. The local extension fix for Pi 1.4's `registerCommand(name, options)` contract passes the package tests and a temporary RPC loader smoke; the pinned global tag needs a release/update before claiming the live global `/orch` command.
 
 ## Gentle AI compatibility boundary
 
