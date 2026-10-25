@@ -365,7 +365,7 @@ export default function modelPreflight(pi, options = {}) {
     const groupId = findGroupForRoute(report, currentRoute);
     if (!groupId) throw new Error(`model preflight blocked: ${currentRoute ?? "current model"} is not bound to a failover group`);
     if (!isReady(report, groupId)) throw new Error(`model preflight blocked: ${groupId} evidence is stale, unknown, or has no reachable fallback`);
-    const current = report.matrix[groupId].entries.find((entry) => normalizeRouteId(entry.id) === currentRoute);
+    const current = report.matrix[groupId].entries.find((entry) => normalizeRouteId(routeEntryId(entry)) === currentRoute);
     if (current?.state !== "reachable" && !(await applyFallback(ctx, currentRoute, groupId))) {
       throw new Error(`model preflight blocked: no reachable fallback for ${currentRoute}`);
     }

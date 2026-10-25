@@ -12,6 +12,10 @@ Use the default labels `needs-triage`, `needs-info`, `ready-for-agent`, `ready-f
 
 This is a single-context repository: read `GLOSSARY.md` when present and ADRs under `docs/adr/`. See `docs/agents/domain.md`.
 
+### Skill priority
+
+For task-triggered skill loading and ownership boundaries, read `docs/agent-skill-priority.md` before changing workflow, model-routing, agent-pipeline, or agent-directive surfaces. PiWorkflow owns execution; use the registered `pi-herdr-orchestration` package for mailbox/evidence tools and `@piewf/herdr` for inspectable transport, never a second scheduler.
+
 <!-- BEGIN sqz-agents-guidance (auto-installed by sqz init; remove this block to disable) -->
 
 ## sqz — Token-Optimized CLI Output

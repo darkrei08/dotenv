@@ -6,7 +6,11 @@ How the versioned Pi configuration in `pi/agent` is composed: packages, in-repo 
 
 `setup_env.sh` selectively copies the versioned Pi configuration from `pi/agent` into `~/.pi/agent` while preserving runtime state, so the paths below refer to corresponding repository and live configuration rather than the same files.
 
+After merging workflow changes, run `./setup_env.sh` to synchronize the live profile before starting new Pi sessions. `developIssues` returns `integration-ready` evidence; only the Master calls `integrateReviewedIssues` through `devIssuesInBatches` to integrate and clean up worktrees. A source-only test does not prove the live profile is synchronized.
+
 ### Packages
+
+`pi-herdr-orchestration` is pinned to commit `e8e52d3a358f036f5cb2bcb517b0abe572d3d216` (v1.2.6), not a mutable tag. This prevents tag drift but does not fix that release's known Pi 1.4 `/orch` loader incompatibility; live deployment still requires a compatible release or an explicitly approved runtime replacement.
 
 `pi/agent/pi-packages.txt` is the declarative list, one source per line, with `#` comments and blank lines ignored. It is consumed by `@darkrei08/setup-ai`'s `pi-packages` module, which resolves `~/.pi/agent/pi-packages.txt` (an explicit `PI_PACKAGES_FILE` wins), runs `pi install` once per line and then verifies each source landed in `~/.pi/agent/settings.json`:
 
@@ -145,9 +149,10 @@ not interchangeable evidence.
 
 The tracked `pi/agent/pi-ha-role-groups.json` binds each role primary to a group
 in `ha-failover.example.json`. `pi-ha-bootstrap.mjs` returns fallbacks only when
-the current model is present in a bound group; an unknown model returns an empty
-list. The `model-preflight.mjs` extension invokes the reusable pi-model-fit
-preflight at session start and through `/model-preflight`, refreshes using the
+the current model is present in an explicitly requested group or exactly one
+matching group. Unknown or ambiguous models return an empty list; `defaultGroup`
+does not disambiguate shared models. The `model-preflight.mjs` extension invokes
+the reusable pi-model-fit preflight at session start and through `/model-preflight`, refreshes using the
 TTL cache every 15 minutes by default, and blocks agent routing when evidence is
 stale, unknown, malformed, or unavailable. Use `/model-preflight apply` after an
 explicit refresh request to atomically apply only reachable matrix routes to

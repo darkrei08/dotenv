@@ -47,7 +47,8 @@
       "extensions": [
         "-extensions/quiet-tools.ts",
         "-extensions/pi-pretty.ts",
-        "-extensions/codegraph-tools.ts"
+        "-extensions/codegraph-tools.ts",
+        "-extensions/gentle-agents.ts"
       ]
     },
     "npm:gentle-engram",
@@ -74,7 +75,8 @@
       "extensions": [
         "-extensions/tps.ts"
       ]
-    }
+    },
+    "git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216"
   ],
   "enabledModels": [
     "cliproxyapi/gpt-5.6-luna",

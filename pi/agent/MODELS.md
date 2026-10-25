@@ -45,8 +45,9 @@ from one layer and the effort from another.
 
 This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
 `high`; workflow aliases use the current authenticated CLIProxyAPI catalog matrix.
-The GGA reviewer (`.gga`) uses the
-reviewer HA route `cliproxyapi/gpt-6-luna:high`. The CLIProxyAPI
+The GGA reviewer (`.gga`) uses `cliproxyapi/gpt-6-luna:high` as its effective route; the reviewer role's
+`cliproxyapi/claude-opus-4-6-thinking:off` remains an independent workflow route, while the reviewer HA group
+provides ordered fallbacks. The CLIProxyAPI
 provider dynamically discovers its model catalog; configuration or discovery
 does not establish upstream entitlement, quota, or sustained inference.
 
@@ -395,8 +396,8 @@ takes the high-volume tests and research roles and Astra stays a manual override
 
 **Review model and effort (GGA and the reviewer role).** For a gate that runs on
 every commit, speed, independence, and route health matter. The current
-canonical CLIProxyAPI reviewer route is `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort. GGA uses the
-reviewer HA route
+canonical CLIProxyAPI reviewer role route is `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort. GGA uses the
+independent reviewer HA route
 (`PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"`), enforced by
 `check-config.sh`, with no automatic fallback. Catalog visibility, entitlement,
 inference, and quota remain separate evidence; unknown entitlement or quota is

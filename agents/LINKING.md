@@ -98,7 +98,10 @@ it manually rather than accept a missing-path window.
   is provider-specific (paths and command prefixes differ), so the manifest
   marks it `managed: false`.
 - Pi-only skills (`~/.pi/agent/skills/<name>`) are not in the canonical root and
-  are never linked into another harness.
+  are never linked into another harness. `gentle-pi` owns `gentle-ai` inside its
+  installed package; `setup_env.sh` creates a Pi-local symlink to that package
+  copy so role prompts resolve the authoritative file without a second physical
+  copy.
 
 ## `~/skills-canonical`
 

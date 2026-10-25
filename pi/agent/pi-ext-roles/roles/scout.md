@@ -4,6 +4,7 @@ tools: ["!*", read, grep, find, ls, web_search, tool_search]
 description: Scouting agent. Use when we need to gather info to solve a task
 contextFiles: []
 extensions: ["**/light-web-search.ts", "**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extensions/exa/**"]
+skills: [pi-herdr-orchestrator, engineering-excellence]
 overrideSystemPrompt: true
 ---
 

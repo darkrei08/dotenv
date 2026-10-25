@@ -18,6 +18,7 @@ This repository now uses one owner per responsibility. The changes fix the repro
 | Role identity, instructions, tools, aliases, and role-level policy | `@piewf/pi-ext-roles` and `pi/agent/pi-ext-roles/` | Role files and `pi-ext-roles/settings.json`; workflow functions pass roles through native agent options |
 | Model discovery and operational availability | pi-model-fit plus CLIProxyAPI provider | `model-preflight.mjs` consumes the validated report; the `.js` adapter makes it loadable by Pi |
 | Delegation and worker lifecycle | pi-extensible-workflows | Herdsman/Herdr integrations remain adapters; they do not own workflow state |
+| Repository integration policy and final decision | Pi Herdr Orchestrator Master | The Master reconciles reviewed branch evidence, Git state, liveness, retry/escalation, fast-forward, and cleanup; PiWorkflow exposes `integrateReviewedIssues` as the bounded execution adapter |
 | Commit-time review gate | GGA v2.10.1 | `.gga` and `agents/gga-pi/bin/kilo`; GGA is separate from native RDD review |
 | Native change review | Gentle AI / Gentle Pi review authority | Review mode and reviewer lenses are separate from GGA and do not authorize delivery |
 | Persistent memory backend | Engram / `gentle-engram` | Project-memory is the repository-memory contract, not a second backend |
@@ -33,6 +34,8 @@ user prompt
   -> deterministic catalog match or clarification guidance
   -> model calls native workflow tools / /workflow
   -> pi-extensible-workflows resolves roles and executes the graph
+  -> reviewed branch evidence returns to the Master
+  -> the Master invokes the bounded integration adapter after rechecking Git state and ownership
   -> canonical model aliases and preflight guard model availability
   -> GGA or native review validates the relevant change boundary
   -> Engram/project-memory persists the appropriate project or session record
@@ -41,6 +44,8 @@ user prompt
 Explicit `/workflow` commands pass through unchanged. Natural-language matching is intentionally conservative: it requires a workflow signal, ranks only catalog functions with declared rules, and does nothing for ordinary questions. Equal top scores produce clarification guidance instead of silently selecting a workflow.
 
 The built-in `parallelReviewAndSecurity` function runs reviewer and security analysis in parallel, sends both findings to the canonical developer role for the smallest safe fix, and asks the architect role for a final verdict. It is registered by `pi/agent/extensions/piextworkflows.ts`.
+
+Issue development follows the same boundary: `developIssues` prepares isolated, reviewed branches and returns integration-ready evidence; the Master calls `integrateReviewedIssues` before any main-worktree fast-forward or merged-worktree cleanup. A child workflow cannot treat a passing review as implicit repository-level authority.
 
 ## Collision ownership
 

@@ -19,6 +19,13 @@ function resolveModel(reference, seen = []) {
   return { model: resolved.model, effort: effort ?? resolved.effort };
 }
 
+test("orchestration package is pinned to the reviewed v1.2.6 commit", () => {
+  const source = "git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216";
+  const settings = JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8"));
+  assert.ok(settings.packages.includes(source));
+  assert.ok(readFileSync(new URL("pi/agent/pi-packages.txt", root), "utf8").split("\n").includes(source));
+});
+
 test("managed aliases, roles and GGA resolve to the configured model matrix", () => {
   const expected = {
     "native-cheap-model": { model: "openai-codex/gpt-5.6-luna", effort: "medium" },

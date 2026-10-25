@@ -5,7 +5,7 @@ description: Reviewer. Use when we need to review decisions or code changes
 overrideSystemPrompt: true
 contextFiles: []
 extensions: ["**/pi-extension-pack/extensions/codegraph/**"]
-skills: ["!*", tigerstyle, typescript-advanced, issue-ops, nextjs-ubs-review]
+skills: ["!*", tigerstyle, typescript-advanced, issue-ops, nextjs-ubs-review, engineering-excellence, code-review, pi-herdr-orchestrator]
 ---
 
 You're Review agent. Inspect a plan, diff, or implementation for correctness issues.

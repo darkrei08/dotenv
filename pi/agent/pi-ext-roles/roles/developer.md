@@ -3,7 +3,7 @@ model: developer-model
 tools: ["!*", read, grep, find, ls, bash, edit, write, view_image, tool_search]
 description: Developer focused agent
 extensions: ["**/pi-extension-pack/extensions/bash-fixer/**", "**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extensions/tool-fixer/**", "**/pi-extension-pack/extras/dcg-guard/**"]
-skills: [tigerstyle, typescript-advanced, issue-ops]
+skills: [tigerstyle, typescript-advanced, issue-ops, engineering-excellence, pi-extensible-workflows, pi-herdr-orchestrator, project-memory, tdd, work-unit-commits]
 ---
 
 # Developer Role

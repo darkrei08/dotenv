@@ -1,7 +1,10 @@
 // @ts-ignore Bun supplies the test module at runtime.
 import { expect, test } from "bun:test";
 // @ts-ignore Bun loads the TypeScript source directly.
-import { developIssues } from "./develop-issues.ts";
+import {
+  developIssues,
+  integrateReviewedIssues,
+} from "./develop-issues.ts";
 
 const approved = () => ({
   pass: true,
@@ -82,7 +85,12 @@ function integrationShell(
       return { exitCode: 0, stdout: "", stderr: "" };
     if (command.includes("merge-base --is-ancestor"))
       return {
-        exitCode: command.includes("PI_MAIN_PATH") ? 1 : 0,
+        exitCode:
+          command.includes("PI_REVIEWED_HEAD") ||
+          command.includes('git -C "$PI_WORKTREE_PATH"') ||
+          command.includes('"$PI_WORKTREE_BRANCH" HEAD')
+            ? 0
+            : 1,
         stdout: "",
         stderr: "",
       };
@@ -147,11 +155,31 @@ test("queues integrations by readiness and keeps one integration active", async 
   expect(maxActive).toBe(1);
   expect(
     shellCalls.filter(({ command }) => command.includes("merge --ff-only")),
+  ).toHaveLength(0);
+  expect(result.issueResults["issue-2"]?.integration.status).toBe(
+    "integration-ready",
+  );
+
+  const integrated = await integrateReviewedIssues.run(
+    {
+      issueResults: result.issueResults,
+      integrationOrder: result.integrationOrder,
+      issueDetails: issueDetails([1, 2, 3]),
+      maxIterations: 1,
+    },
+    context(invoke, integrationShell(shellCalls)),
+  );
+  expect(
+    shellCalls.filter(({ command }) => command.includes("merge --ff-only")),
   ).toHaveLength(3);
-  expect(result.issueResults["issue-2"]?.integration.status).toBe("integrated");
+  expect(integrated.issueResults["issue-2"]?.integration.status).toBe(
+    "integrated",
+  );
+  expect(starts).toEqual([2, 3, 1, 2, 3, 1]);
+  expect(integrated.cleanup.removed).toHaveLength(3);
 });
 
-test("preserves prior integrations, continues after a failed integration, and never fast-forwards a failed issue", async () => {
+test("preserves reviewed worktrees after a failed integration review", async () => {
   const starts: number[] = [];
   const shellCalls: Array<{ command: string; branch?: string }> = [];
   const invoke = async (_name: string, input: Record<string, unknown>) => {
@@ -169,37 +197,22 @@ test("preserves prior integrations, continues after a failed integration, and ne
       : approved();
   };
 
-  let failure: unknown;
-  try {
-    await developIssues.run(
-      { issueDetails: issueDetails([1, 2, 3]), maxIterations: 1 },
-      context(invoke, integrationShell(shellCalls)),
-    );
-  } catch (error) {
-    failure = error;
-  }
+  const result = await developIssues.run(
+    { issueDetails: issueDetails([1, 2, 3]), maxIterations: 1 },
+    context(invoke, integrationShell(shellCalls)),
+  );
 
-  expect(String(failure)).toContain("issue #2");
-  expect(String(failure)).toContain("review");
-  expect(String(failure)).toContain("/worktrees/issue-2");
+  expect(result.issueResults["issue-2"]?.integration.status).toBe("failed");
+  expect(result.issueResults["issue-2"]?.integration.findings).toEqual([
+    "integration review failed",
+  ]);
   expect(starts).toEqual([1, 2, 3]);
   expect(
-    shellCalls
-      .filter(({ command }) => command.includes("merge --ff-only"))
-      .map(({ branch }) => branch),
-  ).toEqual(["branch-issue-1", "branch-issue-3"]);
-  expect(
     shellCalls.filter(({ command }) => command.includes("merge --ff-only")),
-  ).toHaveLength(2);
-  expect(
-    shellCalls.some(
-      ({ command, branch }) =>
-        command.includes("merge --ff-only") && branch === "branch-issue-2",
-    ),
-  ).toBe(false);
+  ).toHaveLength(0);
 });
 
-test("does not fast-forward when main moves during integration review", async () => {
+test("does not prepare integration when main moves during review", async () => {
   const shellCalls: Array<{ command: string; branch?: string }> = [];
   const baseShell = integrationShell(shellCalls);
   let mainHeadReads = 0;
@@ -221,17 +234,15 @@ test("does not fast-forward when main moves during integration review", async ()
     return baseShell(command, options);
   };
 
-  let failure: unknown;
-  try {
-    await developIssues.run(
-      { issueDetails: issueDetails([1]), maxIterations: 1 },
-      context(async () => approved(), shell),
-    );
-  } catch (error) {
-    failure = error;
-  }
+  const result = await developIssues.run(
+    { issueDetails: issueDetails([1]), maxIterations: 1 },
+    context(async () => approved(), shell),
+  );
 
-  expect(String(failure)).toContain("Main HEAD changed during integration review");
+  expect(result.issueResults["issue-1"]?.integration.status).toBe("failed");
+  expect(result.issueResults["issue-1"]?.integration.findings).toEqual([
+    "Main HEAD changed during integration review",
+  ]);
   expect(
     shellCalls.filter(({ command }) => command.includes("merge --ff-only")),
   ).toHaveLength(0);
