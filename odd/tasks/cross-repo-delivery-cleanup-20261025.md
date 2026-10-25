@@ -16,10 +16,12 @@ S3. Merge only verified, reviewable, clean pull requests that are necessary for 
 - T2 [S1-S3] | pi-model-fit | resolve or preserve open PRs based on current evidence | result: preserved PRs #12/#14 as blocked
 - T3 [S1-S3] | all audited repositories | prune only merged clean branches and terminated worktrees | result: removed verified merged refs; preserved dirty worktrees
 - T4 [S1-S3] | all audited repositories | review test artifacts and preserve active coverage | result: no obsolete untracked test artifacts deleted
-- T5 [S1-S3] | all audited repositories | run final repository and remote verification | result: pending final audit
+- T5 [S1-S3] | all audited repositories | run final repository and remote verification | result: passed; commit ac40c4f, release v0.4.38
 
 ## Log
 
 L1. "Controlla se abbiamo eliminato file inutili e scadneti ebtest e branch anche cross repo e mergia tutto il necessario"
 
 L2. Inventory evidence: six repositories were checked. Only pi-model-fit PRs #12 and #14 are open. PR #12 is clean but retains stale Claude 5.5/GGA recommendations; PR #14 deletes active tests and overlaps the existing preflight ownership, so neither was merged. No untracked test-like artifacts were found. Dirty or unmerged worktrees and branches were preserved. Verified merged local branches were removed in dotenv, pi-model-fit, and pi-ext-roles; 17 already-contained remote refs were removed in dotenv/setup-ai. The remaining pi-ext-roles purge branch, pi-herdr orchestration branch, pi-model-fit runtime-refresh branch, and other active worktrees remain preserved because they contain unique or unreviewed work.
+
+L3. Final verification: dotenv main, setup-ai main, and pi-ext-roles main align with their origin/main refs; no open PRs remain in dotenv, setup-ai, pi-herdr-orchestration, pi-extensible-workflows, or pi-ext-roles. pi-model-fit retains only PRs #12 and #14 as documented blockers. The dotenv automatic release workflow 40230721462 passed and published v0.4.38 at ac40c4f. Active divergent branches and dirty worktrees remain intentionally preserved; `.engram/` remains untracked and untouched.
