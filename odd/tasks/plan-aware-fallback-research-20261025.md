@@ -12,10 +12,10 @@ Scope: record plan-aware, effort-aware, and bounded community-source research fo
 
 ## Tasks
 
-- T1 (S1-S4): Reconcile plan and route evidence with the tracked role/failover matrix. Commit: pending.
-- T2 (S1-S4): Record reusable research directives and source boundaries. Commit: pending.
-- T3 (S1-S4): Verify/apply the matrix and publish tested evidence. Commit: pending.
-- T4 (S5): Evaluate and document a hierarchical scraping/research/automation tool setup; do not install until the target set and boundaries are explicit. Commit: pending.
+- T1 (S1-S4): Reconcile plan and route evidence with the tracked role/failover matrix. Commit: `6442737`; final evidence: `e7372dd`.
+- T2 (S1-S4): Record reusable research directives and source boundaries. Commit: `3ec342b`; coordinated setup evidence: `e7372dd`.
+- T3 (S1-S4): Verify/apply the matrix and publish tested evidence. Commits: `6442737`, `20d1f84`, `e7372dd`.
+- T4 (S5): Evaluate and document a hierarchical scraping/research/automation tool setup; do not install until the target set and boundaries are explicit. Commit: `e7372dd`.
 
 ## Log
 
@@ -24,6 +24,8 @@ L1: "Nel momento in cui, Clude Opus 4.6 Thinking non è più disponibile, quale 
 2026-10-25: Local plan detection reports OpenAI `plus` and Anthropic `unknown`. Tracked dotenv routing already matches fresh preflight; the provisional non-Opus fallback for reviewer-family roles is `cliproxyapi/gpt-6-luna:high`, with shared-gateway caveat.
 
 2026-10-25: Re-ran the runtime refresh after the documentation batch. Exit code `0`; live HA routes were unchanged across all seven groups and no lock remained. The canonical/failover matrix was retained without a versioned routing mutation.
+
+2026-10-25: Final dotenv tests passed 3/3, `check-config.sh` passed, the setup documentation was committed as `e7372dd`, and the branch was pushed to `origin/feat/canonical-matrix-refresh-20261025`.
 
 L2: "Poi aggiungere ai tasca appunto anche questa specie di individuazione di quali stool sono utili per effettuare data scraping, informazioni di ricerca, automazioni, in modo da aiutarti quando abbiamo necessità di effettuare queste ricerche online. Mi ricordo pure che esiste una skill chiamata, last Di dirty Day che permette di effettuare una ricerca complessiva di scriving delle notizie più rilevanti. Usa una logica come quella. Quando effettuiamo un nuovo report P Model Fit che analizza i modelli effettivamente disponibili da cel i proxy api rispetto appunto agli abbonamenti connessi che deve essere confrontata con quanto dice la community, internet, i benchmarks ufficiali e non, i livelli del ragionamento, gli effort consigliati, i costi, le velocità. Quindi tutti questi parametri utili che possono essere utilizzati come punti di riferimento per le ricerche di comparazione per la matrice canonica e di failover, e ovviamente, se si tratta di modelli della stessa famiglia li devi mettere in ordine, ma non effettivamente che se l'una 6 sia più recente e quindi è per forza di cosa meglio di luna 5.6. Tutto dipende dai benchmark e dalle capacità e dai giudizi della community online. Ti elenco degli alcuni strumenti utili che possiamo usare per fare data scraping, automazioni, da poter appunto installare localmente in questo host e anche in setup I per il mio repo. Quando vorrei inizializzare il setup completo su una nuova macchina. Devono essere tutti correttamente funzionanti e correttamente dislocati in base alle loro funzioni, quindi potresti anche effettuare una specie di grafo gerarchico in asce, che ti permetta di concepire i ruoli da dove si parte e quant'altro.
 [https://github.com/unclecode/crawl4ai](https://github.com/unclecode/crawl4ai)
