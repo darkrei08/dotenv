@@ -32,7 +32,19 @@ test('pi harness is marked readsCanonical in skills.manifest.json', () => {
   assert.equal(manifest.harnesses?.pi?.readsCanonical, true, 'pi harness must have readsCanonical:true');
 });
 
-// ── setup_env.sh does not put project-memory into the Pi-local root ──────────
+// ── setup_env.sh does not put shared skills into the Pi-local root ──────────
+
+test('setup_env.sh shared skills installs target only canonical materialization', () => {
+  const src = readFileSync(SETUP, 'utf8');
+  const liveLines = src.split('\n')
+    .filter((line) => !line.trimStart().startsWith('#'))
+    .filter((line) => /\bnpx skills(?:@\S+)? add\b/.test(line));
+  assert.ok(liveLines.length > 0, 'must have live shared skills-add calls');
+  for (const line of liveLines) {
+    assert.match(line, /--agent\s+cline\s+--yes\b/, line);
+    assert.doesNotMatch(line, /--agent\s[^\n]*\bpi\b/, line);
+  }
+});
 
 test('setup_env.sh project-memory install does not pass --agent pi', () => {
   const src = readFileSync(SETUP, 'utf8');

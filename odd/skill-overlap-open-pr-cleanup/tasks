@@ -1,0 +1,5 @@
+# Cross-repository skill overlap and open PR cleanup
+
+Source of truth: `odd/tasks/skill-overlap-open-pr-cleanup-20261025.md`
+
+Tasks: T1 inventory complete; T2 skill overlap cleanup complete (commit 561c0cf); T3 closed pi-model-fit #12/#14; T4 preserved blocked pi-extensible-workflows #293/#316 and recorded #308 close permission blocker; T5 verification complete (commit 561c0cf and final checks).

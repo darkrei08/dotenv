@@ -485,17 +485,17 @@ fi
 # its readline interface aborts the whole run with `EBADF: bad file descriptor,
 # read`, which is exactly the path a CI, `ssh -T` or scripted install takes.
 if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
-  npx skills add herdrdev/herdr --skill herdr --global --agent pi cline --yes </dev/null
+  npx skills add herdrdev/herdr --skill herdr --global --agent cline --yes </dev/null
   matt_skills=(
     ask-matt code-review codebase-design diagnosing-bugs domain-modeling grill-with-docs
     implement implement-spec improve-codebase-architecture pr prototype research retro
     setup-matt-pocock-skills tdd to-spec to-tickets triage wayfinder wizard grill-me
     grilling handoff teach to-questionnaire wait-what writing-for-agents
   )
-  npx skills@latest add mattpocock/skills --skill "${matt_skills[@]}" --global --agent pi cline --yes </dev/null
-  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi cline --yes </dev/null
-  npx skills add humanlayer/skills --skill show-me --global --agent pi cline --yes </dev/null
-  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi cline --yes </dev/null
+  npx skills@latest add mattpocock/skills --skill "${matt_skills[@]}" --global --agent cline --yes </dev/null
+  npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent cline --yes </dev/null
+  npx skills add humanlayer/skills --skill show-me --global --agent cline --yes </dev/null
+  npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent cline --yes </dev/null
 fi
 
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and

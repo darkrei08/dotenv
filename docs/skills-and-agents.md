@@ -54,8 +54,8 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 
 | Upstream | Skills | Installer |
 | --- | --- | --- |
-| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi cline --yes` (`setup_env.sh`) |
-| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent pi cline --yes` |
+| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent cline --yes` (`setup_env.sh`) |
+| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent cline --yes` |
 | `pedronauck/skills` | `typescript-advanced` | `npx skills add` |
 | `humanlayer/skills` | `show-me` | `npx skills add` |
 | `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` |

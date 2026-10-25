@@ -49,7 +49,7 @@ Issue development follows the same boundary: `developIssues` prepares isolated, 
 
 ## Collision ownership
 
-`project-memory` is installed once into `~/.agents/skills`. `setup_env.sh` targets only the `cline` canonical materialization and no longer asks the skills installer to create a Pi-local copy. The manifest marks the skill as managed, while Pi's `readsCanonical: true` policy prevents a second Pi-root registration.
+Shared skills, including `project-memory`, are installed once into `~/.agents/skills`. All shared `npx skills add` calls in `setup_env.sh` target only the `cline` canonical materialization and never ask the skills installer to create a Pi-local copy. The manifest marks the skill as managed, while Pi's `readsCanonical: true` policy prevents a second Pi-root registration.
 
 `check-config.sh` fails when a managed skill is physically present below `~/.pi/agent/skills`. The linker is the remediation authority:
 
