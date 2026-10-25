@@ -434,8 +434,9 @@ sync_pi
 install_cli_anything_pi
 install_cli_anything_hub
 
-# Apply the Pi packages declared in pi/agent/pi-packages.txt. pi-extensible-workflows
-# is skipped: @darkrei08/setup-ai's `pi-workflows` module owns that package.
+# Apply the Pi packages declared in pi/agent/pi-packages.txt. The manifest omits
+# pi-extensible-workflows and gentle-pi because @darkrei08/setup-ai owns them.
+# The Herdr orchestration package is installed here for its native mailbox tools.
 pi_packages="$REPO_DIR/pi/agent/pi-packages.txt"
 if ! command -v pi >/dev/null 2>&1; then
   printf 'WARN: pi is not installed, so the Pi configuration (packages and extensions) is not applied.\n' >&2
@@ -455,6 +456,13 @@ elif [ -r "$pi_packages" ]; then
       exit 1
     fi
   done < "$pi_packages"
+fi
+# gentle-pi owns the `gentle-ai` skill. Keep one physical copy in its package,
+# but expose a Pi-local symlink so role prompts and skill reads resolve the same
+# package-owned file instead of a stale shared-root path.
+if ! node "$REPO_DIR/agents/ensure-pi-package-skill.mjs"; then
+  printf 'ERROR: the package-owned gentle-ai skill could not be exposed to Pi.\n' >&2
+  exit 1
 fi
 # Install SkillOpt-Sleep from the selected local fork. The upstream installer
 # copies only the skill into the canonical user skill root; it does not clone or

@@ -110,9 +110,9 @@ if [[ -z "$reviewer_role_model" || "$gga_provider" != kilo:* || "$gga_model" != 
   printf '%s: PROVIDER must use the Pi bridge with a configured reviewer route (found: %s)\n' \
     "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
-elif [[ -z "$reviewer_role_route" || "$gga_route" != "$reviewer_role_route" ]]; then
-  printf '%s: GGA route must match reviewer role primary (expected: %s, found: %s)\n' \
-    "$GGA_CONFIG" "${reviewer_role_route:-unresolved}" "${gga_provider:-missing}"
+elif [[ "$gga_route" != "cliproxyapi/gpt-6-luna:high" ]]; then
+  printf '%s: GGA route must use the configured reviewer HA route (expected: %s, found: %s)\n' \
+    "$GGA_CONFIG" "cliproxyapi/gpt-6-luna:high" "${gga_provider:-missing}"
   failures=1
 fi
 if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
@@ -147,6 +147,7 @@ required_packages=(
   npm:gentle-engram
   npm:@router-for-me/pi-cliproxyapi-provider
   npm:@piewf/herdr
+  git:github.com/darkrei08/pi-herdr-orchestration@v1.2.6
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do

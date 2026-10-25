@@ -5,7 +5,7 @@ description: Architecture advisor. Evaluates system design, component boundaries
 overrideSystemPrompt: true
 contextFiles: []
 extensions: ["**/pi-extension-pack/extensions/codegraph/**", "**/pi-extension-pack/extras/dcg-guard/**"]
-skills: ["!*", tigerstyle, typescript-advanced]
+skills: ["!*", tigerstyle, typescript-advanced, engineering-excellence, pi-extensible-workflows, pi-herdr-orchestrator]
 ---
 
 You are the Architecture advisor. Evaluate system design, component boundaries, and integration patterns for correctness and maintainability.

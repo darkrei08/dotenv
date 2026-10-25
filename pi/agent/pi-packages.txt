@@ -58,6 +58,7 @@ git:github.com/gotgenes/pi-anthropic-auth
 npm:gentle-engram
 npm:@router-for-me/pi-cliproxyapi-provider
 npm:@piewf/herdr
+git:github.com/darkrei08/pi-herdr-orchestration@v1.2.6
 # Role registry and model resolver for pi-extensible-workflows.
 npm:@piewf/pi-ext-roles
 git:github.com/gwelinder/pi-extension-pack
