@@ -49,6 +49,7 @@
     "testing": {
       "name": "testing",
       "entries": [
+        { "id": "cliproxyapi/claude-sonnet-4-6:off" },
         { "id": "cliproxyapi/gpt-5.6-luna:high" },
         { "id": "cliproxyapi/gpt-6-luna:high" },
         { "id": "cliproxyapi/gemini-3.8-flash-high:high" }

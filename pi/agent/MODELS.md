@@ -372,6 +372,8 @@ provider and is used directly by the `opencode-max` mode.
 | `developer-model` | `cliproxyapi/claude-sonnet-4-6:off` | Developer role; gateway exposes no Claude thinking effort |
 | `architect-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Architect role; gateway exposes no Claude thinking effort |
 | `security-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Security role; gateway exposes no Claude thinking effort |
+| `debugger-model`, `verifier-model` | `cliproxyapi/claude-sonnet-4-6:off` | Failure diagnosis and independent verification |
+| `market-researcher-model`, `marketing-strategist-model` | `cliproxyapi/gpt-5.6-luna:xhigh` | Source-backed market research and strategy |
 | `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6:off` | Quality, release, and operations roles; gateway exposes no Claude thinking effort |
 | `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Fast compression |
 | `tests-expert` | `cliproxyapi/gpt-5.6-luna:high` | High-confidence test authoring |
@@ -399,7 +401,7 @@ every commit, speed, independence, and route health matter. The current
 canonical CLIProxyAPI reviewer role route is `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort. GGA uses the
 independent reviewer HA route
 (`PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"`), enforced by
-`check-config.sh`, with no automatic fallback. Catalog visibility, entitlement,
+`check-config.sh`, with the reviewer HA group's ordered automatic fallbacks. Catalog visibility, entitlement,
 inference, and quota remain separate evidence; unknown entitlement or quota is
 not availability. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 

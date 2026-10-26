@@ -148,6 +148,14 @@ if ((${#missing_packages[@]})); then
   printf '%s: missing package registration(s): %s\n' "$SETTINGS" "${missing_packages[*]}"
   failures=1
 fi
+if ! jq -e --arg source 'git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216' '
+  any((.packages? // [])[]?;
+    type == "object" and .source == $source and (.skills? // null) == []
+  )
+' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: pi-herdr-orchestration must load extensions without its duplicate package skill\n' "$SETTINGS"
+  failures=1
+fi
 
 if [[ $(grep -Ec '^[[:space:]]*npm:@sting8k/pi-vcc[[:space:]]*$' "$PI_PACKAGES") -ne 1 ]]; then
   printf '%s: pi-vcc must appear exactly once in the package manifest\n' "$PI_PACKAGES"
@@ -270,11 +278,15 @@ if ! jq -e '
   $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["market-researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
@@ -358,6 +370,10 @@ required_roles=(
   tests-expert.md
   architect.md
   security.md
+  debugger.md
+  verifier.md
+  market-researcher.md
+  marketing-strategist.md
   qa.md
   release.md
   sre.md

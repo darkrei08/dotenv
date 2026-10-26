@@ -104,7 +104,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | `pi/agent/ha-failover.example.json` | Credentials-free HA groups and ordered fallback entries. |
 | `pi/agent/pi-ha-role-groups.json` | Role-to-HA-group bindings used to validate primary coverage. |
 | `pi/agent/pi-extensible-workflows/settings.json` | Workflow-only overrides: `extensionSettings` for `herdr` and `trajectory`. |
-| `pi/agent/pi-ext-roles/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `qa`, `release`, `sre`. |
+| `pi/agent/pi-ext-roles/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `debugger`, `verifier`, `market-researcher`, `marketing-strategist`, `qa`, `release`, `sre`. |
 | `pi/agent/prompts/` | Prompt templates: `fixissues.md` (drives the `devIssuesInBatches` workflow from `ready-for-agent` issues) and `spawn-pi-pane.md` (spawns a sibling Pi in a herdr pane). |
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
 | `pi/agent/AGENTS.md` | Project instructions Pi loads for this repository. |

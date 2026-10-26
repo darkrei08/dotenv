@@ -30,12 +30,16 @@ claim that a live gateway can use them:
 | `developer-model` | `cliproxyapi/claude-sonnet-4-6` | off | developer |
 | `architect-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | architect |
 | `security-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | security |
+| `debugger-model`, `verifier-model` | `cliproxyapi/claude-sonnet-4-6` | off | debugger, verifier |
+| `market-researcher-model`, `marketing-strategist-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | market-researcher, marketing-strategist |
 | `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6` | off | qa, release, sre |
 | `tests-expert` | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
 | `researcher-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | researcher |
 | `scout-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
 | `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summarizer |
 | `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | reviewer, oracle |
+
+The role pack also includes read-only `debugger`, `verifier`, `market-researcher`, and `marketing-strategist` contracts. They use role-based aliases and are available to P-workflow callers without changing existing workflow behavior.
 
 Optional Gemini alternatives are available as explicit aliases, without replacing the
 primary role assignments:

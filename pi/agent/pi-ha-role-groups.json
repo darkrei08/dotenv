@@ -9,6 +9,10 @@
     "tests-expert": "testing",
     "architect": "reviewer",
     "security": "reviewer",
+    "debugger": "development",
+    "verifier": "testing",
+    "market-researcher": "research",
+    "marketing-strategist": "research",
     "qa": "development",
     "release": "development",
     "sre": "development"

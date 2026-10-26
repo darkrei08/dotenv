@@ -22,7 +22,13 @@ function resolveModel(reference, seen = []) {
 test("orchestration package is pinned to the reviewed v1.2.6 commit", () => {
   const source = "git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216";
   const settings = JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8"));
-  assert.ok(settings.packages.includes(source));
+  assert.ok(settings.packages.some((entry) =>
+    (typeof entry === "string" ? entry : entry?.source) === source,
+  ));
+  const packageEntry = settings.packages.find((entry) =>
+    (typeof entry === "string" ? entry : entry?.source) === source,
+  );
+  assert.deepEqual(packageEntry, { source, skills: [] });
   assert.ok(readFileSync(new URL("pi/agent/pi-packages.txt", root), "utf8").split("\n").includes(source));
 });
 
@@ -43,11 +49,15 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "developer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "architect-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
     "security-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
+    "debugger-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "verifier-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "qa-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "release-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "sre-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "tests-expert": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
     "researcher-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
+    "market-researcher-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
+    "marketing-strategist-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
     "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
     "gemini-scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "gemini-summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },

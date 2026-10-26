@@ -8,16 +8,21 @@ const path = require("node:path");
 const root = process.env.ROOT;
 const rolesDir = path.join(root, "pi/agent/pi-ext-roles/roles");
 const failures = [];
-const readOnlyRoles = ["scout", "researcher", "reviewer"];
+const readOnlyRoles = ["scout", "researcher", "reviewer", "market-researcher", "marketing-strategist"];
+const shellReadOnlyRoles = ["debugger", "verifier"];
 const writeCapableRoles = ["developer", "tests-expert"];
 const expectedTools = {
   scout: ["read", "grep", "find", "ls", "web_search", "tool_search"],
   researcher: ["read", "grep", "find", "ls", "web_search", "tool_search"],
   reviewer: ["read", "grep", "find", "ls", "view_image", "tool_search"],
+  debugger: ["read", "grep", "find", "ls", "bash", "view_image", "tool_search"],
+  verifier: ["read", "grep", "find", "ls", "bash", "view_image", "tool_search"],
+  "market-researcher": ["read", "grep", "find", "ls", "web_search", "tool_search"],
+  "marketing-strategist": ["read", "grep", "find", "ls", "web_search", "tool_search"],
   developer: ["read", "grep", "find", "ls", "bash", "edit", "write", "view_image", "tool_search"],
   "tests-expert": ["read", "grep", "find", "ls", "bash", "edit", "write", "view_image", "tool_search"],
 };
-const roleFiles = [...readOnlyRoles, ...writeCapableRoles];
+const roleFiles = [...readOnlyRoles, ...shellReadOnlyRoles, ...writeCapableRoles];
 const settings = JSON.parse(fs.readFileSync(path.join(root, "pi/agent/pi-ext-roles/settings.json"), "utf8"));
 const rootSettings = JSON.parse(fs.readFileSync(path.join(root, "pi/agent/settings.json"), "utf8"));
 
@@ -52,6 +57,9 @@ for (const name of roleFiles) {
   }
   if (readOnlyRoles.includes(name) && positive.some((tool) => ["bash", "edit", "write"].includes(tool))) {
     failures.push(`${name}: read-only role must not allow shell, edit, or write tools`);
+  }
+  if (shellReadOnlyRoles.includes(name) && ["edit", "write"].some((tool) => positive.includes(tool))) {
+    failures.push(`${name}: diagnostic role must not allow edit or write tools`);
   }
   if (writeCapableRoles.includes(name) && ["bash", "edit", "write"].some((tool) => !positive.includes(tool))) {
     failures.push(`${name}: write-capable role must explicitly allow bash, edit, and write`);

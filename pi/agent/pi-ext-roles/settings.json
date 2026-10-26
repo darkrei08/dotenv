@@ -26,6 +26,10 @@
     "gemini-researcher-model": "cliproxyapi/gemini-3.8-flash-high:high",
     "gemini-developer-model": "cliproxyapi/gemini-3.8-flash-high:high",
     "gemini-tests-model": "cliproxyapi/gemini-3.8-flash-high:high",
+    "debugger-model": "cliproxyapi/claude-sonnet-4-6:off",
+    "verifier-model": "cliproxyapi/claude-sonnet-4-6:off",
+    "market-researcher-model": "cliproxyapi/gpt-5.6-luna:xhigh",
+    "marketing-strategist-model": "cliproxyapi/gpt-5.6-luna:xhigh",
     "oracle-model": "cliproxyapi/claude-opus-4-6-thinking:off",
     "reviewer-model": "cliproxyapi/claude-opus-4-6-thinking:off"
   },
