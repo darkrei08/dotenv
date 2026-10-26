@@ -27,6 +27,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
+| `git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216` | Object form with `skills: []`: the package supplies the orchestrator extension and native tools, while the canonical `~/.agents/skills/pi-herdr-orchestrator` copy remains the sole Pi-visible skill. Loading both package and canonical skill paths produces a Pi skill-name collision. |
 
 `pi/agent/npm/package.json` and `package-lock.json` are the tracked manifest and lockfile for the npm-backed entries; `npm/node_modules` is git-ignored and is preserved by `sync_pi`. The two module-owned packages above are deliberately absent from them: the `pi-workflows` and `gentle-ai` modules choose and verify their versions (the workflow module can install a patched local build), so pinning a published version here would duplicate that ownership. `npm:gentle-engram` and `npm:@router-for-me/pi-cliproxyapi-provider` are plain `pi-packages.txt` lines: `pi install` records them in the live `~/.pi/agent/npm/package.json`, and they are not repinned here.
 
@@ -77,9 +78,9 @@ Third-party packages:
 
 ### Unified UI ownership
 
-`unified-ui.ts` is a presentation adapter, not an orchestrator. Gentle Shell remains the owner of the footer and its existing shell widgets; PiWorkflow remains the owner of workflow execution, run state, phases, and child agents. The adapter consumes only public `pi.events` channels and renders its own `dotenv:unified-ui` widget. It does not patch the footer, read workflow files, start timers for polling, send telemetry, or expose raw prompts, tool arguments, paths, results, or errors.
+`unified-ui.ts` is the sovereign presentation owner for the TUI footer (`ctx.ui.setFooter`) and active workflow cards (`ctx.ui.setWidget`), absorbing the best of Gentle Shell (8-cell tacchette gauge `▰▰▰▱▱▱▱▱` with reactive color thresholds, separators `⟡`, model/effort, cost, context %, git status) and Claude Code (zero-overhead at rest). In `settings.json`, `gentle-shell.ts` is excluded to eliminate footer contention and visual overlap. PiWorkflow remains the owner of workflow execution, run state, phases, and child agents. The adapter consumes public `pi.events` channels and renders its own `dotenv:unified-ui` widget and footer component. It does not read workflow files, start timers for polling, send telemetry, or expose raw prompts, tool arguments, paths, results, or errors.
 
-The widget is enabled automatically for interactive TUI sessions and can be disabled with `/unified-ui off` (or re-enabled with `/unified-ui on`). In print/RPC/headless contexts the command and rendering path are no-ops.
+The widget and footer are enabled automatically for interactive TUI sessions and can be disabled with `/unified-ui off` (or re-enabled with `/unified-ui on`). In print/RPC/headless contexts the command and rendering path are no-ops.
 
 ### Skills
 
@@ -89,7 +90,7 @@ The widget is enabled automatically for interactive TUI sessions and can be disa
 | `~/.agents/skills/` | shared skills, one physical copy each | Machine-installed (see [Skill provenance](skills-and-agents.md#skill-provenance)) or linked |
 | `agents/skills/phantom-ui/` | `SKILL.md` written here, the MIT standalone build plus its `.d.ts`, upstream `LICENSE`, `VENDORED.md` | Repository-owned, copied into harness roots |
 
-The machine-installed skills are placed by `setup_env.sh` (the first-party `mattpocock/skills` engineering set, `herdr`, `typescript-advanced`, `show-me`, `engineering-excellence`, and `project-memory`) in the canonical `~/.agents/skills` root, which Pi reads directly. `agents/install-agent-extensions.sh` manages `design-taste`, `impeccable`, `ponytail`, and `phantom-ui` separately; see [Skills and other agents](skills-and-agents.md).
+The machine-installed skills are placed by `setup_env.sh` (the first-party `mattpocock/skills` engineering set, `herdr`, `typescript-advanced`, `show-me`, `engineering-excellence`, `security-audit`, `crowdsec`, `crowdsec-service-api`, and `project-memory`) in the canonical `~/.agents/skills` root, which Pi reads directly. `agents/install-agent-extensions.sh` manages `design-taste`, `impeccable`, `ponytail`, and `phantom-ui` separately; see [Skills and other agents](skills-and-agents.md).
 
 ### Other Pi files
 
