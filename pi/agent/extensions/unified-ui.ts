@@ -309,8 +309,20 @@ export function formatFooterLine(
   theme?: ThemeAdapter,
 ): string {
   const maxWidth = Math.max(1, Math.floor(width));
-  const fg = theme?.fg ?? ((_r: string, t: string) => t);
-  const bold = theme?.bold ?? ((t: string) => t);
+  const fg = (r: string, t: string) => {
+    try {
+      return theme?.fg ? theme.fg(r as any, t) : t;
+    } catch {
+      return t;
+    }
+  };
+  const bold = (t: string) => {
+    try {
+      return theme?.bold ? theme.bold(t) : t;
+    } catch {
+      return t;
+    }
+  };
   const sep = ` ${fg("dim", "⟡")} `;
 
   // 1. Brand & Phase
@@ -362,8 +374,20 @@ export function formatUnifiedUiLines(
 ): string[] {
   if (!state.enabled) return [];
   const maxWidth = Math.max(1, Math.floor(width));
-  const fg = theme?.fg ?? ((_r: string, t: string) => t);
-  const bold = theme?.bold ?? ((t: string) => t);
+  const fg = (r: string, t: string) => {
+    try {
+      return theme?.fg ? theme.fg(r as any, t) : t;
+    } catch {
+      return t;
+    }
+  };
+  const bold = (t: string) => {
+    try {
+      return theme?.bold ? theme.bold(t) : t;
+    } catch {
+      return t;
+    }
+  };
 
   const activeWorkflows = [...state.workflows.values()].filter(
     (workflow) => !TERMINAL_WORKFLOW_STATES.has(workflow.state),
@@ -439,10 +463,17 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
     try {
       ctx.ui.setWidget(
         UNIFIED_UI_WIDGET_KEY,
-        (tui: { requestRender?: () => void }): PiComponent => {
-          requestRender = () => tui.requestRender?.();
+        (tui: any, theme: any): PiComponent => {
+          requestRender = () => tui?.requestRender?.();
           return {
-            render: (width: number) => formatUnifiedUiLines(state, width),
+            render: (width: number) => {
+              try {
+                return formatUnifiedUiLines(state, width, theme);
+              } catch (err) {
+                console.warn("[unified-ui] widget render error", err);
+                return [];
+              }
+            },
             invalidate: () => undefined,
             dispose: () => {
               requestRender = undefined;
@@ -459,7 +490,14 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
     try {
       ctx.ui.setFooter((_tui: any, theme: any): PiComponent => {
         return {
-          render: (width: number) => [formatFooterLine(state, width, theme)],
+          render: (width: number) => {
+            try {
+              return [formatFooterLine(state, width, theme)];
+            } catch (err) {
+              console.warn("[unified-ui] footer render error", err);
+              return [];
+            }
+          },
           invalidate: () => undefined,
           dispose: () => undefined,
         };
