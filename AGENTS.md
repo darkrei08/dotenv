@@ -16,6 +16,13 @@ This is a single-context repository: read `GLOSSARY.md` when present and ADRs un
 
 For task-triggered skill loading and ownership boundaries, read `docs/agent-skill-priority.md` before changing workflow, model-routing, agent-pipeline, or agent-directive surfaces. PiWorkflow owns execution; use the registered `pi-herdr-orchestration` package for mailbox/evidence tools and `@piewf/herdr` for inspectable transport, never a second scheduler.
 
+### Worktree and testing hygiene
+
+- **Isolated test environments**: Pi skill and extension discovery inspects `$HOME/.agents/skills` and `$HOME/.pi/agent` by default. Unit tests asserting resource resolution, skill policies, or agent preparation must isolate `HOME` and `PI_CODING_AGENT_DIR` in a temporary directory (`tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT; HOME="$tmp" ...`) so global host skills do not leak into test assertions.
+- **Worktree dependency reuse**: Subagent or manual worktrees under `.worktrees/` walk up and reuse the parent repository's installed `node_modules`. Do not run mutating `npm ci` or `npm install` inside worktrees; local supply-chain policies enforce frozen lockfiles and block unauthorized package installs.
+- **Safe command logging**: Avoid piping raw command output directly to `head` or `tail`, which triggers local safety guards. Pipe through `/usr/local/bin/sqz compress` for long output, or use the inspectable pattern: `log=$(mktemp); <command> >"$log" 2>&1; status=$?; tail -80 "$log"; exit $status`.
+- **Reviewable work units**: Deliver changes in self-contained slices under 400 lines, with focused tests and documentation alongside the code, using Conventional Commits. Commit and push only when authorized by the user.
+
 <!-- BEGIN sqz-agents-guidance (auto-installed by sqz init; remove this block to disable) -->
 
 ## sqz — Token-Optimized CLI Output
