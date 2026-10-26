@@ -1,0 +1,9 @@
+T1 [S1,S3]: Compare Gentle Shell with the existing Pi UI ecosystem and current dotenv surfaces; complete.
+T2 [S1,S3]: Define presentation ownership and the smallest compatible unified UI slice; complete.
+T3 [S1,S3,S4]: Implement and activate the unified UI extension slice with tests and documentation; complete.
+T4 [S2]: Investigate Windows Terminal screenshot transport and user-visible inline image delivery; deferred by user.
+T5 [S1-S4]: Run width, headless/RPC, startup, regression, and accessibility-oriented checks; complete.
+T6 [S4]: Sync the local Pi profile and deliver the coherent unified UI commit; in progress.
+T7 [S2,S4]: Launch the follow-up SDK/screenshot/forwarding work in a separate PiWorkflow session; pending.
+
+Status: T1-T3 and T5 complete; T4 intentionally deferred by the user; T6 in progress; T7 pending.

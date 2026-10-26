@@ -65,6 +65,7 @@ Third-party packages:
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
+| `extensions/unified-ui.ts` | Auto-mounted in interactive TUI; `/unified-ui [on\|off]` controls the bounded agent, tool, context, and validated PiWorkflow summaries; uses a unique widget key and stays silent in headless/RPC mode | none |
 | `extensions/model-preflight.js` + `model-preflight.mjs` | The `.js` adapter is the default-loadable Pi entrypoint; the tested `.mjs` implementation registers `/model-preflight`, session-start and TTL refresh of the reusable model availability preflight and blocks routing on stale or unknown evidence | `node`, pi-model-fit `preflight.mjs` |
 | `extensions/pi-ext-workflows/*.ts` | Workflow functions registered through `pi-extensible-workflows`: `fetchIssueDetails` (`fetch-issue-details.ts`), `developUntilApproved` (`review-loop.ts`), `devIssuesInBatches` (`seq-issues.ts`), `tddDev` (`tdd.ts`); re-exported by `extensions/piextworkflows.ts` | `gh` / `glab` for issue lookup; the `pi-extensible-workflows` package must be installed |
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
@@ -73,6 +74,12 @@ Third-party packages:
 | `extensions/vim-editor.ts` | `alt+m` shortcut: open the current editor buffer in Neovim | `nvim` |
 
 `extensions/herdr-nvim-blocked/index.ts` describes the blocked state as coming from a `herdr:blocked` event in `extensions/herdr-agent-state.ts`, which is not tracked; see [Known gaps](verification.md#known-gaps).
+
+### Unified UI ownership
+
+`unified-ui.ts` is a presentation adapter, not an orchestrator. Gentle Shell remains the owner of the footer and its existing shell widgets; PiWorkflow remains the owner of workflow execution, run state, phases, and child agents. The adapter consumes only public `pi.events` channels and renders its own `dotenv:unified-ui` widget. It does not patch the footer, read workflow files, start timers for polling, send telemetry, or expose raw prompts, tool arguments, paths, results, or errors.
+
+The widget is enabled automatically for interactive TUI sessions and can be disabled with `/unified-ui off` (or re-enabled with `/unified-ui on`). In print/RPC/headless contexts the command and rendering path are no-ops.
 
 ### Skills
 
