@@ -1,0 +1,13 @@
+T1 [S1,S2,S5]: Establish Wayfinder Map (darkrei08/dotenv#84) and dispatch research tickets #85, #86, #87; complete.
+T2 [S2,S3,S4]: Complete Wayfinder research workflow for roles, HITL/evidence, and Engram/SkillOpt boundaries; complete.
+T3 [S2,S3,S4]: Settle public child-brief schema and compatibility guarantees (#88); complete.
+T4 [S2,S4]: Settle maintainer-acceptable HITL/evidence contract extending checkpoint and run-scoped evidence (#86); complete.
+T5 [S2,S6]: Settle knowledge-loop and memory/adoption boundary adhering to repository boundary and licensing constraints (#87); complete.
+T6 [S2,S4]: Implement vertical test-first slice for child-brief schema and validation in pi-extensible-workflows; complete (commit 603293c, PR #365).
+T7 [S2,S3]: Implement role-boundary adapter updates adhering to pi-ext-roles separation; complete (ownership verified and preserved in pi-ext-roles).
+T8 [S2,S4]: Implement HITL/evidence extension with unit tests; mapped to follow-up slice 2.
+T9 [S2,S6]: Implement knowledge-loop integration and dotenv policy/documentation; mapped to follow-up slice 3.
+T10 [S2]: Run comprehensive verification (npm run check, evals, docs check); complete (build, lint, docs:check, 150/150 parity tests pass).
+T11 [S2]: Commit reviewable work units, merge locally into fork main, and open upstream PR to vekexasia/pi-extensible-workflows; complete (merged into main, pushed, PR #365 open).
+
+Status: Slice 1 delivered; PR #365 open on vekexasia/pi-extensible-workflows.

@@ -47,6 +47,17 @@ The built-in `parallelReviewAndSecurity` function runs reviewer and security ana
 
 Issue development follows the same boundary: `developIssues` prepares isolated, reviewed branches and returns integration-ready evidence; the Master calls `integrateReviewedIssues` before any main-worktree fast-forward or merged-worktree cleanup. A child workflow cannot treat a passing review as implicit repository-level authority.
 
+## Governed child briefs and knowledge loop (TeamAI-derived architecture)
+
+To prevent scheduler split-brain and runtime bloat, governance and knowledge loop patterns are decoupled across distinct authorities:
+
+| Component | Responsibility & Ownership |
+| --- | --- |
+| Child agent governance (`GovernedChildBrief`) | `pi-extensible-workflows` core owns execution governance; child agents declare task instructions, `changes` policies (`none` \| `commit` \| `keep`), tool ceilings, structured outputs, and content-addressed evidence offloading. Mutating tools are stripped automatically when `changes: "none"`. |
+| Human-in-the-Loop gates | `workflow_respond` and `checkpoint()` support structured `choice` and `feedback` payloads alongside boolean approvals, persisting operator decisions in the run journal. |
+| Role specification | `@piewf/pi-ext-roles` owns role files, discovery, frontmatter, and instructions. The workflow core remains role-agnostic. |
+| Knowledge loop & offline optimization | Engram owns associative memory storage (`.engram/chunks/`); SkillOpt owns offline reflective optimization (`skillopt_sleep`) without modifying running workflows. SkillOpt decompresses `.jsonl.gz` chunks to inspect past evidence safely behind held-out gates. |
+
 ## Collision ownership
 
 Shared skills, including `project-memory`, are installed once into `~/.agents/skills`. All shared `npx skills add` calls in `setup_env.sh` target only the `cline` canonical materialization and never ask the skills installer to create a Pi-local copy. The manifest marks the skill as managed, while Pi's `readsCanonical: true` policy prevents a second Pi-root registration.
