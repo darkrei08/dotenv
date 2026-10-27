@@ -496,6 +496,8 @@ if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
   npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent pi cline --yes </dev/null
   npx skills add humanlayer/skills --skill show-me --global --agent pi cline --yes </dev/null
   npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent pi cline --yes </dev/null
+  DATA_SEARCH_REF=7d19e656be75b2dc853d4edc7b3c29a9b839b8cf
+  npx skills add "https://github.com/darkrei08/pi-data-search#${DATA_SEARCH_REF}" --skill reusable-data-search --global --agent cline --yes </dev/null
 fi
 
 # Repository-centric AI memory (ai-memory-kit): the project-memory skill for pi and
