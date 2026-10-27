@@ -32,6 +32,18 @@ test('pi harness is marked readsCanonical in skills.manifest.json', () => {
   assert.equal(manifest.harnesses?.pi?.readsCanonical, true, 'pi harness must have readsCanonical:true');
 });
 
+test('reusable-data-search is shared and pinned to the published skill', () => {
+  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  assert.deepEqual(manifest.skills['reusable-data-search'], { default: true });
+
+  const src = readFileSync(SETUP, 'utf8');
+  assert.match(src, /DATA_SEARCH_REF=7d19e656be75b2dc853d4edc7b3c29a9b839b8cf/);
+  assert.ok(
+    src.includes('--skill reusable-data-search --global --agent cline --yes'),
+    'reusable-data-search must install into the canonical cline materialization',
+  );
+});
+
 // ── setup_env.sh does not put project-memory into the Pi-local root ──────────
 
 test('setup_env.sh project-memory install does not pass --agent pi', () => {
