@@ -1,5 +1,23 @@
 ## Agent skills
 
+### Deferred publication
+
+Treat local commit staging and remote publication as separate phases.
+
+- Start every independent work unit in a new clean registered worktree from the selected local base, with one reviewable branch and no unrelated changes.
+- Verify the work unit, run the normal commit hooks, and create the Conventional Commit locally. A successful commit is a `staged-local` checkpoint, not a push or merge.
+- Record the branch, worktree, commit SHA, issue or PR reference when one exists, exact checks, and publication state: `staged-local`, `pushed-branch`, `pr-open`, `merged`, or `blocked`.
+- Preserve clean staged worktrees and branches for later inventory. Do not squash, rewrite, delete, push, open a PR, merge, release, or close an issue until a later explicit publication decision selects the exact work unit.
+- When publication is authorized, re-check the selected worktree is clean, push only to the owner remote, and keep PR, merge, release, and issue closure as separate explicit actions.
+
+### Turn closure evidence
+
+At the end of every Master, Chief, worker, or subagent turn:
+
+- Save durable memory for what was applied or researched, why, where, checks, blockers, and next steps.
+- Return a clear, exhaustive summary that maps the requested evidence and requirements to applied changes, distinguishes observed from proposed work, and names every skipped or unverified item.
+- A Master aggregates child summaries and states which initial requirements are applied, partial, blocked, or not evidenced. Save the memory and summary before the final response.
+
 ### Issue tracker
 
 Issues live on GitHub Issues and are managed with `gh`; pull requests are not a triage request surface by default. See `docs/agents/issue-tracker.md`.

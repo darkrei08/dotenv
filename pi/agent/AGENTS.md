@@ -40,6 +40,21 @@
 - When asked what is tested, answer exactly what was verified and what was not.
 - For UI/browser/TUI/hardware/deployments, inspect the actual target, not just build output.
 
+## Deferred publication
+
+For Pi agent work in this repository, follow the repository-root `AGENTS.md` deferred-publication policy.
+The default delivery boundary is `staged-local`: use a clean isolated worktree, verify, commit with
+normal hooks, record the commit and checks, and defer push, PR, merge, release, and issue closure until
+a later explicit selection.
+
+## Turn closure evidence
+
+At the end of every Master, Chief, worker, or subagent turn, save durable memory for what was applied
+or researched, why, where, checks, blockers, and next steps. Return a clear, exhaustive summary mapping
+the requested evidence and requirements to applied changes, distinguishing observed, proposed, partial,
+blocked, and unverified work. A Master aggregates child summaries and saves the memory and summary before
+the final response.
+
 ## Cross-platform verification
 
 Follow the `container-test-matrix` skill (`~/.pi/agent/skills/container-test-matrix/SKILL.md`)
@@ -75,7 +90,7 @@ Follow the `issue-ops` skill for all issue and PR work (`~/.pi/agent/skills/issu
 - Issues use the issue-ops templates; titles are declarative and symptom-specific.
 - Apply `ready-for-agent` only when the ticket is self-contained: exact locations, pinned environment, and acceptance criteria with verification commands.
 - AFK execution consumes `ready-for-agent` via `prompts/fixissues.md` and the `devIssuesInBatches` workflow.
-- One PR per work unit, references the issue, thin diff, acceptance criteria pass. Do not commit, push, or close issues unless asked.
+- One PR per work unit, references the issue, thin diff, acceptance criteria pass. Do not push, merge, or close issues unless asked; local commits follow the repository-root Deferred publication policy and stop at the `staged-local` boundary until publication is explicitly selected.
 
 ## Resource discipline
 
