@@ -31,6 +31,8 @@ This index defines when commonly used skills should be loaded. It is a routing a
 - `tdd`: a new behavior, bug fix, regression test, or integration test.
 - `diagnosing-bugs`: a reported failure, regression, timeout, or unexplained runtime behavior.
 - `code-review`: review of a branch, PR, candidate diff, or connected call path.
+- `security-audit`: explicit security questions, vulnerability reviews, or codebase audits; use its full workflow only when the request asks for a complete audit or report.
+- `crowdsec`: CrowdSec installation, configuration, operation, debugging, or service API work; never infer authorization for host, cloud, or firewall mutations.
 - `tigerstyle`: reliability-sensitive runtime, async ownership, resource bounds, or validation changes.
 
 ### P2: load for specialized work

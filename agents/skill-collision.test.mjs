@@ -32,6 +32,49 @@ test('pi harness is marked readsCanonical in skills.manifest.json', () => {
   assert.equal(manifest.harnesses?.pi?.readsCanonical, true, 'pi harness must have readsCanonical:true');
 });
 
+test('Pi package loads the canonical orchestrator skill only once', () => {
+  const settings = JSON.parse(readFileSync(join(REPO, 'pi', 'agent', 'settings.json'), 'utf8'));
+  const source = 'git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216';
+  const packageEntry = settings.packages.find((entry) =>
+    (typeof entry === 'string' ? entry : entry?.source) === source,
+  );
+  assert.deepEqual(
+    packageEntry,
+    { source, skills: [] },
+    'the package must provide the extension while the canonical root owns its skill',
+  );
+});
+
+test('security-audit is pinned and canonical-only', () => {
+  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  assert.deepEqual(manifest.skills['security-audit'], { default: false });
+
+  const src = readFileSync(SETUP, 'utf8');
+  assert.match(src, /SECURITY_AUDIT_REF=c1c8a8c1471069fb0e188eeaff69b8e8db6564a8/);
+  assert.ok(
+    src.includes('"https://github.com/cloudflare/security-audit-skill#${SECURITY_AUDIT_REF}"'),
+    'security-audit must install from the pinned Cloudflare source',
+  );
+  assert.ok(src.includes('--skill security-audit --global --agent cline --yes'), 'security-audit install must target the canonical cline materialization');
+});
+
+test('CrowdSec skills are pinned and canonical-only', () => {
+  const manifest = JSON.parse(readFileSync(MANIFEST_PATH, 'utf8'));
+  assert.deepEqual(manifest.skills.crowdsec, { default: false });
+  assert.deepEqual(manifest.skills['crowdsec-service-api'], { default: false });
+
+  const src = readFileSync(SETUP, 'utf8');
+  assert.match(src, /CROWDSEC_SKILL_REF=8802dbe68a0552fe55dc605b6278f57e57578526/);
+  assert.ok(
+    src.includes('"https://github.com/crowdsecurity/crowdsec-skill#${CROWDSEC_SKILL_REF}"'),
+    'CrowdSec skills must install from the pinned source',
+  );
+  assert.ok(
+    src.includes('--skill crowdsec --skill crowdsec-service-api --global --agent cline --yes'),
+    'both CrowdSec skills must target the canonical cline materialization',
+  );
+});
+
 // ── setup_env.sh does not put shared skills into the Pi-local root ──────────
 
 test('setup_env.sh shared skills installs target only canonical materialization', () => {

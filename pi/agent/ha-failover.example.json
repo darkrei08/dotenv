@@ -11,17 +11,16 @@
     "development": {
       "name": "development",
       "entries": [
+        { "id": "cliproxyapi/gpt-5.6-luna:high" },
         { "id": "cliproxyapi/claude-sonnet-4-6:off" },
-        { "id": "cliproxyapi/gpt-6-luna:high" },
-        { "id": "cliproxyapi/gpt-6-sol:medium" },
-        { "id": "cliproxyapi/gpt-6-astra:medium" }
+        { "id": "cliproxyapi/gemini-3.8-flash-high:high" }
       ]
     },
     "scout": {
       "name": "scout",
       "entries": [
         { "id": "cliproxyapi/gemini-3.8-flash-high:medium" },
-        { "id": "cliproxyapi/gpt-6-luna:medium" }
+        { "id": "cliproxyapi/claude-sonnet-4-6:off" }
       ]
     },
     "fast": {
@@ -34,32 +33,29 @@
     "research": {
       "name": "research",
       "entries": [
-        { "id": "cliproxyapi/gpt-5.6-luna:xhigh" },
-        { "id": "cliproxyapi/gpt-6-luna:xhigh" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high:high" }
+        { "id": "cliproxyapi/gemini-3.8-flash-high:high" },
+        { "id": "cliproxyapi/claude-opus-4-6-thinking:off" }
       ]
     },
     "summary": {
       "name": "summary",
       "entries": [
         { "id": "cliproxyapi/gemini-3.5-flash-lite:low" },
-        { "id": "cliproxyapi/gemini-3.1-flash-lite:low" }
+        { "id": "cliproxyapi/claude-sonnet-4-6:off" }
       ]
     },
     "testing": {
       "name": "testing",
       "entries": [
-        { "id": "cliproxyapi/claude-sonnet-4-6:off" },
         { "id": "cliproxyapi/gpt-5.6-luna:high" },
-        { "id": "cliproxyapi/gpt-6-luna:high" },
-        { "id": "cliproxyapi/gemini-3.8-flash-high:high" }
+        { "id": "cliproxyapi/gemini-3.8-flash-high:high" },
+        { "id": "cliproxyapi/claude-sonnet-4-6:off" }
       ]
     },
     "reviewer": {
       "name": "Reviewer fallback",
       "entries": [
         { "id": "cliproxyapi/claude-opus-4-6-thinking:off" },
-        { "id": "cliproxyapi/gpt-6-luna:high" },
         { "id": "cliproxyapi/gemini-3.8-flash-high:high" }
       ]
     }

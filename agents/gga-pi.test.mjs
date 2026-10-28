@@ -43,6 +43,28 @@ test('forwards the model to pi and returns only the review on stdout', (t) => {
   assert.equal(argv[argv.indexOf('--model') + 1], 'anthropic/claude-sonnet-5-5:high');
 });
 
+test('resolves a Pi Ext Roles alias before invoking Pi', (t) => {
+  const home = mkdtempSync(join(tmpdir(), 'gga-pi-alias-home-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  mkdirSync(join(home, 'pi-ext-roles'), { recursive: true });
+  const ext = join(home, 'npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts');
+  mkdirSync(dirname(ext), { recursive: true });
+  writeFileSync(ext, '');
+  writeFileSync(join(home, 'pi-ext-roles/settings.json'), JSON.stringify({
+    modelAliases: {
+      'reviewer-model': 'cliproxy-reviewer-model',
+      'cliproxy-reviewer-model': 'cliproxyapi/claude-opus-4-6-thinking:off',
+    },
+  }));
+  const { dir, env } = fixture(t);
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'reviewer-model'], {
+    env: { ...env, PI_CODING_AGENT_DIR: home }, input: 'review prompt', encoding: 'utf8',
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const argv = readFileSync(join(dir, 'argv'), 'utf8').split('\n');
+  assert.equal(argv[argv.indexOf('--model') + 1], 'cliproxyapi/claude-opus-4-6-thinking:off');
+});
+
 test('cliproxyapi models load only the CLIProxyAPI provider extension', (t) => {
   const home = mkdtempSync(join(tmpdir(), 'gga-pi-home-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));

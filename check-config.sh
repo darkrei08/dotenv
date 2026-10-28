@@ -85,25 +85,25 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
-gga_expected_route='cliproxyapi/gpt-6-luna:high'
+gga_expected_alias='reviewer-model'
+gga_expected_route=$(jq -r --arg alias "$gga_expected_alias" '.modelAliases[$alias] // empty' "$WORKFLOWS_SETTINGS")
+gga_expected_model=${gga_expected_route%:*}
+gga_expected_effort=${gga_expected_route##*:}
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
-gga_route=${gga_provider#kilo:}
-gga_model=${gga_route%:*}
-gga_effort=${gga_route##*:}
-if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_model:-unresolved}" "${gga_effort:-unresolved}"
+if ! jq -e --arg model "$gga_expected_model" --arg effort "$gga_expected_effort" '(.enabledModels // [] | index($model) != null) and .modelThinkingLevels[$model] == $effort' "$SETTINGS" >/dev/null 2>&1; then
+  printf '%s: GGA reviewer model/effort must be enabled (found: %s:%s)\n' "$SETTINGS" "${gga_expected_model:-unresolved}" "${gga_expected_effort:-unresolved}"
   failures=1
 fi
-if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
-  printf '%s: GGA route must use the reviewer HA route (expected: kilo:%s, found: %s)\n' \
-    "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
+if [[ "$gga_provider" != "kilo:$gga_expected_alias" ]]; then
+  printf '%s: GGA provider must use the Pi Ext Roles alias (expected: kilo:%s, found: %s)\n' \
+    "$GGA_CONFIG" "$gga_expected_alias" "${gga_provider:-missing}"
   failures=1
 fi
-if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
+if [[ -n "$gga_expected_route" ]] && ! jq -e --arg route "$gga_expected_route" '
   (.groups.reviewer.entries // []) |
   any(.[]; (.id // "") == $route)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
-  printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
+  printf '%s: GGA resolved route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_expected_route:-unresolved}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -270,10 +270,9 @@ if ! jq -e '
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
-  $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["developer-model"] == "cliproxyapi/gpt-5.6-luna:high" and
+  $aliases["architect-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
@@ -281,9 +280,9 @@ if ! jq -e '
   $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
-  $aliases["market-researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
-  $aliases["marketing-strategist-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
@@ -291,8 +290,8 @@ if ! jq -e '
   $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["oracle-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
+  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  all(["cheap-model", "cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
@@ -316,7 +315,7 @@ if ! jq -e '
   def mirror: sub("^cliproxyapi/"; "");
   def route: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
   .modelAliases as $aliases |
-  all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
+  all(["luna", "reviewer-model", "sol", "astra"][];
       (($aliases["native-" + .] | native | route) == ($aliases["cliproxy-" + .] | mirror | route)))
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
   ! jq -e '

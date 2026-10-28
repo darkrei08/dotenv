@@ -19,6 +19,40 @@ done
 [ -n "$model" ] || { printf 'gga-pi: set PROVIDER="kilo:<pi-model>[:effort]" in .gga\n' >&2; exit 2; }
 command -v pi >/dev/null 2>&1 || { printf 'gga-pi: pi is not on PATH\n' >&2; exit 127; }
 
+agent_dir=${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}
+role_settings="$agent_dir/pi-ext-roles/settings.json"
+resolve_model() {
+  local ref=$1
+  jq -er --arg ref "$ref" '
+    .modelAliases as $aliases |
+    def splitref:
+      if test(":.*$") then [sub(":.*$"; ""), match(":([^:]+)$").captures[0].string]
+      else [., null] end;
+    def resolve($value; $effort; $depth):
+      if $depth > 10 then error("model alias chain exceeds 10 steps") else
+        ($value | splitref) as $parts |
+        ($effort // $parts[1]) as $resolved_effort |
+        if $aliases[$parts[0]] then resolve($aliases[$parts[0]]; $resolved_effort; $depth + 1)
+        elif ($parts[0] | contains("/")) then
+          {model: $parts[0], effort: $resolved_effort}
+        else error("unresolved model alias or effort") end
+      end;
+    resolve($ref; null; 0) | .model + (if .effort == null then "" else ":" + .effort end)
+  ' "$role_settings"
+}
+
+if [[ "$model" == */* ]]; then
+  resolved_model=$model
+elif [[ -f "$role_settings" ]] && command -v jq >/dev/null 2>&1; then
+  resolved_model=$(resolve_model "$model") || {
+    printf 'gga-pi: cannot resolve model or alias %s from %s\n' "$model" "$role_settings" >&2
+    exit 2
+  }
+else
+  printf 'gga-pi: model alias %s requires Pi Ext Roles settings at %s\n' "$model" "$role_settings" >&2
+  exit 2
+fi
+
 # Pure review call: no tools, extensions, skills or project context, so the model only
 # answers the prompt GGA built. Use the Keeper-backed model cache instead of refreshing
 # the gateway catalog; a successful empty catalog must not erase usable cached models.
@@ -29,13 +63,13 @@ err=$(mktemp)
 trap 'rm -f "$prompt_file" "$err"' EXIT
 cat > "$prompt_file"
 
-models_to_try=("$model")
-ha_file="${PI_HA_CONFIG:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/ha.json}"
+models_to_try=("$resolved_model")
+ha_file="${PI_HA_CONFIG:-$agent_dir/ha.json}"
 if [ -f "$ha_file" ] && command -v jq >/dev/null 2>&1; then
-  if jq -e --arg m "$model" '.groups.reviewer.entries[]? | select(.id == $m)' "$ha_file" >/dev/null 2>&1; then
+  if jq -e --arg m "$resolved_model" '.groups.reviewer.entries[]? | select(.id == $m)' "$ha_file" >/dev/null 2>&1; then
     while IFS= read -r fallback_model; do
       [ -n "$fallback_model" ] && models_to_try+=("$fallback_model")
-    done < <(jq -r --arg m "$model" '.groups.reviewer.entries[]?.id | select(. != null and . != "" and . != $m)' "$ha_file" 2>/dev/null || true)
+    done < <(jq -r --arg m "$resolved_model" '.groups.reviewer.entries[]?.id | select(. != null and . != "" and . != $m)' "$ha_file" 2>/dev/null || true)
   fi
 fi
 
@@ -45,7 +79,7 @@ for idx in "${!models_to_try[@]}"; do
   current_model="${models_to_try[$idx]}"
   ext=()
   if [[ $current_model == cliproxyapi/* ]]; then
-    provider_ext="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
+    provider_ext="$agent_dir/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts"
     if [ ! -f "$provider_ext" ]; then
       printf 'gga-pi: CLIProxyAPI provider extension not found: %s\n' "$provider_ext" >&2
       exit 1

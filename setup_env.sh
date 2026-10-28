@@ -495,6 +495,10 @@ if [ "${SETUP_AI_SKIP_SKILLS:-0}" != 1 ]; then
   npx skills@latest add mattpocock/skills --skill "${matt_skills[@]}" --global --agent cline --yes </dev/null
   npx skills add https://github.com/pedronauck/skills --skill typescript-advanced --global --agent cline --yes </dev/null
   npx skills add humanlayer/skills --skill show-me --global --agent cline --yes </dev/null
+  SECURITY_AUDIT_REF=c1c8a8c1471069fb0e188eeaff69b8e8db6564a8
+  npx skills add "https://github.com/cloudflare/security-audit-skill#${SECURITY_AUDIT_REF}" --skill security-audit --global --agent cline --yes </dev/null
+  CROWDSEC_SKILL_REF=8802dbe68a0552fe55dc605b6278f57e57578526
+  npx skills add "https://github.com/crowdsecurity/crowdsec-skill#${CROWDSEC_SKILL_REF}" --skill crowdsec --skill crowdsec-service-api --global --agent cline --yes </dev/null
   npx skills@latest add micio86dev/Engineering-Excellence --skill engineering-excellence --global --agent cline --yes </dev/null
 fi
 

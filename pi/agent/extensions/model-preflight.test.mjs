@@ -222,6 +222,21 @@ test("fails closed before routing when the refreshed report is stale or unbound"
   );
 });
 
+test("accepts reachable producer routes when entries omit the derived id", async () => {
+  const producerReport = structuredClone(report);
+  for (const group of Object.values(producerReport.matrix)) {
+    for (const entry of group.entries) delete entry.id;
+    delete group.selected.id;
+  }
+  const pi = fakePi();
+  modelPreflight(pi, {
+    now: () => Date.parse("2026-10-22T00:14:00.000Z"),
+    runCommand: async () => producerReport,
+  });
+  await assert.doesNotReject(pi.handlers.get("before_agent_start")({}, ctx("anthropic/model")));
+  assert.equal(pi.state.model, null);
+});
+
 test("rejects stale or unknown refresh output, including concurrent refreshes", async () => {
   const pi = fakePi();
   let calls = 0;
