@@ -272,7 +272,7 @@ if ! jq -e '
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["developer-model"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["architect-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["architect-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
@@ -280,17 +280,17 @@ if ! jq -e '
   $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   all(["cheap-model", "cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"

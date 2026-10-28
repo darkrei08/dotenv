@@ -20,36 +20,35 @@ CLIProxyAPI. When entitlement or quota is unknown, keep the existing route
 provisional; do not silently substitute a provider or model. The tables below
 describe configured assignments, not verified availability or plan limits.
 
-The role mapping follows the current `roleRecommendations` source in
-`pi-model-fit/scripts/report.mjs`. Catalog visibility is recorded separately
-from entitlement, inference, and quota; the configured routes below are not a
-claim that a live gateway can use them:
+The role mapping below is the configured CLIProxyAPI matrix. Catalog visibility is recorded separately
+from entitlement, inference, and quota; the configured routes are not a claim that a live gateway can use them.
+Gemini workflow roles use medium effort because the Herdr transport probe timed out at high before model output.
 
-| Role alias | Resolves to | Effort | Used by |
-| --- | --- | --- | --- |
-| `developer-model` | `cliproxyapi/claude-sonnet-4-6` | off | developer |
-| `architect-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | architect |
-| `security-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | security |
-| `debugger-model`, `verifier-model` | `cliproxyapi/claude-sonnet-4-6` | off | debugger, verifier |
-| `market-researcher-model`, `marketing-strategist-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | market-researcher, marketing-strategist |
-| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6` | off | qa, release, sre |
-| `tests-expert` | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | researcher |
-| `scout-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
-| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summarizer |
-| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | reviewer, oracle |
+| Role alias | Model label | Provider/model ID | Effort | Used by |
+| --- | --- | --- | --- | --- |
+| `developer-model` | GPT-5.6 Luna | `cliproxyapi/gpt-5.6-luna` | high | developer |
+| `architect-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | architect |
+| `security-model` | Claude Opus 4.6 Thinking | `cliproxyapi/claude-opus-4-6-thinking` | off | security |
+| `debugger-model`, `verifier-model` | Claude Sonnet 4.6 | `cliproxyapi/claude-sonnet-4-6` | off | debugger, verifier |
+| `market-researcher-model`, `marketing-strategist-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | market-researcher, marketing-strategist |
+| `qa-model`, `release-model`, `sre-model` | Claude Sonnet 4.6 | `cliproxyapi/claude-sonnet-4-6` | off | qa, release, sre |
+| `tests-expert` | GPT-5.6 Luna | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
+| `researcher-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | researcher |
+| `scout-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
+| `summarizer-model` | Gemini 3.5 Flash Lite | `cliproxyapi/gemini-3.5-flash-lite` | low | summarizer |
+| `reviewer-model` | Claude Opus 4.6 Thinking | `cliproxyapi/claude-opus-4-6-thinking` | off | reviewer |
+| `oracle-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | oracle |
 
 The role pack also includes read-only `debugger`, `verifier`, `market-researcher`, and `marketing-strategist` contracts. They use role-based aliases and are available to P-workflow callers without changing existing workflow behavior.
 
-Optional Gemini alternatives are available as explicit aliases, without replacing the
-primary role assignments:
+Optional Gemini aliases are also workflow-safe:
 
-| Alternative alias | Model:effort | Intended use |
-| --- | --- | --- |
-| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
-| `gemini-researcher-model` | `cliproxyapi/gemini-3.8-flash-high:high` | long research fallback |
-| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
+| Alternative alias | Model label | Provider/model ID | Effort | Intended use |
+| --- | --- | --- | --- | --- |
+| `gemini-scout-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | fast scouting |
+| `gemini-summarizer-model` | Gemini 3.5 Flash Lite | `cliproxyapi/gemini-3.5-flash-lite` | low | low-cost summarization |
+| `gemini-researcher-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | long research fallback |
+| `gemini-developer-model`, `gemini-tests-model` | Gemini 3.8 Flash | `cliproxyapi/gemini-3.8-flash-high` | medium | experimental coding/testing fallback |
 
 Managed role aliases, subagent review profiles, optional modes and GGA use the
 configured effort for their route. GGA uses the dedicated CLIProxyAPI reviewer

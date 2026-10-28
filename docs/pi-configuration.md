@@ -144,18 +144,20 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Workflow roles follow the current `roleRecommendations` source in
-`pi-model-fit/scripts/report.mjs`: developer and tests use
-`cliproxyapi/gpt-5.6-luna:high`; reviewer and security use
-`cliproxyapi/claude-opus-4-6-thinking:off`; architect, oracle, researcher,
-market-researcher, and marketing-strategist use
-`cliproxyapi/gemini-3.8-flash-high:high`; QA, release, SRE, debugger, and verifier
-use `cliproxyapi/claude-sonnet-4-6:off`; Scout uses
-`cliproxyapi/gemini-3.8-flash-high:medium`; and summarizer uses
-`cliproxyapi/gemini-3.5-flash-lite:low`. Native aliases remain manual mirrors, and
-OpenCode Go remains a separate direct provider. These assignments describe
-configuration only: catalog visibility, entitlement, inference, and quota are
-not interchangeable evidence.
+Workflow roles follow the configured Pi Ext Roles matrix: developer and tests use
+GPT-5.6 Luna at high effort (`cliproxyapi/gpt-5.6-luna`); reviewer and security use
+Claude Opus 4.6 Thinking with effort off (`cliproxyapi/claude-opus-4-6-thinking`);
+architect, oracle, researcher, market-researcher, and marketing-strategist use
+Gemini 3.8 Flash at medium effort (`cliproxyapi/gemini-3.8-flash-high`) because the
+Herdr workflow transport timed out at high; QA, release, SRE, debugger, and verifier
+use Claude Sonnet 4.6 with effort off (`cliproxyapi/claude-sonnet-4-6`); Scout uses
+Gemini 3.8 Flash at medium effort; and summarizer uses Gemini 3.5 Flash Lite at low
+effort. Native aliases remain manual mirrors, and OpenCode Go remains a separate
+direct provider. These assignments describe configuration only: catalog visibility,
+entitlement, inference, and quota are not interchangeable evidence. Pi Ext Roles is
+authoritative for workflow roles: each role file selects an alias, and the alias map
+supplies the exact provider/model ID and separate effort. Human model labels never
+replace those machine identifiers.
 
 The tracked `pi/agent/pi-ha-role-groups.json` binds each role primary to a group
 in `ha-failover.example.json`. `pi-ha-bootstrap.mjs` returns fallbacks only when

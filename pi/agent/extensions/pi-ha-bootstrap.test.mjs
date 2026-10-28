@@ -8,7 +8,7 @@ const config = JSON.parse(readFileSync(new URL("../ha-failover.example.json", im
 test("returns the configured HA entries after a known model", () => {
   assert.deepEqual(nextEntries(config, "cliproxyapi/gpt-5.6-luna:high", "development"), [
     { id: "cliproxyapi/claude-sonnet-4-6:off" },
-    { id: "cliproxyapi/gemini-3.8-flash-high:high" }
+    { id: "cliproxyapi/gemini-3.8-flash-high:medium" }
   ]);
 });
 

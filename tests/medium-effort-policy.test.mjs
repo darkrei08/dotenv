@@ -46,7 +46,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "cliproxy-astra": { model: "cliproxyapi/gpt-6-astra", effort: "medium" },
     "scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "developer-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
-    "architect-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "architect-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "security-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
     "debugger-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "verifier-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
@@ -54,17 +54,17 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "release-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "sre-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "tests-expert": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
-    "researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "market-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "marketing-strategist-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "market-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "marketing-strategist-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
     "gemini-scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "gemini-summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "gemini-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "gemini-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
-    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" }
+    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" }
   };
   assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {

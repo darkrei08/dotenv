@@ -138,7 +138,7 @@ If GGA says "Kilo CLI not found", it was started without the wrapper: use
 
 ### Which model, and at what effort
 
-GGA uses the Pi Ext Roles alias `reviewer-model`, which resolves to `cliproxyapi/claude-opus-4-6-thinking:off` through the CLIProxyAPI reviewer HA group. If that route is unavailable, the bridge preserves the configured cross-provider fallback (`cliproxyapi/gemini-3.8-flash-high:high`) in order.
+GGA uses the Pi Ext Roles alias `reviewer-model`, which resolves to the human-labeled model Claude Opus 4.6 Thinking (`cliproxyapi/claude-opus-4-6-thinking`) with effort `off` through the CLIProxyAPI reviewer HA group. If that route is unavailable, the bridge preserves the configured cross-provider fallback (Gemini 3.8 Flash, `cliproxyapi/gemini-3.8-flash-high`, effort `medium`) in order.
 
 - Opus is the stronger reviewer for hard changes: CodeRabbit measured 8 of 13 hard known bugs at standard effort (66.7% precision) and 10 of 13 at max (52% precision), against 6 of 13 at 41% precision for Sonnet 5.5, at about twice the list price ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)). The benchmark has 13 cases: a direction, not a verdict.
 - Reasoning curves show low to medium to high as the useful steps and xhigh as much costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)). Anthropic documents the effort parameter at <https://platform.claude.com/docs/en/build-with-claude/effort>.
