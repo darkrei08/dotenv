@@ -127,12 +127,11 @@ repository never stores OAuth tokens, API keys, Keeper passwords, or CPA
 management keys. The local CPA and Keeper setup is described in
 `cliproxyapi/README.md`.
 
-## Standalone Subagents De-duplication
+## Subagent Ownership
 
-To prevent duplicate subagent UI/tools when running alongside Gentle AI, standalone subagents in `pi-extensible-workflows` are disabled through three layers:
-1. Package filter: `settings.json` specifies `{ "source": "npm:pi-extensible-workflows", "extensions": ["!dist/subagents/index.js"] }`.
-2. Runtime toggle: `pi-extensible-workflows/settings.json` configures `"extensionSettings": { "subagents": { "enabled": false } }`.
-3. Process environment: `setup_env.sh` exports `PI_DISABLE_STANDALONE_SUBAGENTS=1` in `~/.bashrc`.
+PiWorkflow owns standalone subagent execution in this profile. Its package entry loads `dist/subagents/index.js`, and `pi-extensible-workflows/settings.json` enables the subagent runtime.
+
+Gentle AI remains responsible for persona, task framing, ODD guidance, and review policy. Its `gentle-agents.ts` extension stays excluded so it does not create a second standalone-agent scheduler. GGA remains the commit-time quality gate invoked by the repository pre-commit hook through `agents/gga-pi/run-gga.sh`.
 
 ## Context budget and compaction
 

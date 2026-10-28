@@ -7,7 +7,7 @@
       "port": 8190
     },
     "subagents": {
-      "enabled": false
+      "enabled": true
     }
   }
 }
