@@ -1,0 +1,14 @@
+# Shared local GGA profile.
+#
+# GGA v2.10.1 accepts `kilo:<model>` as its provider protocol. Here `kilo` is
+# intentionally a local compatibility adapter owned by agents/gga-pi/bin/kilo;
+# it does not launch Kilo. The adapter invokes Pi directly, resolves
+# `reviewer-model` from pi-ext-roles, and sends the review to the CLIProxyAPI
+# model selected by that role plus its reviewer HA failover group. OpenCode is
+# not involved.
+PROVIDER="kilo:reviewer-model"
+FILE_PATTERNS="*"
+EXCLUDE_PATTERNS=".git/*,node_modules/*,.worktrees/*,*.log,*.jsonl"
+RULES_FILE="AGENTS.md"
+STRICT_MODE="true"
+TIMEOUT="900"

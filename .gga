@@ -1,6 +1,1 @@
-PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"
-FILE_PATTERNS="*.sh,*.json,*.ts,*.mjs,*.md,*.lua,*.toml"
-EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
-RULES_FILE="REVIEW_RULES.md"
-STRICT_MODE="true"
-TIMEOUT="900"
+agents/gga-pi/profiles/reviewer.gga
