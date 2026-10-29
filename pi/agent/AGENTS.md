@@ -131,3 +131,15 @@ Use the whole Gentle AI suite for every code, config or documentation change, an
 - `gentle-ai-comment-writer` for issue and PR comments; `gentle-ai-skill-registry` after any skill change; `gentle-ai-cognitive-doc-design` for READMEs and guides.
 - Use `codegraph` (query/explore) to locate symbols and call paths before reading or editing code.
 - Subagent roles carry the skills relevant to their task (see `pi-ext-roles/roles/`). Skills used most often: issue-ops, engineering-excellence, container-test-matrix, pi-extensible-workflows, gentle-ai, ponytail, work-unit-commits, tigerstyle, typescript-advanced.
+
+## Terminology (operator voice transcription)
+
+Operator prompts arrive by voice dictation and product names come out mangled. Resolve these spellings silently; never ask the operator to repeat them.
+
+- `P`, `PI`, `Pi`, `P Agent`, `P Agents`, `Pagents`, `P.dev`, `P dev`, `Pagents` -> Pi, the coding agent harness running this session (binary `pi`, package `@earendil-works/pi-coding-agent`, global config under `/root/.pi/agent`). The same word covers Pi sessions, Pi extensions (`pi update --extensions`), Pi workflows and Pi subagents.
+- `Celli Proxy Api`, `Clipy Proxy`, `cliproxiproxy`, `cliproxy` -> CLIProxyAPI, the local OpenAI-compatible proxy at `http://127.0.0.1:8317`, config `/root/git/cliproxyapi/config.yaml`, models exposed as `cliproxyapi/<model>`.
+- `Open Code`, `opencode go`, `open code go` -> the `opencode-go` provider (`opencode-*` aliases, DeepSeek models).
+- `Herdr`, `Herder`, `Herdsman`, `herder` -> Herdr, the terminal workspace manager (`herdr`, socket API for panes, tabs, worktrees, agents).
+- `GGA`, `Guardian` -> Guardian Angel, the commit and PR quality gate.
+
+When a mapping changes the meaning of a request, say in one line which target was used instead of asking for clarification.
