@@ -30,7 +30,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   const expected = {
     "native-cheap-model": { model: "openai-codex/gpt-5.6-luna", effort: "medium" },
     "native-luna": { model: "openai-codex/gpt-5.6-luna", effort: "high" },
-    "native-reviewer-model": { model: "anthropic/claude-opus-4-6-thinking", effort: "high" },
+    "native-reviewer-model": { model: "anthropic/claude-opus-4-6", effort: "high" },
     "native-sol": { model: "openai-codex/gpt-6-sol", effort: "high" },
     "native-astra": { model: "openai-codex/gpt-6-astra", effort: "medium" },
     "cliproxy-cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
@@ -38,24 +38,27 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "cliproxy-reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
     "cliproxy-sol": { model: "cliproxyapi/gpt-6-sol", effort: "high" },
     "cliproxy-astra": { model: "cliproxyapi/gpt-6-astra", effort: "medium" },
-    "cheap-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "medium" },
     "scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
-    "developer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "architect-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
+    "developer-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
+    "architect-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "security-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
     "qa-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "release-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "sre-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "tests-expert": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
-    "researcher-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
+    "researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
     "gemini-scout-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "gemini-summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "gemini-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
-    "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "high" },
+    "gemini-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "gemini-developer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "gemini-tests-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "debugger-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "verifier-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "market-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "marketing-strategist-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "reviewer-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" },
-    "oracle-model": { model: "cliproxyapi/claude-opus-4-6-thinking", effort: "off" }
+    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" }
   };
   assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {
@@ -133,7 +136,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\nreviewer: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\narchitect: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\nsecurity: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stderr, "reviewer: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\nsecurity: primary cliproxyapi/claude-opus-4-6-thinking is absent from HA group reviewer\n");
     assert.equal(routeMismatch.stdout, `${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 
