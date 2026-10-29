@@ -462,6 +462,33 @@ Second, **dynamic gateway pricing is not implied by the model id**. If you
 want honest cost numbers for CLIProxyAPI routes, use CPA Usage Keeper's metering
 rather than treating Pi's static catalog as authoritative.
 
+### Data Keeper gateway snapshot (2026-10-29)
+
+The following CLIProxyAPI prices are synchronized from the live CPA Usage Keeper
+`model_price_settings` table and are USD per million tokens. They are gateway
+metering inputs, not entitlement or quota evidence.
+
+| Model | input | output | cache read | cache write |
+|---|---:|---:|---:|---:|
+| `claude-opus-4-6-thinking` | 5 | 25 | 0.5 | 6.25 |
+| `claude-sonnet-4-6` | 3 | 15 | 0.3 | 3.75 |
+| `gemini-3-flash` | 0.5 | 3 | 0.05 | 0 |
+| `gemini-3.1-flash-image` | 0.5 | 60 | 0 | 0 |
+| `gemini-3.1-flash-lite` | 0.25 | 1.5 | 0.025 | 0 |
+| `gemini-3.5-flash-lite` | 0.3 | 2.5 | 0.03 | 0 |
+| `gpt-5.6-luna` | 0.2 | 1.2 | 0.02 | 0.25 |
+| `gpt-5.6-sol` | 4 | 20 | 0.4 | 5 |
+| `gpt-5.6-terra` | 2 | 12 | 0.2 | 2.5 |
+| `gpt-6-astra` | 10 | 50 | 1 | 12.5 |
+| `gpt-6-luna` | 0.1 | 0.5 | 0.01 | 0.125 |
+| `gpt-6-sol` | 2 | 10 | 0.2 | 2.5 |
+| `gpt-6.1-sol` | 2 | 10 | 0.1 | 2.5 |
+| `gpt-6.1-terra` | 1 | 5 | 0.05 | 1.25 |
+| `gpt-image-1.5` | 5 | 32 | 1.25 | 0 |
+| `gpt-image-2` | 5 | 30 | 1.25 | 0 |
+| `gpt-image-2.5-flare` | 5 | 30 | 1.25 | 0 |
+| `gpt-image-2.5-sunburst` | 5 | 30 | 1.25 | 0 |
+
 For a public cross-check, OpenRouter publishes live per-endpoint pricing. Same
 model ids, first-party endpoint, USD per million (read 2026-09-13 from
 `https://openrouter.ai/api/v1/models/<author>/<slug>/endpoints`):

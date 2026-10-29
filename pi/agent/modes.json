@@ -9,7 +9,7 @@
     "opencode-max": {
       "provider": "opencode-go",
       "modelId": "deepseek-v4.1-flash",
-      "thinkingLevel": "medium",
+      "thinkingLevel": "max",
       "autostart": false
     }
   }
