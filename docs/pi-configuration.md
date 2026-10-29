@@ -95,7 +95,7 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 | `pi/agent/pi-ext-roles/settings.json` | Shared role settings: `modelAliases`, the `skills` allowlist and the `extensions` allowlist. |
 | `pi/agent/ha-failover.example.json` | Credentials-free HA groups and ordered fallback entries. |
 | `pi/agent/pi-ha-role-groups.json` | Role-to-HA-group bindings used to validate primary coverage. |
-| `pi/agent/pi-extensible-workflows/settings.json` | Workflow-only overrides: `extensionSettings` for `herdr` and `trajectory`. |
+| `pi/agent/pi-extensible-workflows/settings.json` | Canonical tracked workflow `modelAliases` plus `extensionSettings` for `herdr` and `trajectory`. |
 | `pi/agent/pi-ext-roles/roles/*.md` | `developer`, `oracle`, `researcher`, `reviewer`, `scout`, `summarizer`, `tests-expert`, `architect`, `security`, `qa`, `release`, `sre`. |
 | `pi/agent/prompts/` | Prompt templates: `fixissues.md` (drives the `devIssuesInBatches` workflow from `ready-for-agent` issues) and `spawn-pi-pane.md` (spawns a sibling Pi in a herdr pane). |
 | `pi/agent/themes/omarchy-system.json` | A shipped theme. `settings.json` selects `dark`, so this theme is available but not active. |
@@ -111,9 +111,11 @@ The machine-installed skills are placed by `setup_env.sh` (the first-party `matt
 
 Which layer resolves model routing, the precedence rule between them, and how to pick a model and a thinking level from measured cost, speed and quality: `pi/agent/MODELS.md` (791 lines, allowlisted by `!/MODELS.md` in `pi/agent/.gitignore`). The short version is that Pi settings, the provider catalog, workflow aliases, subagent routing, agent frontmatter and modes all stack in a fixed order, and that the most specific layer wins. Read that file before changing routing; do not duplicate its content here.
 
+The tracked `pi/agent/pi-extensible-workflows/settings.json` `modelAliases` map is the canonical static workflow map. Deprecated legacy names resolve to concrete pointers in that map, and the untracked live-only `extensions/workflow-model-router.ts` selector is superseded by these static aliases; do not add a second dynamic routing layer.
+
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` keeps native mirrors and current CLIProxyAPI targets; `enabledModels` lists only catalog-backed CLIProxyAPI picker entries. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/gpt-6-luna:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: opencode-go`, `defaultModel: deepseek-v4.1-flash`, and `defaultThinkingLevel: high`. `modelThinkingLevels` pins `opencode-go/deepseek-v4.1-flash` and `opencode-go/deepseek-v4-pro` at `high` alongside the native mirrors and current CLIProxyAPI targets; `enabledModels` lists catalog-backed CLIProxyAPI picker entries plus the two OpenCode Go routes used by the default model and the `opencode-deep` alias. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/gpt-6-luna:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -137,15 +139,18 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
 Workflow roles follow the current `roleRecommendations` source in
-`pi-model-fit/scripts/report.mjs`: developer, QA, release, and SRE use
-`cliproxyapi/claude-sonnet-4-6:off`; architect, security, reviewer, and oracle
-use `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort; tests use
-`cliproxyapi/gpt-5.6-luna:high`; researcher uses the same model at `xhigh`; Scout
-uses `cliproxyapi/gemini-3.8-flash-high:medium`; and summarizer uses
-`cliproxyapi/gemini-3.5-flash-lite:low`. Native aliases remain manual mirrors, and
-OpenCode Go remains a separate direct provider. These assignments describe
-configuration only: catalog visibility, entitlement, inference, and quota are
-not interchangeable evidence.
+`pi-model-fit/scripts/report.mjs`: developer and tests-expert use
+`cliproxyapi/gpt-5.6-luna:high`; QA, release, SRE, debugger, and verifier use
+`cliproxyapi/claude-sonnet-4-6:off`; reviewer and security use
+`cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort;
+oracle, architect, researcher, market-researcher, and marketing-strategist use
+`cliproxyapi/gemini-3.8-flash-high:medium`; Scout uses that same Gemini route at
+`medium`; and summarizer uses `cliproxyapi/gemini-3.5-flash-lite:low`. The
+`development` HA group ends with `opencode-go/deepseek-v4.1-flash:high`, so the
+default model is covered by failover while the role primaries keep their order.
+Native aliases remain manual mirrors, and OpenCode Go remains a separate direct
+provider. These assignments describe configuration only: catalog visibility,
+entitlement, inference, and quota are not interchangeable evidence.
 
 The tracked `pi/agent/pi-ha-role-groups.json` binds each role primary to a group
 in `ha-failover.example.json`. `pi-ha-bootstrap.mjs` returns fallbacks only when
