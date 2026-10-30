@@ -1,13 +1,13 @@
 {
   "roleGroups": {
     "developer": "development",
-    "oracle": "reviewer",
+    "oracle": "research",
     "researcher": "research",
     "reviewer": "reviewer",
     "scout": "scout",
     "summarizer": "summary",
     "tests-expert": "testing",
-    "architect": "reviewer",
+    "architect": "research",
     "security": "reviewer",
     "debugger": "development",
     "verifier": "testing",
