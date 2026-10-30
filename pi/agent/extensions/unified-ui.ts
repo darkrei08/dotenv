@@ -13,7 +13,7 @@ import {
   WORKFLOW_RUN_FAILED_EVENT,
   WORKFLOW_RUN_STARTED_EVENT,
   WORKFLOW_RUN_STATE_CHANGED_EVENT,
-} from "pi-extensible-workflows";
+} from "pi-extensible-workflows/types";
 
 export const UNIFIED_UI_WIDGET_KEY = "dotenv:unified-ui";
 export const UNIFIED_UI_COALESCE_MS = 100;
