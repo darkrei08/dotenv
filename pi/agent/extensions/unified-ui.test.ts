@@ -9,6 +9,7 @@ import {
 } from "pi-extensible-workflows";
 import unifiedUiExtension, {
   computeSessionCost,
+  computeSessionUsage,
   contextPercent,
   createUnifiedUiState,
   formatCost,
@@ -49,7 +50,19 @@ test("formatters: formats tokens, costs and session cost cleanly", () => {
       { type: "message", message: { role: "assistant", usage: { cost: { total: 0.018 } } } },
     ],
   };
-  assert.equal(Number(computeSessionCost(mockSession).toFixed(3)), 0.06);
+  assert.equal(Number(computeSessionCost(mockSession)?.toFixed(3)), 0.06);
+});
+
+test("session usage: aggregates only runtime-reported input, output, and cache-read tokens", () => {
+  const session = {
+    getEntries: () => [
+      { type: "message", message: { role: "assistant", usage: { input: 10, output: 4, cacheRead: 8 } } },
+      { type: "message", message: { role: "assistant", usage: { input: 2, output: 3, cacheRead: 1 } } },
+      { type: "message", message: { role: "user", usage: { input: 99 } } },
+    ],
+  };
+  assert.deepEqual(computeSessionUsage(session), { input: 12, output: 7, cacheRead: 9 });
+  assert.deepEqual(computeSessionUsage({ getEntries: () => [] }), {});
 });
 
 test("git info: safely extracts git branch and dirty status from repository or worktree", () => {
@@ -74,14 +87,83 @@ test("footer: formats sovereign single-line footer with separators, tokens, cost
 
   const footer = formatFooterLine(state, 120);
   assert.match(footer, /Unified UI/);
-  assert.match(footer, /implementing/);
-  assert.match(footer, /gpt-5.6-luna · high/);
-  assert.match(footer, /42%/);
-  assert.match(footer, /8\.5k/); // formatted tokens
-  assert.match(footer, /▰▰▰/); // gauge tacchette
-  assert.match(footer, /⟡/); // separators
-  assert.match(footer, /\$0.150/);
-  assert.match(footer, /main ±2/);
+  assert.match(footer, /m:gpt-5\.6-luna/);
+  assert.match(footer, /e:high/);
+  assert.match(footer, /c:42%/);
+  assert.match(footer, /t:8\.5k/); // formatted tokens
+  assert.match(footer, /⟡/); // left/right separator
+  assert.match(footer, /\$:0.150/);
+  assert.match(footer, /b:main ±2/);
+  assert.ok(visibleWidth(footer) <= 120);
+});
+
+test("footer: renders runtime telemetry and explicit placeholders without inventing zeros", () => {
+  const missing = formatFooterLine(createUnifiedUiState(), 300);
+  assert.match(missing, /in —/);
+  assert.match(missing, /out —/);
+  assert.match(missing, /cache —/);
+  assert.match(missing, /ctx —/);
+  assert.match(missing, /auto —/);
+  assert.match(missing, /cost —/);
+  assert.match(missing, /model —/);
+  assert.match(missing, /effort —/);
+  assert.match(missing, /workspace —/);
+  assert.match(missing, /branch —/);
+  assert.match(missing, /session —/);
+  assert.match(missing, /extensions\/skills —/);
+  assert.doesNotMatch(missing, /\$0\.00/);
+
+  const state = createUnifiedUiState();
+  state.modelId = "gpt-6-luna";
+  state.effort = "high";
+  state.inputTokens = 1200;
+  state.outputTokens = 125;
+  state.cacheReadTokens = 900;
+  state.totalTokens = 2048;
+  state.contextWindow = 8192;
+  state.contextAuto = true;
+  state.contextPercent = 25;
+  state.costTotal = 0.25;
+  state.cwd = "/work/project";
+  state.branch = "main";
+  state.sessionId = "abcdef1234567890";
+  state.extensionStatuses = new Map([["codex-image", "●"], ["ponytail", "full"]]);
+  const footer = formatFooterLine(state, 260);
+  assert.match(footer, /in 1\.2k/);
+  assert.match(footer, /out 125/);
+  assert.match(footer, /cache 900/);
+  assert.match(footer, /25%/);
+  assert.match(footer, /2\.0k\/8\.2k auto/);
+  assert.match(footer, /\$0\.250/);
+  assert.match(footer, /gpt-6-luna · high/);
+  assert.match(footer, /\/work\/project/);
+  assert.match(footer, /main/);
+  assert.match(footer, /abcdef12…/);
+  assert.match(footer, /codex-image: ●/);
+  assert.match(footer, /ponytail: full/);
+});
+
+test("footer: keeps compact telemetry labels at narrow widths", () => {
+  const state = createUnifiedUiState();
+  state.modelId = "gpt-6-luna";
+  state.effort = "high";
+  state.contextPercent = 25;
+  state.totalTokens = 2048;
+  state.contextWindow = 8192;
+  state.contextAuto = true;
+  state.costTotal = 0.25;
+  state.cwd = "/work/project";
+  state.branch = "main";
+  state.inputTokens = 1200;
+  state.outputTokens = 125;
+  state.cacheReadTokens = 900;
+  state.sessionId = "abcdef1234567890";
+  state.extensionStatuses = new Map([["codex-image", "●"], ["ponytail", "full"]]);
+  const footer = formatFooterLine(state, 120);
+
+  for (const label of ["m:", "e:", "c:", "t:", "a:", "$:", "w:", "b:", "i:", "o:", "r:", "s:", "x:", "i=", "p="]) {
+    assert.match(footer, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
   assert.ok(visibleWidth(footer) <= 120);
 });
 
@@ -190,7 +272,7 @@ test("mounts both widget and footer components, verifying component render contr
     sessionManager: mockSessionManager,
     model: { id: "gpt-5.6-luna" },
     thinkingLevel: "high",
-    cwd: "/root/git/personale/dotenv",
+    cwd: "/root/git/personale/pi.dev/dotenv",
   };
   await handlers.get("session_start")?.({}, tuiContext);
 
@@ -209,8 +291,8 @@ test("mounts both widget and footer components, verifying component render contr
   assert.ok(Array.isArray(footerLines));
   assert.equal(footerLines.length, 1);
   assert.match(footerLines[0], /Unified UI/);
-  assert.match(footerLines[0], /gpt-5.6-luna · high/);
-  assert.match(footerLines[0], /\$0.050/);
+  assert.match(footerLines[0], /m:gpt-5\.6-luna/);
+  assert.match(footerLines[0], /\$:0.050/);
 
   // Verify Pi 1.4 SDK model_select event payload { model: { id: "claude-sonnet-4-6" } }
   await handlers.get("model_select")?.({ model: { id: "claude-sonnet-4-6" }, type: "model_select" }, tuiContext);
@@ -220,7 +302,8 @@ test("mounts both widget and footer components, verifying component render contr
   // Verify Pi 1.4 SDK thinking_level_select event payload { level: "medium" }
   await handlers.get("thinking_level_select")?.({ level: "medium", type: "thinking_level_select" }, tuiContext);
   const effortFooter = footerComponent.render(100);
-  assert.match(effortFooter[0], /claude-sonnet-4-6 · medium/);
+  assert.match(effortFooter[0], /m:claude-sonnet-4-6/);
+  assert.match(effortFooter[0], /e:medium/);
 
   // Verify turn_end updates context tokens and cost
   await handlers.get("turn_end")?.({}, {
@@ -230,7 +313,7 @@ test("mounts both widget and footer components, verifying component render contr
   const updatedFooter = footerComponent.render(120);
   assert.match(updatedFooter[0], /20%/);
   assert.match(updatedFooter[0], /2\.0k/);
-  assert.match(updatedFooter[0], /\$0.050/);
+  assert.match(updatedFooter[0], /\$:0.050/);
 
   // Verify headless no-op
   let headlessWidgetCalled = false;
@@ -245,4 +328,30 @@ test("mounts both widget and footer components, verifying component render contr
   });
   assert.equal(headlessWidgetCalled, false);
   assert.equal(headlessFooterCalled, false);
+});
+
+test("footer: shows graphical prompt state in green/red and uses a right-aligned row", () => {
+  const state = createUnifiedUiState();
+  state.enabled = true;
+  state.agent = "working";
+  state.promptStatus = "working";
+  state.modelId = "gpt-6-luna";
+  const roles: string[] = [];
+  const theme = {
+    fg: (role: string, text: string) => { roles.push(role); return text; },
+    bold: (text: string) => text,
+  };
+
+  const working = formatFooterLine(state, 120, theme);
+  assert.match(working, /●/);
+  assert.ok(roles.includes("success"));
+  assert.equal(visibleWidth(working), 120);
+
+  handleToolStart(state, "failed-call");
+  handleToolEnd(state, "failed-call", true);
+  roles.length = 0;
+  const failed = formatFooterLine(state, 120, theme);
+  assert.match(failed, /×/);
+  assert.ok(roles.includes("error"));
+  assert.ok(visibleWidth(failed) <= 120);
 });

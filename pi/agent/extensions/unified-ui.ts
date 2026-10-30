@@ -2,7 +2,7 @@ import type {
   ExtensionAPI,
   ExtensionUIContext,
 } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -39,14 +39,22 @@ type WorkflowState = {
 export interface UnifiedUiState {
   enabled: boolean;
   agent: "idle" | "working";
+  promptStatus: "idle" | "working" | "complete" | "error";
   currentPhase?: string;
   modelId?: string;
   effort?: string;
   activeToolCalls: Set<string>;
   errorCount: number;
   totalTokens?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cacheReadTokens?: number;
   contextPercent?: number;
-  costTotal: number;
+  contextWindow?: number;
+  contextAuto?: boolean;
+  costTotal?: number;
+  sessionId?: string;
+  extensionStatuses?: ReadonlyMap<string, string>;
   cwd?: string;
   branch?: string;
   dirty?: number;
@@ -118,26 +126,52 @@ export function formatTokens(count: number): string {
   return `${(count / 1_000_000).toFixed(1)}M`;
 }
 
-export function formatCost(total: number): string {
-  if (!total || total <= 0) return "$0.00";
-  return total >= 1 ? `$${total.toFixed(2)}` : `$${total.toFixed(3)}`;
+export function formatCost(total: number | undefined): string {
+  if (typeof total !== "number" || !Number.isFinite(total) || total < 0) return "—";
+  return total === 0 ? "$0.00" : total >= 1 ? `$${total.toFixed(2)}` : `$${total.toFixed(3)}`;
 }
 
-export function computeSessionCost(sessionManager: any): number {
+export function computeSessionCost(sessionManager: any): number | undefined {
   let total = 0;
+  let found = false;
   try {
     const entries = sessionManager?.getEntries?.() ?? [];
     for (const entry of entries) {
       if (entry?.type !== "message" || entry?.message?.role !== "assistant") continue;
       const costVal = entry?.message?.usage?.cost?.total;
-      if (typeof costVal === "number" && Number.isFinite(costVal)) {
+      if (typeof costVal === "number" && Number.isFinite(costVal) && costVal >= 0) {
         total += costVal;
+        found = true;
       }
     }
   } catch (error) {
     console.debug("[unified-ui] session cost computation failed", error);
   }
-  return total;
+  return found ? total : undefined;
+}
+
+export function computeSessionUsage(sessionManager: any): {
+  input?: number;
+  output?: number;
+  cacheRead?: number;
+} {
+  const totals: { input?: number; output?: number; cacheRead?: number } = {};
+  try {
+    const entries = sessionManager?.getEntries?.() ?? [];
+    for (const entry of entries) {
+      if (entry?.type !== "message" || entry?.message?.role !== "assistant") continue;
+      const usage = entry.message.usage;
+      for (const key of ["input", "output", "cacheRead"] as const) {
+        const value = usage?.[key];
+        if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
+          totals[key] = (totals[key] ?? 0) + value;
+        }
+      }
+    }
+  } catch (error) {
+    console.debug("[unified-ui] session token computation failed", error);
+  }
+  return totals;
 }
 
 export function readGitInfo(cwd: string): { branch?: string; dirty?: number } {
@@ -193,9 +227,9 @@ export function createUnifiedUiState(): UnifiedUiState {
   return {
     enabled: false,
     agent: "idle",
+    promptStatus: "idle",
     activeToolCalls: new Set(),
     errorCount: 0,
-    costTotal: 0,
     workflows: new Map(),
     workflowAgents: new Map(),
   };
@@ -299,10 +333,57 @@ export function handleToolEnd(
 ): void {
   const id = stringValue(toolCallId);
   if (!id || !state.activeToolCalls.delete(id)) return;
-  if (isError === true) state.errorCount += 1;
+  if (isError === true) {
+    state.errorCount += 1;
+    state.promptStatus = "error";
+  }
 }
 
-// Sovereign Footer Line: incorporates Gentle Shell's gauge, separators, model, cost, and context
+function joinSides(left: string, right: string, width: number, ellipsis: string): string {
+  const leftWidth = visibleWidth(left);
+  const rightWidth = visibleWidth(right);
+  if (leftWidth + rightWidth <= width) {
+    return left + " ".repeat(width - leftWidth - rightWidth) + right;
+  }
+
+  const leftBudget = Math.min(leftWidth, 24, Math.max(0, width - 15));
+  const truncatedLeft = truncateToWidth(left, leftBudget, ellipsis);
+  const truncatedLeftWidth = visibleWidth(truncatedLeft);
+  const rightWidthAvailable = Math.max(0, width - truncatedLeftWidth - 1);
+  const truncatedRight = truncateToWidth(right, rightWidthAvailable, ellipsis);
+  return truncatedLeft + (rightWidthAvailable > 0 ? " " : "") + truncatedRight;
+}
+
+function fitCompactSegments(
+  segments: Array<{ prefix: string; value: string; minimumValueWidth?: number }>,
+  width: number,
+): string {
+  const separator = " ";
+  const values = segments.map(({ prefix, value }) => `${prefix}${value}`);
+  const minimums = segments.map(({ prefix, minimumValueWidth = 0 }) => visibleWidth(prefix) + minimumValueWidth);
+  while (visibleWidth(values.join(separator)) > width) {
+    let candidate = -1;
+    let largest = 0;
+    for (let i = 0; i < values.length; i += 1) {
+      const excess = visibleWidth(values[i]) - minimums[i];
+      if (excess > largest) {
+        largest = excess;
+        candidate = i;
+      }
+    }
+    if (candidate < 0) break;
+    const target = visibleWidth(values[candidate]) - Math.min(largest, visibleWidth(values.join(separator)) - width);
+    const prefix = segments[candidate].prefix;
+    values[candidate] = prefix + truncateToWidth(
+      values[candidate].slice(prefix.length),
+      Math.max(0, target - visibleWidth(prefix)),
+      "…",
+    );
+  }
+  return values.join(separator);
+}
+
+// One-row footer keeps the prompt area intact and uses wide terminals horizontally.
 export function formatFooterLine(
   state: UnifiedUiState,
   width: number,
@@ -323,47 +404,93 @@ export function formatFooterLine(
       return t;
     }
   };
-  const sep = ` ${fg("dim", "⟡")} `;
-
-  // 1. Brand & Phase
+  const marker = state.promptStatus === "working"
+    ? fg("success", "●")
+    : state.promptStatus === "error"
+      ? fg("error", "×")
+      : state.promptStatus === "complete"
+        ? fg("success", "✓")
+        : fg("dim", "○");
   const brand = bold(fg("accent", "⚡ Unified UI"));
-  const phase = state.currentPhase
-    ? fg("text", state.currentPhase)
-    : state.agent === "working"
-      ? fg("accent", "working")
-      : undefined;
+  const phase = state.currentPhase ?? (state.agent === "working" ? "working" : undefined);
+  const cwd = state.cwd?.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  const workspace = cwd || "—";
+  const branch = state.branch || "—";
+  const branchStatus = `${branch}${state.dirty !== undefined && state.dirty > 0 ? ` ±${state.dirty}` : ""}`;
+  const git = `workspace ${workspace} branch ${branchStatus}`;
+  const left = `${marker} ${brand} ${fg("dim", "⟡")}`;
 
-  // 2. Execution / Model
-  const modelText = state.modelId ? fg("text", state.modelId) : undefined;
-  const effortText = state.effort ? fg("syntaxFunction", state.effort) : undefined;
-  const exec = modelText && effortText ? `${modelText} · ${effortText}` : modelText;
+  const model = state.modelId ? fg("text", state.modelId) : "model —";
+  const effort = state.effort ? fg("syntaxFunction", state.effort) : "effort —";
+  const exec = `${model} · ${effort}`;
+  const usage = `in ${state.inputTokens === undefined ? "—" : formatTokens(state.inputTokens)} out ${state.outputTokens === undefined ? "—" : formatTokens(state.outputTokens)} cache ${state.cacheReadTokens === undefined ? "—" : formatTokens(state.cacheReadTokens)}`;
+  const contextWindow = `${state.totalTokens === undefined ? "—" : formatTokens(state.totalTokens)}/${state.contextWindow === undefined ? "—" : formatTokens(state.contextWindow)}`;
+  const auto = state.contextAuto === true ? "auto" : state.contextAuto === false ? "manual" : "auto —";
+  const context = `ctx ${state.contextPercent === undefined ? "—" : `${state.contextPercent}%`} ${contextWindow} ${auto} ${state.contextPercent === undefined ? "" : fg(gaugeRole(state.contextPercent), renderGauge(state.contextPercent))}`;
+  const cost = `cost ${formatCost(state.costTotal)}`;
+  const workspaceAndBranch = maxWidth >= 160 ? git : git.replace("workspace", "ws").replace("branch", "br");
+  const session = state.sessionId ? `session ${state.sessionId.slice(0, 8)}…` : "session —";
+  const statuses = state.extensionStatuses?.size
+    ? `extensions/skills ${[...state.extensionStatuses].map(([key, value]) => `${displayLabel(key, "—")}: ${displayLabel(value, "—")}`).join(" ")}`
+    : "extensions/skills —";
+  const right = [exec, context, cost, workspaceAndBranch, phase ? fg("text", phase) : undefined, usage, session, statuses]
+    .filter(Boolean)
+    .join(" · ");
+  const compactRight = fitCompactSegments([
+    { prefix: "m:", value: state.modelId ?? "—", minimumValueWidth: visibleWidth(state.modelId ?? "—") },
+    { prefix: "e:", value: state.effort ?? "—", minimumValueWidth: visibleWidth(state.effort ?? "—") },
+    {
+      prefix: "c:",
+      value: state.contextPercent === undefined ? "—" : `${state.contextPercent}%`,
+      minimumValueWidth: visibleWidth(state.contextPercent === undefined ? "—" : `${state.contextPercent}%`),
+    },
+    { prefix: "t:", value: contextWindow, minimumValueWidth: visibleWidth(contextWindow) },
+    { prefix: "a:", value: auto, minimumValueWidth: visibleWidth(auto) },
+    {
+      prefix: "$:",
+      value: formatCost(state.costTotal).replace(/^\$/, ""),
+      minimumValueWidth: visibleWidth(formatCost(state.costTotal).replace(/^\$/, "")),
+    },
+    { prefix: "w:", value: workspace },
+    { prefix: "b:", value: branchStatus, minimumValueWidth: visibleWidth(branchStatus) },
+    {
+      prefix: "i:",
+      value: state.inputTokens === undefined ? "—" : formatTokens(state.inputTokens),
+      minimumValueWidth: visibleWidth(state.inputTokens === undefined ? "—" : formatTokens(state.inputTokens)),
+    },
+    {
+      prefix: "o:",
+      value: state.outputTokens === undefined ? "—" : formatTokens(state.outputTokens),
+      minimumValueWidth: visibleWidth(state.outputTokens === undefined ? "—" : formatTokens(state.outputTokens)),
+    },
+    {
+      prefix: "r:",
+      value: state.cacheReadTokens === undefined ? "—" : formatTokens(state.cacheReadTokens),
+      minimumValueWidth: visibleWidth(state.cacheReadTokens === undefined ? "—" : formatTokens(state.cacheReadTokens)),
+    },
+    {
+      prefix: "s:",
+      value: state.sessionId ? `${state.sessionId.slice(0, 6)}…` : "—",
+      minimumValueWidth: visibleWidth(state.sessionId ? `${state.sessionId.slice(0, 6)}…` : "—"),
+    },
+    {
+      prefix: "x:",
+      value: state.extensionStatuses?.size
+        ? [...state.extensionStatuses].map(([key, value]) => {
+          const compactKey = displayLabel(key, "—").replace("codex-image", "i").replace("ponytail", "p");
+          return `${compactKey}=${displayLabel(value, "—")}`;
+        }).join(" ")
+        : "—",
+      minimumValueWidth: state.extensionStatuses?.size
+        ? visibleWidth([...state.extensionStatuses].map(([key, value]) => {
+          const compactKey = displayLabel(key, "—").replace("codex-image", "i").replace("ponytail", "p");
+          return `${compactKey}=${displayLabel(value, "—")}`;
+        }).join(" "))
+        : 1,
+    },
+  ], Math.max(1, maxWidth - visibleWidth(left) - 1));
 
-  // 3. Context & Tacchette Gauge
-  const pct = state.contextPercent;
-  let contextStr: string;
-  if (pct !== undefined) {
-    const gauge = fg(gaugeRole(pct), renderGauge(pct));
-    const tokenBadge = state.totalTokens !== undefined ? ` (${formatTokens(state.totalTokens)})` : "";
-    contextStr = `${fg("text", `${pct}%`)}${fg("dim", tokenBadge)} ${gauge}`;
-  } else {
-    contextStr = fg("dim", "Context —");
-  }
-
-  // 4. Cost
-  const costStr = fg("text", formatCost(state.costTotal));
-
-  // 5. Git / CWD
-  let gitStr: string | undefined;
-  if (state.branch) {
-    const dirtyStr = state.dirty !== undefined && state.dirty > 0 ? fg("warning", ` ±${state.dirty}`) : "";
-    const baseCwd = state.cwd ? path.basename(state.cwd) : "";
-    gitStr = `${fg("muted", baseCwd)} ${fg("text", state.branch)}${dirtyStr}`.trim();
-  } else if (state.cwd) {
-    gitStr = fg("muted", path.basename(state.cwd));
-  }
-
-  const parts = [brand, phase, exec, contextStr, costStr, gitStr].filter(Boolean);
-  return truncateToWidth(parts.join(sep), maxWidth);
+  return joinSides(left, maxWidth < 160 ? compactRight : right, maxWidth, fg("dim", "…"));
 }
 
 // Widget above the editor: Claude Code cleanliness (Zero overhead when idle)
@@ -488,10 +615,11 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
 
     // 2. Mount the sovereign footer component implementing render(width): string[]
     try {
-      ctx.ui.setFooter((_tui: any, theme: any): PiComponent => {
+      ctx.ui.setFooter((_tui: any, theme: any, footerData: any): PiComponent => {
         return {
           render: (width: number) => {
             try {
+              state.extensionStatuses = footerData?.getExtensionStatuses?.();
               return [formatFooterLine(state, width, theme)];
             } catch (err) {
               console.warn("[unified-ui] footer render error", err);
@@ -543,24 +671,40 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
     const interactive = ctx.mode === "tui" && ctx.hasUI === true;
     state.enabled = interactive;
     state.agent = "idle";
+    state.promptStatus = "idle";
     state.currentPhase = undefined;
     state.activeToolCalls.clear();
-    state.errorCount = 0;
-    state.costTotal = computeSessionCost(ctx.sessionManager);
-    state.totalTokens = undefined;
-    state.contextPercent = undefined;
     state.workflows.clear();
     state.workflowAgents.clear();
-    sessionId = String(ctx.sessionManager?.getSessionId?.() ?? "");
+    state.errorCount = 0;
+    state.costTotal = computeSessionCost(ctx.sessionManager);
+    const sessionUsage = computeSessionUsage(ctx.sessionManager);
+    state.inputTokens = sessionUsage.input;
+    state.outputTokens = sessionUsage.output;
+    state.cacheReadTokens = sessionUsage.cacheRead;
+    state.totalTokens = undefined;
+    state.contextPercent = undefined;
+    state.contextWindow = undefined;
+    state.contextAuto = undefined;
+    state.sessionId = stringValue(ctx.sessionManager?.getSessionId?.());
+    sessionId = state.sessionId ?? "";
 
-    state.cwd = String(ctx.cwd || process.cwd());
-    const gitInfo = readGitInfo(state.cwd);
+    state.cwd = stringValue(ctx.cwd);
+    const gitInfo = state.cwd ? readGitInfo(state.cwd) : {};
     state.branch = gitInfo.branch;
     state.dirty = gitInfo.dirty;
-    if (ctx.model) {
-      state.modelId = String((ctx.model as any)?.id || ctx.model);
-    }
-    if (ctx.thinkingLevel) state.effort = String(ctx.thinkingLevel);
+    state.modelId = stringValue(record(ctx.model)?.id) ?? stringValue(ctx.model);
+    state.effort = stringValue(ctx.thinkingLevel);
+    const usage = ctx.getContextUsage?.();
+    const context = record(usage);
+    state.contextPercent = contextPercent(usage);
+    state.totalTokens = typeof context?.tokens === "number" && Number.isFinite(context.tokens) ? context.tokens : undefined;
+    state.contextWindow = typeof context?.contextWindow === "number" && Number.isFinite(context.contextWindow)
+      ? context.contextWindow
+      : typeof record(ctx.model)?.contextWindow === "number" && Number.isFinite(record(ctx.model)?.contextWindow)
+        ? record(ctx.model)?.contextWindow as number
+        : undefined;
+    state.contextAuto = typeof context?.auto === "boolean" ? context.auto : undefined;
 
     if (interactive) mountUi(ctx);
   });
@@ -587,11 +731,13 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
 
   pi.on("agent_start", async () => {
     state.agent = "working";
+    state.promptStatus = "working";
     scheduleRender();
   });
 
   pi.on("agent_end", async () => {
     state.agent = "idle";
+    if (state.promptStatus !== "error") state.promptStatus = "complete";
     scheduleRender();
   });
 
@@ -606,15 +752,19 @@ export default function unifiedUiExtension(pi: ExtensionAPI): void {
   });
 
   pi.on("turn_end", async (_event, ctx) => {
-    if (ctx?.getContextUsage) {
-      const usage = ctx.getContextUsage();
-      state.contextPercent = contextPercent(usage);
-      const val = record(usage);
-      if (typeof val?.tokens === "number" && Number.isFinite(val.tokens)) {
-        state.totalTokens = val.tokens;
-      }
-    }
+    const usage = ctx?.getContextUsage?.();
+    const context = record(usage);
+    state.contextPercent = contextPercent(usage);
+    state.totalTokens = typeof context?.tokens === "number" && Number.isFinite(context.tokens) ? context.tokens : undefined;
+    state.contextWindow = typeof context?.contextWindow === "number" && Number.isFinite(context.contextWindow)
+      ? context.contextWindow
+      : undefined;
+    state.contextAuto = typeof context?.auto === "boolean" ? context.auto : undefined;
     state.costTotal = computeSessionCost(ctx.sessionManager);
+    const sessionUsage = computeSessionUsage(ctx.sessionManager);
+    state.inputTokens = sessionUsage.input;
+    state.outputTokens = sessionUsage.output;
+    state.cacheReadTokens = sessionUsage.cacheRead;
     scheduleRender();
   });
 
