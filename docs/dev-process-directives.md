@@ -214,6 +214,14 @@ red state which one is the defect.
 pi/agent/extensions/pi-ha-role-groups/bind.test.mjs` must be green in the tree you are
 committing to. Green in a sibling worktree proves nothing about this one.
 
+## D10 - Dispatch contract: PiWorkflow through its pi-extensible-workflows extension, roles from pi-ext-roles
+
+**Rule.** `pi-extensible-workflows` is the PiWorkflow execution engine in this fleet: the `workflow` tool, with `agent`, `parallel`, `pipeline` and `prompt`, is PiWorkflow. Naming it is therefore not a second scheduler, and no other scheduler may be introduced. Every delegated unit runs as a workflow agent configured by `role` (from `pi-ext-roles`) plus `skills`; mailbox and evidence go through the pi-herdr-orchestration package, and inspectable transport goes through `@piewf/herdr`, as that package's own rules require. Pi's built-in subagent tool is not part of the dispatch path. Passing an explicit `model` is an exception that must be justified in the brief and repeated in the report, because it overrides the role's canonical route and its failover group.
+
+**Failure prevented.** Two dispatchers with two configuration surfaces: a built-in subagent runs with its own defaults, ignores the role matrix, and produces work whose model, skills and tools cannot be reproduced from the repository. When that happens a failure cannot be attributed to a role, an alias or a matrix entry, so the routing policy stops being enforceable.
+
+**How to verify.** A run is compliant when its launch source contains `parallel` or `pipeline` over `agent`, every agent carries a `role`, no agent passes `model` without a stated reason, and the run is driven by the `workflow` tool rather than the built-in subagent tool. Reproduce by re-running the same source: same roles, same selectors, same order.
+
 ## Skill consolidation proposal
 
 Scope: the skills that touch routing, config and the gates around them. Verdicts are
