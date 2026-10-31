@@ -99,9 +99,9 @@ if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
     "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
-if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
+if [[ -n "$gga_route" ]] && ! jq -e --arg model "$gga_model" '
   (.groups.reviewer.entries // []) |
-  any(.[]; (.id // "") == $route)
+  any(.[]; ((.id // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) == $model)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
   printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
@@ -257,7 +257,7 @@ if ! jq -e '
   .modelAliases as $aliases |
   $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
   $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:high" and
+  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6:high" and
   $aliases["native-sol"] == "openai-codex/gpt-6-sol:high" and
   $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
   $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
@@ -265,50 +265,60 @@ if ! jq -e '
   $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
   $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
-  $aliases["cheap-model"] == "cliproxy-cheap-model" and
   $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["developer-model"] == "cliproxyapi/gpt-5.6-luna:high" and
+  $aliases["architect-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
   $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["oracle-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
+  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  all(["cheap-model", "cheap-model-ant", "cheap-model-oai", "claude-developer-model", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
 if ! jq -e '
-  .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
-  (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
+  .defaultProvider == "opencode-go" and .defaultModel == "deepseek-v4.1-flash" and .defaultThinkingLevel == "high" and
+  .modelThinkingLevels["opencode-go/deepseek-v4.1-flash"] == "high" and
+  .modelThinkingLevels["opencode-go/deepseek-v4-pro"] == "high" and
+  (.enabledModels | all(.[];
+    startswith("cliproxyapi/") or . == "opencode-go/deepseek-v4.1-flash" or . == "opencode-go/deepseek-v4-pro")) and
   (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
-  (.enabledModels | index("cliproxyapi/gpt-6-sol") != null)
+  (.enabledModels | index("cliproxyapi/gpt-6-sol") != null) and
+  (.enabledModels | index("opencode-go/deepseek-v4.1-flash") != null) and
+  (.enabledModels | index("opencode-go/deepseek-v4-pro") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with gateway-only enabledModels\n' "$SETTINGS"
+  printf '%s: defaults must be the OpenCode Go DeepSeek V4.1 Flash high matrix with gateway-only enabledModels plus the two OpenCode Go routes\n' "$SETTINGS"
   failures=1
 fi
 
 # Native definitions remain available as a manual fallback, while the active picker
-# exposes only CLIProxyAPI models. Native and gateway aliases must mirror model IDs;
-# provider-specific thinking support may legitimately differ.
+# exposes only CLIProxyAPI models plus the two OpenCode Go routes. Native and gateway
+# aliases must mirror model IDs; the gateway exposes claude-opus-4-6-thinking where the
+# native catalog lists claude-opus-4-6, so the -thinking suffix is normalized away.
 if ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
   def mirror: sub("^cliproxyapi/"; "");
   def route: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
+  def family: sub("-thinking$"; "");
   .modelAliases as $aliases |
   all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
-      (($aliases["native-" + .] | native | route) == ($aliases["cliproxy-" + .] | mirror | route)))
+      (($aliases["native-" + .] | native | route | family) == ($aliases["cliproxy-" + .] | mirror | route | family)))
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
   ! jq -e '
   def native: sub("^(anthropic|openai-codex)/"; "");
