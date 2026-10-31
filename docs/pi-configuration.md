@@ -24,6 +24,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | --- | --- |
 | `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). |
 | `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts`, `extensions/pi-pretty.ts`, and `extensions/codegraph-tools.ts`. The first two avoid the visual-shell conflict and the third avoids duplicate `codegraph` registration with `pi-extension-pack`. The manifest line carries the source only. |
+| `npm:pi-extensible-workflows` | Object form excluding `dist/subagents/index.js`, so PiWorkflow does not install its own standalone subagent UI next to the one this configuration uses. `sync_pi` produces the same entry when it finds the plain-string form. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
@@ -66,7 +67,6 @@ Third-party packages:
 | `extensions/herdr-nvim-blocked/index.ts` | `tool_execution_start` / `tool_execution_end` handlers: marks the herdr pane blocked while `bin/open-nvim.sh` runs an operator review | `herdr` |
 | `extensions/learning-opportunities-auto.ts` | `session_start`, `tool_result`, `before_agent_start` handlers: after a `bash` command matching `git commit`, asks the agent to consider offering the `learning-opportunities` skill, at most twice per session | none |
 | `extensions/live-dashboard.ts` | `/live-dashboard` command; `session_start`, `session_shutdown`, `agent_start`, `agent_end`, `model_select`, `turn_end`, `message_end`, `tool_execution_start`, `tool_execution_end` handlers; reports session state to a local dashboard server | none |
-| `extensions/unified-ui.ts` | Auto-mounted in interactive TUI; `/unified-ui [on\|off]` controls the bounded agent, tool, context, and validated PiWorkflow summaries; uses a unique widget key and stays silent in headless/RPC mode | none |
 | `extensions/model-preflight.js` + `model-preflight.mjs` | The `.js` adapter is the default-loadable Pi entrypoint; the tested `.mjs` implementation registers `/model-preflight`, session-start and TTL refresh of the reusable model availability preflight and blocks routing on stale or unknown evidence | `node`, pi-model-fit `preflight.mjs` |
 | `extensions/pi-ext-workflows/*.ts` | Workflow functions registered through `pi-extensible-workflows`: `fetchIssueDetails` (`fetch-issue-details.ts`), `developUntilApproved` (`review-loop.ts`), `devIssuesInBatches` (`seq-issues.ts`), `tddDev` (`tdd.ts`); re-exported by `extensions/piextworkflows.ts` | `gh` / `glab` for issue lookup; the `pi-extensible-workflows` package must be installed |
 | `extensions/questionnaire.ts` | The `questionnaire` tool, the unified single/multi-question prompt | none |
@@ -76,11 +76,11 @@ Third-party packages:
 
 `extensions/herdr-nvim-blocked/index.ts` describes the blocked state as coming from a `herdr:blocked` event in `extensions/herdr-agent-state.ts`, which is not tracked; see [Known gaps](verification.md#known-gaps).
 
-### Unified UI ownership
+### Status rail and sidebar ownership
 
-`unified-ui.ts` is the sovereign presentation owner for the TUI footer (`ctx.ui.setFooter`) and active workflow cards (`ctx.ui.setWidget`), absorbing the best of Gentle Shell (8-cell tacchette gauge `▰▰▰▱▱▱▱▱` with reactive color thresholds, separators `⟡`, model/effort, cost, context %, git status) and Claude Code (zero-overhead at rest). In `settings.json`, `gentle-shell.ts` is excluded to eliminate footer contention and visual overlap. PiWorkflow remains the owner of workflow execution, run state, phases, and child agents. The adapter consumes public `pi.events` channels and renders its own `dotenv:unified-ui` widget and footer component. It does not read workflow files, start timers for polling, send telemetry, or expose raw prompts, tool arguments, paths, results, or errors.
+[Pi Atelier](https://github.com/darkrei08/pi-atelier) owns the TUI status rail (`ctx.ui.setFooter`) and the activity sidebar. It is installed as a pinned package (`pi-packages.txt`) rather than a tracked extension, so the presentation code no longer lives in this repository. The rail shows model and thinking level, tokens, cache, cost, context with the auto-compact marker, workspace, Git branch, the optional `session` segment, and extension statuses; the sidebar owns Activity, TODOs, the `WORKFLOWS` panel (fed by PiWorkflow's published `workflow:*` event channels), context, workspace, usage, subagents, and tools. In `settings.json`, `gentle-shell.ts` is excluded to eliminate footer contention and visual overlap.
 
-The widget and footer are enabled automatically for interactive TUI sessions and can be disabled with `/unified-ui off` (or re-enabled with `/unified-ui on`). In print/RPC/headless contexts the command and rendering path are no-ops.
+Use `/atelier` (or **F6**) for display settings, the sidebar, and model and tool controls. Unified UI is retired: `/unified-ui` no longer exists, and the footer has no separate enable switch beyond Atelier's own **Atelier footer** setting.
 
 ### Skills
 

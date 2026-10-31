@@ -260,8 +260,8 @@ sync_pi() {
   # Pi loads direct TypeScript files as extensions. Remove test files left by older
   # syncs; they are intentionally excluded above but rsync does not prune them.
   find "$target/extensions" -maxdepth 1 -type f -name '*.test.ts' -delete
-  # gentle-pi owns the visual shell; remove the retired local footer override.
-  rm -f "$target/extensions/gentle-bar.ts"
+  # Retired local footer and status-rail overrides: Pi Atelier owns both surfaces now.
+  rm -f "$target/extensions/gentle-bar.ts" "$target/extensions/unified-ui.ts"
 
   # Legacy role sources make pi-extensible-workflows warn on every launch; roles and
   # shared settings now live in pi-ext-roles. Keep a backup, never delete.

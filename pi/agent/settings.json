@@ -36,7 +36,10 @@
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",
     {
-      "source": "npm:pi-extensible-workflows"
+      "source": "npm:pi-extensible-workflows",
+      "extensions": [
+        "!dist/subagents/index.js"
+      ]
     },
     "npm:@piewf/pi-ext-roles",
     {
@@ -77,7 +80,8 @@
     {
       "source": "git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216",
       "skills": []
-    }
+    },
+    "git:github.com/darkrei08/pi-atelier@a4a97f197f809407d83ff4b056c3a4a0c40fc1b0"
   ],
   "enabledModels": [
     "cliproxyapi/gpt-5.6-luna",

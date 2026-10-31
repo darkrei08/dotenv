@@ -31,7 +31,7 @@
 #   The list mirrors the remote sources in pi/agent/settings.json. A package
 #   added there belongs here too, so the next machine that clones dotenv gets it.
 #
-# --- Remote sources, in settings.json order -----------------------------------
+# --- Remote sources (same set as settings.json; grouped, not in that order) ----
 
 git:github.com/vekexasia/chrome-cdp-skill@feat/cdp-ws-url
 
@@ -59,6 +59,11 @@ npm:gentle-engram
 npm:@router-for-me/pi-cliproxyapi-provider
 npm:@piewf/herdr
 git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216
+# Pi Atelier owns the status rail and the activity sidebar, including the
+# WORKFLOWS panel fed by PiWorkflow events. Pinned to the fork commit that adds
+# the session segment and the completed activity state; move the pin when the
+# upstream release carries them.
+git:github.com/darkrei08/pi-atelier@a4a97f197f809407d83ff4b056c3a4a0c40fc1b0
 # Role registry and model resolver for pi-extensible-workflows.
 npm:@piewf/pi-ext-roles
 git:github.com/gwelinder/pi-extension-pack
