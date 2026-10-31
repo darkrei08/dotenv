@@ -230,6 +230,22 @@ committing to. Green in a sibling worktree proves nothing about this one.
 
 **How to verify.** Operator reports, handoffs, and audit documents present model execution as two separate fields (e.g., `model: "gemini-3.8-flash-high"`, `thinking: "medium"`). If an identifier contains a level-like token, the report clarifies its nominal vendor origin. Refer to `docs/model-effort-glossary.md` for the 16-role alias disambiguation table in `docs/model-effort-glossary.md` and parsing invariants.
 
+### D12. Subagent task execution verification: verify filesystem artifacts before mark-done
+
+**Rule.** When executing multi-step or delegated subagent workflows, the parent orchestrator must verify concrete filesystem artifacts, diffs, or execution receipts on disk before marking a task complete. A subagent claim of completion or an uninspected zero return code is never accepted as proof of work.
+
+**Failure prevented.** In workflow run `5f305ab0`, the agent claimed completion while a critical hygiene task was silently skipped without executing (turn 1532). The run was recorded as successful despite unperformed work. Requiring parent artifact verification prevents silent task omission in multi-agent workflows.
+
+**How to verify.** Prior to marking any delegated step done, assert that expected file modifications, created artifacts, or test outputs exist on disk. For automated verification, inject a synthetic subagent silent omission in a test run; the parent orchestrator must flag the step unverified and halt with an error.
+
+### D13. PR base-branch ancestry preflight: verify target merge-base before branch push
+
+**Rule.** Before publishing a branch or opening a pull request, run an ancestry preflight to confirm `git merge-base <branch> <upstream-target>` matches the upstream target HEAD (e.g. `origin/main`). A PR branch must contain zero foreign commits from sibling feature branches or unrelated worktrees.
+
+**Failure prevented.** PR #96 branched from sibling feature branch `feat/pi-unified-ui-20261026` instead of `origin/main`, inadvertently pulling 19 foreign commits into the PR diff (turn 1527), polluting the review ledger and requiring manual cherry-picking to isolate the documentation changes.
+
+**How to verify.** Run `git merge-base HEAD origin/main` and verify it equals the upstream target HEAD. Run `git log origin/main..HEAD` to confirm that every listed commit belongs strictly to the current feature or fix scope. In automated PR workflows, preflight scripts must abort delivery if the merge base does not match upstream target HEAD.
+
 ## Skill consolidation proposal
 
 Scope: the skills that touch routing, config and the gates around them. Verdicts are
