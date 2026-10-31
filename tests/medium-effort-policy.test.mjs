@@ -75,7 +75,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   assert.ok(gga, "GGA must keep its Pi bridge provider");
   const ggaRoute = resolveModel(gga);
   assert.deepEqual(ggaRoute, { model: "cliproxyapi/gpt-6-luna", effort: "high" }, "GGA must use the dedicated reviewer HA route");
-  assert.ok(ha.groups.reviewer.entries.some((entry) => entry.id === `${ggaRoute.model}:${ggaRoute.effort}`), "GGA must use the exact reviewer HA route");
+  assert.ok(ha.groups.reviewer.entries.some((entry) => entry.id === ggaRoute.model), "GGA must use the exact reviewer HA route");
 });
 
 test("configuration checker accepts the matrix and rejects mismatched GGA effort without writes", () => {
@@ -132,7 +132,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const haPath = join(fixture, "pi/agent/ha-failover.example.json");
     const haBefore = readFileSync(haPath, "utf8");
     const haMismatch = JSON.parse(haBefore);
-    haMismatch.groups.reviewer.entries[0].id = "cliproxyapi/gpt-6-luna:high";
+    haMismatch.groups.reviewer.entries[0].id = "cliproxyapi/gpt-6-luna";
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
@@ -150,7 +150,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const invalid = run();
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stderr, "");
-    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/gpt-6-luna:medium)\n${fixture}/.gga: GGA route must use the reviewer HA route (expected: kilo:cliproxyapi/gpt-6-luna:high, found: kilo:cliproxyapi/gpt-6-luna:medium)\n${fixture}/.gga: GGA route must be listed in the reviewer HA group (found: kilo:cliproxyapi/gpt-6-luna:medium)\n`);
+    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/gpt-6-luna:medium)\n${fixture}/.gga: GGA route must use the reviewer HA route (expected: kilo:cliproxyapi/gpt-6-luna:high, found: kilo:cliproxyapi/gpt-6-luna:medium)\n`);
     assert.equal(readFileSync(ggaPath, "utf8"), rejected);
     assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore);
     assert.equal(readFileSync(aliasesPath, "utf8"), aliasesBefore);

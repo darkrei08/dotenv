@@ -9,34 +9,16 @@ const readJson = async (relativePath) => JSON.parse(await readFile(join(root, re
 
 const workflow = await readJson("pi/agent/pi-extensible-workflows/settings.json");
 const roles = await readJson("pi/agent/pi-ext-roles/settings.json");
-const models = await readJson("pi/agent/models.json");
 const ha = await readJson("pi/agent/ha-failover.example.json");
 const roleGroups = await readJson("pi/agent/pi-ha-role-groups.json");
 const workflowAliases = workflow.modelAliases ?? {};
 const roleAliases = roles.modelAliases ?? {};
 const efforts = "off|minimal|low|medium|high|xhigh|max";
 const routePattern = new RegExp(`^([^/\\s]+)\\/([^:\\s]+)(?::(${efforts}))?$`);
-const legacyAliasNames = new Set([
-  "cheap-model",
-  "cheap-model-ant",
-  "claude-developer-model",
-  "old-reviewer-model",
-  "gemini-flash-low",
-  "gemini-flash-medium",
-  "gemini-flash-high",
-  "gemini-pro-low",
-  "gemini-pro-high",
-  "opencode-fast",
-  "opencode-balanced",
-  "opencode-flash-max",
-  "opencode-deep",
-]);
-const opencodeCanonicalSpecs = new Set([
-  "opencode-go/deepseek-v4.1-flash:low",
-  "opencode-go/deepseek-v4.1-flash:medium",
-  "opencode-go/deepseek-v4.1-flash:max",
-  "opencode-go/deepseek-v4-pro:high",
-]);
+const effortSuffix = new RegExp(`:(?:${efforts})$`);
+// Providers the tracked matrix may route to. OpenCode Go carries only the operator-approved
+// DeepSeek routes; OpenAI, Antigravity and Claude stay behind CLIProxyAPI.
+const allowedProviders = new Set(["anthropic", "cliproxyapi", "openai-codex", "opencode-go"]);
 
 function collectStrings(value, output = []) {
   if (typeof value === "string") output.push(value);
@@ -50,6 +32,10 @@ function routeProvider(value) {
   return match?.[1];
 }
 
+function modelId(reference) {
+  return reference.replace(effortSuffix, "");
+}
+
 function resolveAlias(reference, aliases, seen = []) {
   if (routePattern.test(reference)) return reference;
   assert.equal(typeof aliases[reference], "string", `missing model alias: ${reference}`);
@@ -57,30 +43,9 @@ function resolveAlias(reference, aliases, seen = []) {
   return resolveAlias(aliases[reference], aliases, [...seen, reference]);
 }
 
-function modelId(reference) {
-  return reference.replace(/:(?:off|minimal|low|medium|high|xhigh|max)$/, "");
-}
-
-const providers = new Set(Object.keys(models.providers ?? {}));
-for (const source of [roles, ha]) {
-  for (const value of collectStrings(source)) {
-    const provider = routeProvider(value);
-    if (provider) providers.add(provider);
-  }
-}
-// The tracked HA example has no OpenCode entry, but the requested legacy routes are catalog-verified.
-for (const spec of opencodeCanonicalSpecs) providers.add(routeProvider(spec));
-
-const canonicalRoleSpecs = new Set(
-  Object.entries(roleAliases)
-    .filter(([name]) => !legacyAliasNames.has(name))
-    .map(([, value]) => resolveAlias(value, roleAliases)),
-);
-
-
-test("workflow aliases match non-legacy pi-ext-roles aliases", () => {
+test("workflow aliases are exactly the pi-ext-roles aliases", () => {
+  assert.deepEqual(Object.keys(workflowAliases).sort(), Object.keys(roleAliases).sort());
   for (const [name, value] of Object.entries(roleAliases)) {
-    if (legacyAliasNames.has(name)) continue;
     assert.equal(workflowAliases[name], value, `${name} drifted from pi-ext-roles`);
   }
 });
@@ -89,15 +54,35 @@ test("workflow alias values are provider/model routes with supported efforts", (
   for (const [name, value] of Object.entries(workflowAliases)) {
     const match = routePattern.exec(value);
     assert.ok(match, `${name} has invalid route: ${value}`);
-    assert.ok(providers.has(match[1]), `${name} uses an unreferenced provider: ${match[1]}`);
+    assert.ok(allowedProviders.has(match[1]), `${name} uses an unlisted provider: ${match[1]}`);
   }
 });
 
-test("legacy aliases point to canonical role or verified OpenCode specs", () => {
-  const canonicalSpecs = new Set([...canonicalRoleSpecs, ...opencodeCanonicalSpecs]);
-  for (const name of legacyAliasNames) {
-    assert.ok(name in workflowAliases, `missing legacy alias: ${name}`);
-    assert.ok(canonicalSpecs.has(workflowAliases[name]), `${name} has an orphan spec: ${workflowAliases[name]}`);
+test("HA entries are bare provider/model ids", () => {
+  // The HA extension resolves an entry id by exact registry id, so a :effort suffix never matches.
+  for (const group of Object.values(ha.groups ?? {})) {
+    for (const entry of group.entries ?? []) {
+      assert.match(entry.id, /^[^/\s]+\/[^:\s]+$/, `${group.name}: HA entry must be a bare provider/model id: ${entry.id}`);
+    }
+  }
+});
+
+test("only the approved providers are routed to", () => {
+  for (const source of [workflowAliases, ha]) {
+    for (const value of collectStrings(source)) {
+      const provider = routeProvider(value);
+      if (provider) assert.ok(allowedProviders.has(provider), `unexpected provider in ${value}`);
+    }
+  }
+});
+
+test("OpenCode Go routes carry DeepSeek models only", () => {
+  for (const source of [workflowAliases, ha]) {
+    for (const value of collectStrings(source)) {
+      const match = routePattern.exec(value);
+      if (match?.[1] !== "opencode-go") continue;
+      assert.match(match[2], /^deepseek-/, `OpenCode Go route is not a DeepSeek model: ${value}`);
+    }
   }
 });
 
@@ -108,7 +93,7 @@ test("role primaries are covered by their bound HA groups", () => {
     const group = ha.groups?.[groupId];
     assert.ok(group, `${role} binds to missing HA group: ${groupId}`);
     assert.ok(
-      group.entries?.some((entry) => modelId(entry.id) === primary),
+      group.entries?.some((entry) => entry.id === primary),
       `${role} primary ${primary} is absent from HA group ${groupId}`,
     );
   }

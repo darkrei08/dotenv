@@ -99,9 +99,9 @@ if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
     "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
-if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
+if [[ -n "$gga_route" ]] && ! jq -e --arg model "$gga_model" '
   (.groups.reviewer.entries // []) |
-  any(.[]; (.id // "") == $route)
+  any(.[]; ((.id // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) == $model)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
   printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1

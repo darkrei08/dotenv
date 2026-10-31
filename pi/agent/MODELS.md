@@ -356,9 +356,8 @@ native aliases remain available as a manual fallback. OpenCode Go is a separate
 provider and is used directly by the `opencode-max` mode.
 
 The tracked `pi/agent/pi-extensible-workflows/settings.json` `modelAliases` map
-is the canonical static workflow map. Deprecated legacy names are concrete
-pointers to canonical role specs (or the verified OpenCode routes), so they do
-not depend on dynamic selection. The untracked live-only
+is the canonical static workflow map, identical to the `pi-ext-roles` role
+aliases. The untracked live-only
 `extensions/workflow-model-router.ts` selector is superseded by the static map
 and must not be treated as a second source of truth.
 
@@ -392,21 +391,10 @@ and must not be treated as a second source of truth.
 | `gemini-developer-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Developer fallback |
 | `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Tests fallback |
 
-Deprecated legacy names are concrete pointers in the same map, not alias chains:
-
-| Legacy alias | Configured target | Notes |
-|---|---|---|
-| `cheap-model` | `cliproxyapi/gpt-5.6-luna:medium` | Routine gateway baseline |
-| `cheap-model-ant` | `anthropic/claude-opus-4-6:high` | Native manual reference |
-| `claude-developer-model` | `cliproxyapi/gpt-5.6-luna:high` | Developer route |
-| `old-reviewer-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Reviewer route |
-| `gemini-flash-low` | `cliproxyapi/gemini-3.5-flash-lite:low` | Flash Lite route |
-| `gemini-flash-medium`, `gemini-flash-high` | `cliproxyapi/gemini-3.8-flash-high:medium` | Gemini Flash High route at medium |
-| `gemini-pro-low`, `gemini-pro-high` | `cliproxyapi/gemini-3.8-flash-high:medium` | No Gemini Pro route is Pi-listed, so both point at Flash High |
-| `opencode-fast` | `opencode-go/deepseek-v4.1-flash:low` | OpenCode Go direct route |
-| `opencode-balanced` | `opencode-go/deepseek-v4.1-flash:medium` | OpenCode Go direct route |
-| `opencode-flash-max` | `opencode-go/deepseek-v4.1-flash:max` | OpenCode Go direct route |
-| `opencode-deep` | `opencode-go/deepseek-v4-pro:high` | OpenCode Go direct route |
+**HA group entries are bare `provider/model` ids.** The HA extension resolves an
+entry id by exact registry id, so a `:effort` suffix never matches and the entry
+is skipped. Effort belongs to the alias target; failover inherits the session's
+thinking level.
 
 **Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
 Fable 5 and 5.1 run on paid usage credits, so none is configured
@@ -433,7 +421,7 @@ not availability. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/g
 - Reviewer and security use gateway Claude Opus 4.6 Thinking at off; the gateway exposes no Claude thinking effort, and availability and quota remain runtime evidence, not configuration claims.
 - Oracle, architect, researcher, market-researcher, and marketing-strategist use gateway Gemini 3.8 Flash High at medium effort; scout uses the same route at medium effort; summarizer uses Gemini 3.5 Flash Lite at low effort.
 
-The `development` HA group ends with `opencode-go/deepseek-v4.1-flash:high`, so the
+The `development` HA group ends with `opencode-go/deepseek-v4.1-flash`, so the
 interactive default model is covered by failover while the role primaries keep
 their order. Gemini alternatives stay explicit fallbacks; they never silently
 replace a primary route.

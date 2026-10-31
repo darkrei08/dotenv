@@ -18,9 +18,10 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
 
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
-  return. OpenCode Go direct routes are allowed only where a canonical alias or
-  the default names them explicitly: `opencode-go/deepseek-v4.1-flash` and
-  `opencode-go/deepseek-v4-pro`.
+  return. OpenCode Go carries only DeepSeek routes: `opencode-go/deepseek-v4.1-flash`
+  (the interactive default and the HA fallback) and `opencode-go/deepseek-v4-pro`.
+  No `opencode-go` OpenAI, Antigravity or Claude model may be routed; those stay
+  behind CLIProxyAPI.
 - `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings): workflow roles use
   CLIProxyAPI first. Developer and tests use
   `cliproxyapi/gpt-5.6-luna:high`; QA, release, SRE, debugger, and verifier use
@@ -36,18 +37,19 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   remain defined as a manual fallback and native models are hidden from the active picker. Do not
   configure Fable (not included in Claude Pro). Preserve the expanded `skills` list. When a primary
   route is unavailable in the authenticated catalog, the role may use the first reachable route in
-  its committed HA group at the configured effort; this is the explicit failover path, not a silent
-  alias rewrite.
+  its committed HA group; the effort comes from the role alias, because HA entry ids are bare
+  `provider/model` and a `:effort` suffix never resolves against the model registry. This is the
+  explicit failover path, not a silent alias rewrite.
 - `pi/agent/pi-extensible-workflows/settings.json`: carries the canonical static
-  `modelAliases` map, identical to the `pi-ext-roles` role aliases for every shared
-  name, plus the deprecated legacy names as concrete pointers to those specs, and
-  the `extensionSettings` for `herdr` and `trajectory`. A workflow alias must never
-  diverge from its role spec; `tests/model-alias-matrix.test.mjs` enforces it.
+  `modelAliases` map, identical to the `pi-ext-roles` role aliases: the same names,
+  the same targets, no extra names. A workflow alias must never diverge from its
+  role spec and no unused legacy alias may be re-added; `tests/model-alias-matrix.test.mjs`
+  enforces both. The file also carries the `extensionSettings` for `herdr` and
+  `trajectory`.
 - `pi/agent/settings.json`: the Pi baseline is `defaultProvider: opencode-go`,
   `defaultModel: deepseek-v4.1-flash`, `defaultThinkingLevel: high`, and matching
   `modelThinkingLevels`. `enabledModels` lists the catalog-backed CLIProxyAPI picker entries plus the
-  two OpenCode Go routes used by the default model and the `opencode-deep` alias; native catalogs
-  remain defined
+  two operator-approved OpenCode Go DeepSeek routes; native catalogs remain defined
   for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer HA
   route `cliproxyapi/gpt-6-luna:high`. `check-config.sh` requires the route to be enabled and
   listed in the reviewer HA group.

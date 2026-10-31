@@ -12,19 +12,19 @@
       "name": "development",
       "entries": [
         {
-          "id": "cliproxyapi/gpt-5.6-luna:high"
+          "id": "cliproxyapi/gpt-5.6-luna"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         },
         {
-          "id": "cliproxyapi/claude-sonnet-4-6:off"
+          "id": "cliproxyapi/claude-sonnet-4-6"
         }
       ]
     },
@@ -32,13 +32,13 @@
       "name": "scout",
       "entries": [
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         }
       ]
     },
@@ -46,16 +46,16 @@
       "name": "fast",
       "entries": [
         {
-          "id": "cliproxyapi/claude-sonnet-4-6:off"
+          "id": "cliproxyapi/claude-sonnet-4-6"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         }
       ]
     },
@@ -63,16 +63,16 @@
       "name": "research",
       "entries": [
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         },
         {
-          "id": "cliproxyapi/claude-sonnet-4-6:off"
+          "id": "cliproxyapi/claude-sonnet-4-6"
         }
       ]
     },
@@ -80,16 +80,16 @@
       "name": "summary",
       "entries": [
         {
-          "id": "cliproxyapi/gemini-3.5-flash-lite:low"
+          "id": "cliproxyapi/gemini-3.5-flash-lite"
         },
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         }
       ]
     },
@@ -97,19 +97,19 @@
       "name": "testing",
       "entries": [
         {
-          "id": "cliproxyapi/gpt-5.6-luna:high"
+          "id": "cliproxyapi/gpt-5.6-luna"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         },
         {
-          "id": "cliproxyapi/claude-sonnet-4-6:off"
+          "id": "cliproxyapi/claude-sonnet-4-6"
         }
       ]
     },
@@ -117,19 +117,19 @@
       "name": "reviewer",
       "entries": [
         {
-          "id": "cliproxyapi/claude-opus-4-6-thinking:off"
+          "id": "cliproxyapi/claude-opus-4-6-thinking"
         },
         {
-          "id": "cliproxyapi/gpt-6-luna:high"
+          "id": "cliproxyapi/gpt-6-luna"
         },
         {
-          "id": "cliproxyapi/gemini-3.8-flash-high:medium"
+          "id": "cliproxyapi/gemini-3.8-flash-high"
         },
         {
-          "id": "opencode-go/deepseek-v4.1-flash:high"
+          "id": "opencode-go/deepseek-v4.1-flash"
         },
         {
-          "id": "cliproxyapi/claude-sonnet-4-6:off"
+          "id": "cliproxyapi/claude-sonnet-4-6"
         }
       ]
     }
