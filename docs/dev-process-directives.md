@@ -222,6 +222,14 @@ committing to. Green in a sibling worktree proves nothing about this one.
 
 **How to verify.** A run is compliant when its launch source contains `parallel` or `pipeline` over `agent`, every agent carries a `role`, no agent passes `model` without a stated reason, and the run is driven by the `workflow` tool rather than the built-in subagent tool. Reproduce by re-running the same source: same roles, same selectors, same order.
 
+## D12 - Context budget: 150K delegation threshold, 256K ceiling, compaction as fallback
+
+**Rule.** Four verifiable bounds govern session context budgets across all models and roles: (a) 256K is the absolute context ceiling for this fleet, DeepSeek included, because 1M is the model maximum and not a budget to spend; (b) 150K is the delegation threshold, above which work moves to a workflow or a fresh session with an Engram handoff; (c) compaction is the last net and not the plan, which is why reserveTokens is 32768; (d) measure one thing at the end of every turn, the parent context tokens, and if it is above 150K the next turn starts by delegating.
+
+**Failure prevented.** Reasoning degradation, context overrun, and token exhaustion from unbounded single-session accretion. Models advertising large theoretical windows suffer latency spikes and instruction drift under deep context; treating compaction as normal operating workflow drops critical task details and prior decisions, while a tight reserve risks turn failure when generating near limits.
+
+**How to verify.** Check session context tokens at the end of each turn (`get_session_stats.contextUsage.tokens` or session status): if parent context tokens exceed 150K, verify the next action is a workflow dispatch or a fresh session handoff via Engram rather than additional inline tools. Verify that no session in the fleet exceeds 256K tokens, and verify that `jq .compaction.reserveTokens ~/.pi/agent/settings.json` reports 32768.
+
 ## Skill consolidation proposal
 
 Scope: the skills that touch routing, config and the gates around them. Verdicts are
