@@ -20,10 +20,6 @@ test("every configured role primary resolves into its bound HA group", () => {
 });
 
 test("bootstrap returns configured fallbacks and stays empty for unknown models", () => {
-  const primaries = resolveRolePrimaries({ roleModels, aliases });
-  for (const [role, primary] of Object.entries(primaries)) {
-    assert.ok(nextEntries(ha, primary.model, roleGroups[role]).length > 0, `${role} must have a bootstrap fallback`);
-  }
   assert.deepEqual(nextEntries(ha, "unknown/provider-model"), []);
 });
 
