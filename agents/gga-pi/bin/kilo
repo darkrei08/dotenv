@@ -32,10 +32,13 @@ cat > "$prompt_file"
 models_to_try=("$model")
 ha_file="${PI_HA_CONFIG:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/ha.json}"
 if [ -f "$ha_file" ] && command -v jq >/dev/null 2>&1; then
-  if jq -e --arg m "$model" '.groups.reviewer.entries[]? | select(.id == $m)' "$ha_file" >/dev/null 2>&1; then
+  # Matrix entries are written as bare provider/model while the resolved spec may
+  # carry a :effort suffix, so normalise both sides before matching or failover
+  # never triggers.
+  if jq -e --arg m "$model" '(.groups.reviewer.entries // []) | any(.[]; ((.id // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) == (($m // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")))' "$ha_file" >/dev/null 2>&1; then
     while IFS= read -r fallback_model; do
       [ -n "$fallback_model" ] && models_to_try+=("$fallback_model")
-    done < <(jq -r --arg m "$model" '.groups.reviewer.entries[]?.id | select(. != null and . != "" and . != $m)' "$ha_file" 2>/dev/null || true)
+    done < <(jq -r --arg m "$model" '.groups.reviewer.entries[]?.id | select(. != null and . != "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "") | select(. != (($m // "") | sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")))' "$ha_file" 2>/dev/null || true)
   fi
 fi
 
