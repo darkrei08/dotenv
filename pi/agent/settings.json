@@ -36,10 +36,7 @@
     "git:github.com/vekexasia/pi-notify@feat/customizable-notifications",
     "git:github.com/gotgenes/pi-anthropic-auth",
     {
-      "source": "npm:pi-extensible-workflows",
-      "extensions": [
-        "!dist/subagents/index.js"
-      ]
+      "source": "npm:pi-extensible-workflows"
     },
     "npm:@piewf/pi-ext-roles",
     {
