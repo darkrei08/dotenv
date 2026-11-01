@@ -99,7 +99,7 @@
     "keepRecentTokens": 20000,
     "modelOverrides": {
       "cliproxyapi/beam-free": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/claude-opus-4-6-thinking": {
         "reserveTokens": 64512
@@ -108,10 +108,10 @@
         "reserveTokens": 64512
       },
       "cliproxyapi/deepseek-v4-pro": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/deepseek-v4.1-flash": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/gemini-3-flash": {
         "reserveTokens": 700416
@@ -126,16 +126,16 @@
         "reserveTokens": 700416
       },
       "cliproxyapi/go/beam-free": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/go/deepseek-v4-pro": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/go/deepseek-v4.1-flash": {
-        "reserveTokens": 200000
+        "reserveTokens": 700416
       },
       "cliproxyapi/go/iceman-contributor-free": {
-        "reserveTokens": 200000
+        "reserveTokens": 39936
       },
       "cliproxyapi/gpt-5.6-luna": {
         "reserveTokens": 128000
@@ -165,7 +165,7 @@
         "reserveTokens": 33792
       },
       "cliproxyapi/iceman-contributor-free": {
-        "reserveTokens": 200000
+        "reserveTokens": 39936
       },
       "opencode-go/deepseek-v4-pro": {
         "reserveTokens": 700416
