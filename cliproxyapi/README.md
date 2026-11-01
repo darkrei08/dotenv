@@ -100,17 +100,9 @@ installing the repository's Pi configuration, restart Pi and run:
 Use the inbound `api-keys` value from `config.yaml`. Pi stores its local
 provider credentials in ignored files under `~/.pi/agent/`. After accounts are
 authenticated, use `/cliproxyapi-refresh` and select a live `cliproxyapi/...`
-model. The configured workflow role aliases use CLIProxyAPI by default, so role
-routing follows the shared gateway-backed matrix. Native aliases remain explicit
-alternatives when the gateway is unavailable. To route a child agent through
-CLIProxyAPI with a specific route, use these explicit aliases as its per-agent
-model override:
-
-- `cliproxy-cheap-model=cliproxyapi/gpt-5.6-luna:medium`
-- `cliproxy-luna=cliproxyapi/gpt-5.6-luna:high`
-- `cliproxy-reviewer-model=cliproxyapi/claude-opus-4-6-thinking:off`
-- `cliproxy-sol=cliproxyapi/gpt-6-sol:high`
-- `cliproxy-astra=cliproxyapi/gpt-6-astra:medium`
+model. The 16 canonical workflow role aliases use CLIProxyAPI by default. Their routes
+are documented in the shared matrix in [`pi/agent/README.md`](../pi/agent/README.md);
+use those aliases as per-agent model overrides.
 
 These aliases resolve only after the CLIProxyAPI catalog is authenticated. No
 second dashboard is required.
@@ -148,12 +140,11 @@ model listing proves catalog exposure only, not successful inference. If the
 stack has no authenticated OpenCode Go account, report model discovery and
 inference as NOT RUN rather than falling back silently.
 
-Optional Pi role aliases for this route are kept in
-`pi/agent/pi-ext-roles/settings.json`; they do not replace the existing
-subscription-backed defaults. Free entries such as `cat-jam-free`,
+No Pi workflow role aliases are configured for this route; invoke it through the
+direct `opencode-go/...` provider when needed. Free entries such as `cat-jam-free`,
 `longcat-2.5-preview-free`, and `step-5-preview-free` are suitable for scout or
-fallback experiments only until role-quality evidence exists. DeepSeek V4.1
-Flash is a paid OpenCode Go model, not a free default.
+fallback experiments only until role-quality evidence exists. DeepSeek V4.1 Flash
+is a paid OpenCode Go model, not a free default.
 
 ## Keeper login and data
 

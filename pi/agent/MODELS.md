@@ -45,9 +45,9 @@ from one layer and the effort from another.
 
 This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
 `high`; workflow aliases use the current authenticated CLIProxyAPI catalog matrix.
-The GGA reviewer (`.gga`) uses `cliproxyapi/gpt-6-luna:high` as its effective route; the reviewer role's
-`cliproxyapi/claude-opus-4-6-thinking:off` remains an independent workflow route, while the reviewer HA group
-provides ordered fallbacks. The CLIProxyAPI
+The GGA reviewer (`.gga`) uses the direct
+`cliproxyapi/gpt-6-luna:high` development route; the reviewer role resolves to
+`cliproxyapi/gpt-6-sol:high`, and its HA group provides ordered fallbacks. The CLIProxyAPI
 provider dynamically discovers its model catalog; configuration or discovery
 does not establish upstream entitlement, quota, or sustained inference.
 
@@ -180,8 +180,8 @@ file.
 ```json
 {
   "modelAliases": {
-    "cheap-model": "mygateway/my-coder:low",
-    "developer-model": "cheap-model:high",
+    "budget-model": "mygateway/my-coder:low",
+    "developer-model": "budget-model:high",
     "reviewer-model": "mygateway/reviewer:high"
   }
 }
@@ -336,10 +336,10 @@ gate" cause recorded earlier was wrong. `anthropic/claude-opus-5` and
 `anthropic/claude-sonnet-5` both answered on the same day. That historical
 configuration used `anthropic/claude-opus-5:high` for `reviewer-model`, matching
 this document's workload policy for adversarial review. Current workflow
-settings route Claude and Codex roles through CLIProxyAPI first. Native catalogs
-and aliases remain available as a manual fallback, while the active picker is
-gateway-only. CLIProxyAPI discovery is dynamic, so gateway aliases are validated
-only after the local catalog is available.
+settings route all roles through the gateway-first matrix. Native provider catalog
+entries may remain available for direct manual selection, but native workflow
+aliases are retired and the active picker is gateway-only. CLIProxyAPI discovery
+is dynamic, so gateway aliases are validated only after the local catalog is available.
 
 **`allowScripts` approvals drift after an update.** Pi's npm root pins
 `allowScripts` per package version. Updating a package re-blocks its install
@@ -349,40 +349,28 @@ update, check this before editing model config.
 
 ### Aliases currently configured in this repository
 
-Targets below reflect `pi/agent/pi-ext-roles/settings.json`. The set
-targets Claude Pro and ChatGPT Plus and follows the role mapping of
-`vekexasia/dotenv`. Workflow roles resolve through the `cliproxy-*` aliases;
-native aliases remain available as a manual fallback. OpenCode Go is a separate
-provider and is used directly by the `opencode-max` mode.
+Targets below reflect `pi/agent/pi-ext-roles/settings.json` and the matching
+PiWorkflow settings. The single 16-entry matrix uses only gateway routes verified
+for the current configuration. OpenCode Go remains a separate provider.
 
 | Alias | Configured target | Use |
 |---|---|---|
-| `native-cheap-model` | `openai-codex/gpt-5.6-luna:medium` | Luna routine-work mirror |
-| `native-luna` | `openai-codex/gpt-5.6-luna:high` | Luna deep-work mirror |
-| `native-reviewer-model` | `anthropic/claude-opus-4-6-thinking:high` | Native manual reviewer reference |
-| `native-sol` | `openai-codex/gpt-6-sol:high` | Sol research/tests mirror |
-| `native-astra` | `openai-codex/gpt-6-astra:medium` | Astra manual fallback |
-| `cliproxy-cheap-model` | `cliproxyapi/gpt-5.6-luna:medium` | Routine gateway baseline |
-| `cliproxy-luna` | `cliproxyapi/gpt-5.6-luna:high` | Gateway deep-work baseline |
-| `cliproxy-reviewer-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Independent gateway reviewer; gateway exposes no Claude thinking effort |
-| `cliproxy-sol` | `cliproxyapi/gpt-6-sol:high` | Gateway research/tests route |
-| `cliproxy-astra` | `cliproxyapi/gpt-6-astra:medium` | Gateway manual fallback |
-| `cheap-model` | `cliproxy-cheap-model` | Standard routine alias |
-| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Fast gateway scouting |
-| `developer-model` | `cliproxyapi/claude-sonnet-4-6:off` | Developer role; gateway exposes no Claude thinking effort |
-| `architect-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Architect role; gateway exposes no Claude thinking effort |
-| `security-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Security role; gateway exposes no Claude thinking effort |
-| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6:off` | Quality, release, and operations roles; gateway exposes no Claude thinking effort |
-| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Fast compression |
-| `tests-expert` | `cliproxyapi/gpt-5.6-luna:high` | High-confidence test authoring |
-| `researcher-model` | `cliproxyapi/gpt-5.6-luna:xhigh` | Deep research and source conflict resolution |
-| `reviewer-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Reviewer role; gateway exposes no Claude thinking effort |
-| `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking:off` | Oracle role; gateway exposes no Claude thinking effort |
-| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Fast scouting fallback |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Summarizer fallback |
-| `gemini-researcher-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Long-context research fallback |
-| `gemini-developer-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Developer fallback |
-| `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | Tests fallback |
+| `developer-model` | `cliproxyapi/gpt-5.6-luna:high` | Development |
+| `tests-expert` | `cliproxyapi/gpt-5.6-luna:high` | Test authoring |
+| `reviewer-model` | `cliproxyapi/gpt-6-sol:high` | Review and GGA |
+| `architect-model` | `cliproxyapi/gpt-6-sol:high` | Architecture |
+| `security-model` | `cliproxyapi/gpt-6-sol:high` | Security |
+| `oracle-model` | `cliproxyapi/gpt-6-sol:high` | Oracle |
+| `debugger-model` | `cliproxyapi/gpt-5.6-luna:high` | Debugging |
+| `verifier-model` | `cliproxyapi/gpt-5.6-luna:high` | Verification |
+| `qa-model` | `cliproxyapi/gpt-5.6-luna:high` | QA |
+| `release-model` | `cliproxyapi/gpt-5.6-luna:high` | Release |
+| `sre-model` | `cliproxyapi/gpt-5.6-luna:high` | SRE |
+| `researcher-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Research |
+| `scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Scouting |
+| `market-researcher-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Market research |
+| `marketing-strategist-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | Marketing |
+| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Summarization |
 
 **Plan limits behind the choice.** Claude Pro includes Opus, Sonnet and Haiku;
 Fable 5 and 5.1 run on paid usage credits, so none is configured
@@ -395,23 +383,21 @@ takes the high-volume tests and research roles and Astra stays a manual override
 `gpt-5.5` retires from Codex on 2026-10-14 and is not configured.
 
 **Review model and effort (GGA and the reviewer role).** For a gate that runs on
-every commit, speed, independence, and route health matter. The current
-canonical CLIProxyAPI reviewer role route is `cliproxyapi/claude-opus-4-6-thinking:off` because the gateway exposes no Claude thinking effort. GGA uses the
-independent reviewer HA route
-(`PROVIDER="kilo:cliproxyapi/gpt-6-luna:high"`), enforced by
-`check-config.sh`, with no automatic fallback. Catalog visibility, entitlement,
-inference, and quota remain separate evidence; unknown entitlement or quota is
-not availability. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
+every commit, speed, independence, and route health matter. The reviewer role
+resolves to `cliproxyapi/gpt-6-sol:high`; GGA uses the direct
+`cliproxyapi/gpt-6-luna:high` development route. The reviewer HA group provides
+ordered fallbacks. Catalog visibility, entitlement, inference, and quota remain
+separate evidence; unknown entitlement or quota is not availability. Setup:
+[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
-- Developer, QA, release, and SRE use gateway Claude Sonnet 4.6 at off; the gateway exposes no Claude thinking effort.
-- Tests use gateway GPT-5.6 Luna at high effort; research uses the same route at xhigh effort.
-- Scout uses gateway Gemini 3.8 Flash High at medium effort; summarizer uses Gemini 3.5 Flash Lite at low effort.
-- Reviewer, oracle, architect, and security use gateway Claude Opus 4.6 Thinking at off; the gateway exposes no Claude thinking effort, and availability and quota remain runtime evidence, not configuration claims.
+- Developer, tests, debugging, verification, QA, release, and SRE use GPT-5.6 Luna at high effort.
+- Reviewer, oracle, architecture, and security use GPT-6 Sol at high effort.
+- Research, scouting, market research, and marketing use Gemini 3.8 Flash High at medium effort; summarization uses Gemini 3.5 Flash Lite at low effort.
+- These targets are configured routes, not claims about upstream entitlement, quota, or sustained inference.
 
 **Gateway usage:**
-- CLIProxyAPI: Claude roles use the `cliproxy-*` aliases directly. Requires an authenticated dynamic catalog and the gateway running.
-- Gemini alternatives: use the explicit `gemini-*` aliases, or activate the matching `scout`, `fast`, `research`, `summary`, or `testing` HA group. These are fallback routes, not silent replacements for the primary role aliases.
+- CLIProxyAPI: all workflow roles use the 16 canonical aliases directly. The gateway and authenticated dynamic catalog must be available.
 
 Do not replace the standard aliases with other targets when the gateway is down; report it and retain the configured choice.
 
@@ -825,9 +811,9 @@ Web sources, all read 2026-09-13:
    `error_code: credits_required` and `disabled_reason: org_level_disabled`, so
    the cause was the model's credit requirement, not a version gate. At that
    time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
-   a live call. The current native reviewer target is
-   `anthropic/claude-opus-4-6-thinking:high`; the CLIProxyAPI reviewer target is explicit
-   and requires dynamic catalog discovery before inference.
+   a live call. The former native reviewer target was
+   `anthropic/claude-opus-4-6-thinking:high`; current workflow aliases are gateway-only and
+   require dynamic catalog discovery before inference.
 2. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces

@@ -5,6 +5,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SETTINGS="$ROOT/pi/agent/settings.json"
 GGA_CONFIG="$ROOT/.gga"
 WORKFLOWS_SETTINGS="$ROOT/pi/agent/pi-ext-roles/settings.json"
+VERSIONED_WORKFLOW_SETTINGS="$ROOT/pi/agent/pi-extensible-workflows/settings.json"
 RETIRED_EXTENSION="$ROOT/pi/agent/extensions/gentle-bar.ts"
 MODEL_PREFLIGHT_EXTENSION="$ROOT/pi/agent/extensions/model-preflight.mjs"
 MODEL_PREFLIGHT_LOADER="$ROOT/pi/agent/extensions/model-preflight.js"
@@ -17,6 +18,7 @@ HA_ROLE_GROUPS="$ROOT/pi/agent/pi-ha-role-groups.json"
 PI_AGENT_DIR="${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"
 LIVE_SETTINGS="$PI_AGENT_DIR/settings.json"
 LIVE_WORKFLOWS_SETTINGS="$PI_AGENT_DIR/pi-ext-roles/settings.json"
+LIVE_WORKFLOW_SETTINGS="$PI_AGENT_DIR/pi-extensible-workflows/settings.json"
 SETUP="$ROOT/setup_env.sh"
 failures=0
 
@@ -85,6 +87,7 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
+# GGA intentionally uses the direct development route rather than the reviewer alias.
 gga_expected_route='cliproxyapi/gpt-6-luna:high'
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
@@ -95,15 +98,15 @@ if ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '(.enabledModels 
   failures=1
 fi
 if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
-  printf '%s: GGA route must use the reviewer HA route (expected: kilo:%s, found: %s)\n' \
+  printf '%s: GGA route must use the configured direct route (expected: kilo:%s, found: %s)\n' \
     "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
 if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
-  (.groups.reviewer.entries // []) |
+  (.groups.development.entries // []) |
   any(.[]; (.id // "") == $route)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
-  printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
+  printf '%s: GGA route must be listed in the development HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -241,6 +244,13 @@ if ((versioned_workflows_ok && live_workflows_ok)) &&
     "$WORKFLOWS_SETTINGS" "$LIVE_WORKFLOWS_SETTINGS"
   failures=1
 fi
+if ((live_workflows_ok)) && ! check_json_file "$LIVE_WORKFLOW_SETTINGS"; then
+  failures=1
+fi
+if ((live_workflows_ok)) && ! jq -e --slurpfile roles "$LIVE_WORKFLOWS_SETTINGS" '.modelAliases == $roles[0].modelAliases' "$LIVE_WORKFLOW_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow aliases differ from role aliases in live settings\n' "$LIVE_WORKFLOW_SETTINGS"
+  failures=1
+fi
 
 if ! jq -e '
   (.tools // [] | index("tool_search") != null) and
@@ -251,46 +261,38 @@ if ! jq -e '
 fi
 
 # Configured gateway-first routing; catalog visibility does not establish plan access.
-# Each native alias mirrors its CLIProxyAPI route, while role aliases deliberately use
-# the effort supported by the selected model and workload.
+# Role aliases deliberately use the effort supported by the selected model and workload.
 if ! jq -e '
-  .modelAliases as $aliases |
-  $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
-  $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:high" and
-  $aliases["native-sol"] == "openai-codex/gpt-6-sol:high" and
-  $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
-  $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
-  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
-  $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
-  $aliases["cheap-model"] == "cliproxy-cheap-model" and
-  $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
-  $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["oracle-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
+  .modelAliases == {
+    "developer-model": "cliproxyapi/gpt-5.6-luna:high",
+    "tests-expert": "cliproxyapi/gpt-5.6-luna:high",
+    "reviewer-model": "cliproxyapi/gpt-6-sol:high",
+    "architect-model": "cliproxyapi/gpt-6-sol:high",
+    "security-model": "cliproxyapi/gpt-6-sol:high",
+    "oracle-model": "cliproxyapi/gpt-6-sol:high",
+    "debugger-model": "cliproxyapi/gpt-5.6-luna:high",
+    "verifier-model": "cliproxyapi/gpt-5.6-luna:high",
+    "qa-model": "cliproxyapi/gpt-5.6-luna:high",
+    "release-model": "cliproxyapi/gpt-5.6-luna:high",
+    "sre-model": "cliproxyapi/gpt-5.6-luna:high",
+    "researcher-model": "cliproxyapi/gemini-3.8-flash-high:medium",
+    "scout-model": "cliproxyapi/gemini-3.8-flash-high:medium",
+    "market-researcher-model": "cliproxyapi/gemini-3.8-flash-high:medium",
+    "marketing-strategist-model": "cliproxyapi/gemini-3.8-flash-high:medium",
+    "summarizer-model": "cliproxyapi/gemini-3.5-flash-lite:low"
+  }
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+fi
+if ! jq -e --slurpfile roles "$WORKFLOWS_SETTINGS" '.modelAliases == $roles[0].modelAliases' "$VERSIONED_WORKFLOW_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: workflow aliases differ from role aliases in versioned settings\n' "$VERSIONED_WORKFLOW_SETTINGS"
   failures=1
 fi
 
 if ! jq -e '
   .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
+  .modelThinkingLevels["cliproxyapi/gpt-5.6-luna"] == "high" and
   (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
   (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
   (.enabledModels | index("cliproxyapi/gpt-6-sol") != null)
@@ -299,26 +301,7 @@ if ! jq -e '
   failures=1
 fi
 
-# Native definitions remain available as a manual fallback, while the active picker
-# exposes only CLIProxyAPI models. Native and gateway aliases must mirror model IDs;
-# provider-specific thinking support may legitimately differ.
-if ! jq -e '
-  def native: sub("^(anthropic|openai-codex)/"; "");
-  def mirror: sub("^cliproxyapi/"; "");
-  def route: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
-  .modelAliases as $aliases |
-  all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
-      (($aliases["native-" + .] | native | route) == ($aliases["cliproxy-" + .] | mirror | route)))
-' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
-  ! jq -e '
-  def native: sub("^(anthropic|openai-codex)/"; "");
-  def mirror: sub("^cliproxyapi/"; "");
-  ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror)}] | sort_by(.k)) ==
-    ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native)}] | sort_by(.k))
-' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: native and CLIProxyAPI aliases, enabledModels or model identifiers do not mirror each other\n' "$WORKFLOWS_SETTINGS and $SETTINGS"
-  failures=1
-fi
+
 
 if ! jq -e '(.providers | has("tuxevil-rotator") | not)' "$ROOT/pi/agent/models.json" >/dev/null 2>&1; then
   printf '%s: the retired tuxevil-rotator provider is back in the catalog\n' "$ROOT/pi/agent/models.json"
