@@ -10,7 +10,7 @@ import {
 
 const DEFAULT_AGENT_DIR = join(homedir(), ".pi", "agent");
 const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
-const PROVIDER_ERROR = /429|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|AGENT_FAILED/i;
+const PROVIDER_ERROR = /429|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported/i;
 
 type JsonObject = Record<string, unknown>;
 
@@ -59,11 +59,13 @@ export function resolveRoleChain(
   const settings = object(readJson(rolesPath), rolesPath, "expected an object");
   const modelAliases = object(settings.modelAliases, rolesPath, "missing modelAliases");
   const knownRoles = Object.keys(modelAliases)
-    .filter((name) => name.endsWith("-model"))
-    .map((name) => name.slice(0, -6))
+    .map((name) => (name.endsWith("-model") ? name.slice(0, -6) : name))
     .sort();
-  const aliasKey = `${role}-model`;
-  if (!Object.prototype.hasOwnProperty.call(modelAliases, aliasKey))
+  //NOTE: a few role aliases deliberately drop the "-model" suffix (tests-expert), so the bare role name is a valid key too.
+  const aliasKey = [`${role}-model`, role].find((key) =>
+    Object.prototype.hasOwnProperty.call(modelAliases, key),
+  );
+  if (aliasKey === undefined)
     throw new Error(`unknown role: ${role} (known roles: ${knownRoles.join(", ")})`);
   const alias = modelAliases[aliasKey];
   if (typeof alias !== "string" || !alias.trim())

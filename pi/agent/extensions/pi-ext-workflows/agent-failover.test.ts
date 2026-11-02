@@ -257,3 +257,45 @@ test("fails over from a provider error in the role primary", async () => {
     expect(calls).toEqual(["provider/primary:high", "provider/second:high"]);
   });
 });
+
+test("resolves a role alias that omits the -model suffix", () => {
+  const dir = mkdtempSync(join(tmpdir(), "agent-failover-suffix-"));
+  mkdirSync(join(dir, "pi-ext-roles"));
+  writeFileSync(
+    join(dir, "pi-ext-roles", "settings.json"),
+    JSON.stringify({ modelAliases: { "tests-expert": "provider/expert:high" } }),
+  );
+  writeFileSync(
+    join(dir, "pi-ha-role-groups.json"),
+    JSON.stringify({ roleGroups: { "tests-expert": "testing" } }),
+  );
+  writeFileSync(
+    join(dir, "ha.json"),
+    JSON.stringify({ groups: { testing: { entries: [{ id: "provider/bare" }] } } }),
+  );
+
+  expect(resolveRoleChain("tests-expert", dir)).toEqual([
+    "provider/expert:high",
+    "provider/bare:high",
+  ]);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test("advances past an effort the route cannot serve", async () => {
+  const calls: string[] = [];
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    calls.push(String(options.model));
+    if (options.model === "provider/no-thinking:high")
+      throw new Error("unknown effort: thinking is not supported by this model");
+    return "served";
+  };
+
+  const result = await agentWithFailover.run(
+    { models: ["provider/no-thinking:high", "provider/live:high"], task: "do the task" },
+    context(agentImpl),
+  );
+
+  expect(result.model).toBe("provider/live:high");
+  expect(result.attempts).toHaveLength(1);
+  expect(calls).toEqual(["provider/no-thinking:high", "provider/live:high"]);
+});
