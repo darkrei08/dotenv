@@ -38,7 +38,7 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   reflected in the other (or justified as pi-managed vs npm-managed).
 - Role `extensions` globs in `pi-ext-roles/settings.json` must
   reference packages that are actually installed (settings packages or npm deps).
-- `pi-extensible-workflows` must be registered with `!dist/subagents/index.js` in `settings.json`, and `extensionSettings.subagents.enabled` must be `false` in `pi-extensible-workflows/settings.json` to prevent duplicate subagents UI.
+- `pi-extensible-workflows` owns the single subagents surface: its package entry in `settings.json` must not exclude `dist/subagents/index.js` (a plain `"npm:pi-extensible-workflows"` source string loads every declared entrypoint, which is intended; an explicit positive `extensions` list would load only the named ones), and `extensionSettings.subagents.enabled` must be `true` in `pi-extensible-workflows/settings.json`. No other package may register a second subagents panel.
 - Standard model aliases must dereference an available built-in provider;
   explicit CLIProxyAPI aliases may target the dynamic catalog and are validated
   when the provider is authenticated.
