@@ -1,10 +1,20 @@
 // @ts-ignore Bun supplies the test module at runtime.
-import { expect, test } from "bun:test";
+import { beforeEach, expect, test } from "bun:test";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 // @ts-ignore Bun loads the TypeScript source directly.
-import { agentWithFailover, resolveRoleChain } from "./agent-failover.ts";
+import {
+  agentWithFailover,
+  clearFailoverCooldowns,
+  resolveRoleChain,
+  setFailoverClock,
+} from "./agent-failover.ts";
+
+beforeEach(() => {
+  clearFailoverCooldowns();
+  setFailoverClock(() => Date.now());
+});
 
 function context(
   agentImpl: (p: string, opts: Record<string, unknown>) => Promise<unknown>,
@@ -106,6 +116,113 @@ test("fails over to the second model after a provider error", async () => {
   });
 });
 
+test("deduplicates explicit models without a role", async () => {
+  const calls: string[] = [];
+  const result = await agentWithFailover.run(
+    {
+      models: ["provider/same:high", "provider/same:low", "provider/next"],
+      task: "do the task",
+    },
+    context(async (_task, options) => {
+      calls.push(String(options.model));
+      if (options.model === "provider/same:high") throw new Error("429 quota exhausted");
+      return "served";
+    }),
+  );
+
+  expect(result.model).toBe("provider/next");
+  expect(calls).toEqual(["provider/same:high", "provider/next"]);
+});
+
+test("skips a cooling model and uses the next model", async () => {
+  let now = 1000;
+  setFailoverClock(() => now);
+  const calls: string[] = [];
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    calls.push(String(options.model));
+    if (options.model === "provider/first:high") throw new Error("429 quota exhausted");
+    return "served";
+  };
+
+  await agentWithFailover.run(
+    { models: ["provider/first:high", "provider/second:low"], task: "first", cooldownMs: 30000 },
+    context(agentImpl),
+  );
+  const result = await agentWithFailover.run(
+    { models: ["provider/first:high", "provider/second:low"], task: "second", cooldownMs: 30000 },
+    context(agentImpl),
+  );
+
+  expect(result.model).toBe("provider/second:low");
+  expect(calls).toEqual(["provider/first:high", "provider/second:low", "provider/second:low"]);
+});
+
+test("retries a cooling model after its cooldown expires", async () => {
+  let now = 1000;
+  setFailoverClock(() => now);
+  const calls: string[] = [];
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    calls.push(String(options.model));
+    if (calls.length === 1) throw new Error("429 quota exhausted");
+    return "served";
+  };
+
+  await expect(
+    agentWithFailover.run(
+      { models: ["provider/first-model"], task: "first", cooldownMs: 100 },
+      context(agentImpl),
+    ),
+  ).rejects.toThrow("all failover models failed:");
+  now += 100;
+  const result = await agentWithFailover.run(
+    { models: ["provider/first-model"], task: "second", cooldownMs: 100 },
+    context(agentImpl),
+  );
+
+  expect(result.result).toBe("served");
+  expect(calls).toEqual(["provider/first-model", "provider/first-model"]);
+});
+
+test("attempts every cooling model in order and reports that state", async () => {
+  let now = 1000;
+  setFailoverClock(() => now);
+  const models = ["provider/first-model", "provider/second-model"];
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    throw new Error(`${String(options.model)} quota exhausted`);
+  };
+
+  await expect(
+    agentWithFailover.run({ models, task: "prime", cooldownMs: 30000 }, context(agentImpl)),
+  ).rejects.toThrow("all failover models failed:");
+  const calls: string[] = [];
+  await expect(
+    agentWithFailover.run(
+      { models, task: "retry", cooldownMs: 30000 },
+      context(async (_task, options) => {
+        calls.push(String(options.model));
+        throw new Error(`${String(options.model)} quota exhausted`);
+      }),
+    ),
+  ).rejects.toThrow("all models cooling down: provider/first-model, provider/second-model");
+
+  expect(calls).toEqual(models);
+});
+
+test("cooldownMs zero disables cooldown memory", async () => {
+  const calls: string[] = [];
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    calls.push(String(options.model));
+    throw new Error("429 quota exhausted");
+  };
+
+  for (const task of ["first", "second"])
+    await expect(
+      agentWithFailover.run({ models: ["provider/first-model"], task, cooldownMs: 0 }, context(agentImpl)),
+    ).rejects.toThrow("all failover models failed:");
+
+  expect(calls).toEqual(["provider/first-model", "provider/first-model"]);
+});
+
 test("passes timeoutMs to the agent when supplied", async () => {
   const calls: Array<{ task: string; options: Record<string, unknown> }> = [];
   const result = await agentWithFailover.run(
@@ -121,6 +238,25 @@ test("passes timeoutMs to the agent when supplied", async () => {
     {
       task: "do the task",
       options: { model: "first-model", label: undefined, retries: 0, timeoutMs: 5000 },
+    },
+  ]);
+});
+
+test("omits timeoutMs when it is not supplied", async () => {
+  const calls: Array<{ task: string; options: Record<string, unknown> }> = [];
+  const result = await agentWithFailover.run(
+    { models: ["first-model"], task: "do the task" },
+    context(async (task, options) => {
+      calls.push({ task, options });
+      return "served";
+    }),
+  );
+
+  expect(result.result).toBe("served");
+  expect(calls).toEqual([
+    {
+      task: "do the task",
+      options: { model: "first-model", label: undefined, retries: 0 },
     },
   ]);
 });
@@ -373,7 +509,7 @@ test("advances on the exact 429 body our gateway returns", async () => {
 });
 
 test("advances on transport failures and timeouts", async () => {
-  for (const message of ["ETIMEDOUT", "socket hang up", "fetch failed", "request timed out", "502 Bad Gateway"]) {
+  for (const message of ["ETIMEDOUT", "socket hang up", "fetch failed", "request timed out", "502 Bad Gateway", "unsupported route", "route unavailable"]) {
     const agentImpl = async (_task: string, options: Record<string, unknown>) => {
       if (options.model === "provider/dead:high") throw new Error(message);
       return "served";

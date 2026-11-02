@@ -80,10 +80,13 @@ agents, because those are launched by the workflow package, not by gentle-pi.
 
 ### Workflow model failover
 
-`agentWithFailover({ role, task, models?, timeoutMs? })` runs one task through an ordered model chain.
+`agentWithFailover({ role, task, models?, timeoutMs?, cooldownMs? })` runs one task through an ordered model chain.
 The chain is explicit `models` first, followed by the role alias and its HA entries; the first base-name occurrence wins.
 It advances only for the provider-class set: `AGENT_FAILED`, quota/rate limits, unavailable or unsupported routes/efforts, and transport failures/timeouts.
 Other errors are rethrown, with prior attempts included when applicable; `timeoutMs` bounds each attempt from 1000 to 3600000 ms.
+Provider-class failures cool down the model base for 30 seconds by default; `cooldownMs: 0` disables this.
+Cooldown state is per process and not persisted; if every model is cooling, the ordered chain is attempted anyway.
+When supplied, `timeoutMs` is forwarded unchanged; when omitted, no timeout option is added, so there is no short wrapper default.
 Plain `agent(..., { role })` does not fail over; call `agentWithFailover` explicitly.
 
 ### Copy-paste examples

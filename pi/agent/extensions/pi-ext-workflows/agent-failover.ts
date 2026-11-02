@@ -12,7 +12,18 @@ const DEFAULT_AGENT_DIR = join(homedir(), ".pi", "agent");
 const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
 //NOTE: the set covers provider quota, route availability, transport failure and transport timeouts; a logic error is never listed here, so it always rethrows.
 const PROVIDER_ERROR =
-  /429|5 0 [234]|50[234]|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|fetch failed|overloaded/i;
+  /429|5 0 [234]|50[234]|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|unsupported route|route unavailable|model unavailable|unavailable route|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|fetch failed|overloaded/i;
+const DEFAULT_COOLDOWN_MS = 30000;
+const cooldowns = new Map<string, number>();
+let failoverClock = () => Date.now();
+
+export function setFailoverClock(clock: () => number): void {
+  failoverClock = clock;
+}
+
+export function clearFailoverCooldowns(): void {
+  cooldowns.clear();
+}
 
 type JsonObject = Record<string, unknown>;
 
@@ -98,17 +109,31 @@ export function resolveRoleChain(
   return deduplicate(chain);
 }
 
+function isCooling(model: string, now: number): boolean {
+  const base = modelParts(model).base;
+  const expiry = cooldowns.get(base);
+  if (expiry === undefined || expiry <= now) {
+    if (expiry !== undefined) cooldowns.delete(base);
+    return false;
+  }
+  return true;
+}
+
 export const agentWithFailover = defineWorkflowFunction({
   description: "Run an agent task against ordered models with provider-error failover",
-  async run({ models, role, task, label, timeoutMs }, { agent }) {
+  async run({ models, role, task, label, timeoutMs, cooldownMs = DEFAULT_COOLDOWN_MS }, { agent }) {
     if (models === undefined && role === undefined)
       throw new Error("agentWithFailover requires at least one of role or models");
     const roleChain = role === undefined ? [] : resolveRoleChain(role);
     //NOTE: explicit models win over the role alias for the same base name.
-    const modelChain = role === undefined ? models! : deduplicate([...(models ?? []), ...roleChain]);
+    const modelChain = role === undefined ? deduplicate(models!) : deduplicate([...(models ?? []), ...roleChain]);
+    const now = failoverClock();
+    const coolingModels = modelChain.filter((model) => isCooling(model, now));
+    const allCooling = coolingModels.length === modelChain.length;
+    const modelsToAttempt = allCooling ? modelChain : modelChain.filter((model) => !isCooling(model, now));
     const attempts: Array<{ model: string; error: string }> = [];
 
-    for (const model of modelChain) {
+    for (const model of modelsToAttempt) {
       try {
         //NOTE: retries: 0 avoids replaying an exhausted model; models already carry the alias or provider/model:effort, and only explicit provider markers, including AGENT_FAILED, continue while other errors rethrow so agent bugs are not masked.
         const result = await agent(task, {
@@ -127,12 +152,13 @@ export const agentWithFailover = defineWorkflowFunction({
             { cause: error },
           );
         }
+        if (cooldownMs > 0) cooldowns.set(modelParts(model).base, failoverClock() + cooldownMs);
         attempts.push({ model, error: message.slice(0, 300) });
       }
     }
 
     throw new Error(
-      `all failover models failed: ${attempts.map(({ model, error }) => `${model}: ${error}`).join(" | ")}`,
+      `${allCooling ? `all models cooling down: ${coolingModels.join(", ")}; ` : ""}all failover models failed: ${attempts.map(({ model, error }) => `${model}: ${error}`).join(" | ")}`,
     );
   },
   input: Type.Object(
@@ -142,6 +168,7 @@ export const agentWithFailover = defineWorkflowFunction({
       task: Type.String(),
       label: Type.Optional(Type.String()),
       timeoutMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 3600000 })),
+      cooldownMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 600000 })),
     },
     { additionalProperties: false },
   ),
