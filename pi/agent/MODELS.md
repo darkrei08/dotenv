@@ -78,6 +78,14 @@ layer, name the concrete `provider/model` in `subagents.json`.
 The reverse also holds: a `model_profiles` entry does not steer workflow role
 agents, because those are launched by the workflow package, not by gentle-pi.
 
+### Workflow model failover
+
+`agentWithFailover({ role, task, models?, timeoutMs? })` runs one task through an ordered model chain.
+The chain is explicit `models` first, followed by the role alias and its HA entries; the first base-name occurrence wins.
+It advances only for the provider-class set: `AGENT_FAILED`, quota/rate limits, unavailable or unsupported routes/efforts, and transport failures/timeouts.
+Other errors are rethrown, with prior attempts included when applicable; `timeoutMs` bounds each attempt from 1000 to 3600000 ms.
+Plain `agent(..., { role })` does not fail over; call `agentWithFailover` explicitly.
+
 ### Copy-paste examples
 
 **Change one SDD agent's model and effort.** Project file `.pi/subagents.json`

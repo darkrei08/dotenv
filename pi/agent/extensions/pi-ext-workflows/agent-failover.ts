@@ -100,21 +100,33 @@ export function resolveRoleChain(
 
 export const agentWithFailover = defineWorkflowFunction({
   description: "Run an agent task against ordered models with provider-error failover",
-  async run({ models, role, task, label }, { agent }) {
+  async run({ models, role, task, label, timeoutMs }, { agent }) {
     if (models === undefined && role === undefined)
       throw new Error("agentWithFailover requires at least one of role or models");
     const roleChain = role === undefined ? [] : resolveRoleChain(role);
+    //NOTE: explicit models win over the role alias for the same base name.
     const modelChain = role === undefined ? models! : deduplicate([...(models ?? []), ...roleChain]);
     const attempts: Array<{ model: string; error: string }> = [];
 
     for (const model of modelChain) {
       try {
         //NOTE: retries: 0 avoids replaying an exhausted model; models already carry the alias or provider/model:effort, and only explicit provider markers, including AGENT_FAILED, continue while other errors rethrow so agent bugs are not masked.
-        const result = await agent(task, { model, label, retries: 0 });
+        const result = await agent(task, {
+          model,
+          label,
+          retries: 0,
+          ...(timeoutMs === undefined ? {} : { timeoutMs }),
+        });
         return { model, result, attempts };
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        if (!PROVIDER_ERROR.test(message)) throw error;
+        if (!PROVIDER_ERROR.test(message)) {
+          if (attempts.length === 0) throw error;
+          throw new Error(
+            `${message} (attempts: ${attempts.map(({ model: attemptedModel, error: attemptError }) => `${attemptedModel}: ${attemptError}`).join(" | ")})`,
+            { cause: error },
+          );
+        }
         attempts.push({ model, error: message.slice(0, 300) });
       }
     }
@@ -129,6 +141,7 @@ export const agentWithFailover = defineWorkflowFunction({
       role: Type.Optional(Type.String({ minLength: 1 })),
       task: Type.String(),
       label: Type.Optional(Type.String()),
+      timeoutMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 3600000 })),
     },
     { additionalProperties: false },
   ),

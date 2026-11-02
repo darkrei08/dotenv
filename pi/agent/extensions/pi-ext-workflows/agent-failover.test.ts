@@ -106,6 +106,25 @@ test("fails over to the second model after a provider error", async () => {
   });
 });
 
+test("passes timeoutMs to the agent when supplied", async () => {
+  const calls: Array<{ task: string; options: Record<string, unknown> }> = [];
+  const result = await agentWithFailover.run(
+    { models: ["first-model"], task: "do the task", timeoutMs: 5000 },
+    context(async (task, options) => {
+      calls.push({ task, options });
+      return "served";
+    }),
+  );
+
+  expect(result.result).toBe("served");
+  expect(calls).toEqual([
+    {
+      task: "do the task",
+      options: { model: "first-model", label: undefined, retries: 0, timeoutMs: 5000 },
+    },
+  ]);
+});
+
 test("rethrows non-provider errors without calling the next model", async () => {
   const calls: string[] = [];
   const error = new TypeError("bad agent input");
@@ -121,6 +140,20 @@ test("rethrows non-provider errors without calling the next model", async () => 
     ),
   ).rejects.toBe(error);
   expect(calls).toEqual(["first-model"]);
+});
+
+test("includes earlier attempts when rethrowing a later non-provider error", async () => {
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    if (options.model === "first-model") throw new Error("first quota exhausted");
+    throw new TypeError("bad agent input");
+  };
+
+  await expect(
+    agentWithFailover.run(
+      { models: ["first-model", "second-model"], task: "do the task" },
+      context(agentImpl),
+    ),
+  ).rejects.toThrow("bad agent input (attempts: first-model: first quota exhausted)");
 });
 
 test("reports every provider failure when all models fail", async () => {
@@ -196,6 +229,27 @@ test("puts explicit models before the role chain and deduplicates them", async (
       "all failover models failed: provider/manual:high: provider/manual:high quota exhausted | provider/primary:medium: provider/primary:medium quota exhausted | provider/second:high: provider/second:high quota exhausted | provider/third:low: provider/third:low quota exhausted",
     );
   });
+});
+
+test("keeps the first explicit model when its base matches the role alias", async () => {
+  const calls: string[] = [];
+  await inTemporaryAgentDir(async () => {
+    await expect(
+      agentWithFailover.run(
+        { models: ["provider/primary:low"], role: "reviewer", task: "review" },
+        context(async (_task, options) => {
+          calls.push(String(options.model));
+          throw new Error(`${String(options.model)} quota exhausted`);
+        }),
+      ),
+    ).rejects.toThrow("all failover models failed:");
+  });
+
+  expect(calls).toEqual([
+    "provider/primary:low",
+    "provider/second:high",
+    "provider/third:low",
+  ]);
 });
 
 test("rejects an unknown role before calling agent", async () => {
