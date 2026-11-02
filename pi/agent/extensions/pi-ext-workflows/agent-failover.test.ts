@@ -299,3 +299,41 @@ test("advances past an effort the route cannot serve", async () => {
   expect(result.attempts).toHaveLength(1);
   expect(calls).toEqual(["provider/no-thinking:high", "provider/live:high"]);
 });
+
+test("advances on the exact 429 body our gateway returns", async () => {
+  const realBody =
+    '{"error":{"code":"model_cooldown","last_upstream_error":"{\\n  \\"error\\": {\\n    \\"code\\": 429, \\"status\\": \\"RESOURCE_EXHAUSTED\\"",' +
+    '"message":"All credentials for model claude-sonnet-4-6 are cooling down","model":"claude-sonnet-4-6","reset_seconds":261154}}';
+  const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+    if (options.model === "provider/exhausted:off") throw new Error(realBody);
+    return "served";
+  };
+
+  const result = await agentWithFailover.run(
+    { models: ["provider/exhausted:off", "provider/live:high"], task: "do the task" },
+    context(agentImpl),
+  );
+
+  expect(result.model).toBe("provider/live:high");
+  expect(result.attempts[0]?.error).toContain("model_cooldown");
+});
+
+test("advances on transport failures and timeouts", async () => {
+  for (const message of ["ETIMEDOUT", "socket hang up", "fetch failed", "request timed out", "502 Bad Gateway"]) {
+    const agentImpl = async (_task: string, options: Record<string, unknown>) => {
+      if (options.model === "provider/dead:high") throw new Error(message);
+      return "served";
+    };
+    const result = await agentWithFailover.run(
+      { models: ["provider/dead:high", "provider/live:high"], task: "do the task" },
+      context(agentImpl),
+    );
+    expect(result.model).toBe("provider/live:high");
+  }
+});
+
+test("the extension barrel registers without throwing", async () => {
+  // @ts-ignore Bun loads the TypeScript source directly.
+  const barrel = await import("../piextworkflows.ts");
+  expect(() => barrel.default()).not.toThrow();
+});

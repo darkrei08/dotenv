@@ -10,7 +10,9 @@ import {
 
 const DEFAULT_AGENT_DIR = join(homedir(), ".pi", "agent");
 const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
-const PROVIDER_ERROR = /429|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported/i;
+//NOTE: the set covers provider quota, route availability, transport failure and transport timeouts; a logic error is never listed here, so it always rethrows.
+const PROVIDER_ERROR =
+  /429|5 0 [234]|50[234]|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|fetch failed|overloaded/i;
 
 type JsonObject = Record<string, unknown>;
 
@@ -121,26 +123,15 @@ export const agentWithFailover = defineWorkflowFunction({
       `all failover models failed: ${attempts.map(({ model, error }) => `${model}: ${error}`).join(" | ")}`,
     );
   },
-  input: Type.Union([
-    Type.Object(
-      {
-        models: Type.Array(Type.String(), { minItems: 1 }),
-        role: Type.Optional(Type.String({ minLength: 1 })),
-        task: Type.String(),
-        label: Type.Optional(Type.String()),
-      },
-      { additionalProperties: false },
-    ),
-    Type.Object(
-      {
-        models: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
-        role: Type.String({ minLength: 1 }),
-        task: Type.String(),
-        label: Type.Optional(Type.String()),
-      },
-      { additionalProperties: false },
-    ),
-  ]),
+  input: Type.Object(
+    {
+      models: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
+      role: Type.Optional(Type.String({ minLength: 1 })),
+      task: Type.String(),
+      label: Type.Optional(Type.String()),
+    },
+    { additionalProperties: false },
+  ),
   output: Type.Object(
     {
       model: Type.String(),
