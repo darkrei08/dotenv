@@ -16,6 +16,10 @@ This is a single-context repository: read `GLOSSARY.md` when present and ADRs un
 
 For task-triggered skill loading and ownership boundaries, read `docs/agent-skill-priority.md` before changing workflow, model-routing, agent-pipeline, or agent-directive surfaces. PiWorkflow owns execution; use the registered `pi-herdr-orchestration` package for mailbox/evidence tools and `@piewf/herdr` for inspectable transport, never a second scheduler.
 
+### Remote access
+
+For reaching a remote host from this workstation (key and option conventions, passwordless sudo, forwarding a GitHub token without leaking it, tunnels, and long runs driven from a pane), read `docs/remote-access-playbook.md`.
+
 <!-- BEGIN sqz-agents-guidance (auto-installed by sqz init; remove this block to disable) -->
 
 ## sqz — Token-Optimized CLI Output
