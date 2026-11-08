@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { test } from "node:test";
 
 const root = new URL("../", import.meta.url);
@@ -46,6 +46,15 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "qa-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "release-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "sre-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "verifier-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "companion-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "data-engineer-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
+    "debugger-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "market-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "marketing-strategist-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "product-designer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "technical-writer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
+    "visual-designer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: "medium" },
     "tests-expert": { model: "cliproxyapi/gpt-5.6-luna", effort: "high" },
     "researcher-model": { model: "cliproxyapi/gpt-5.6-luna", effort: "xhigh" },
     "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
@@ -79,6 +88,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
   const fixture = mkdtempSync(join(tmpdir(), "pi-medium-policy-"));
   try {
     for (const file of ["check-config.sh", "setup_env.sh", ".gga", "pi/agent", "agents/gga-pi", "agents/skills.manifest.json"]) {
+      mkdirSync(dirname(join(fixture, file)), { recursive: true });
       cpSync(new URL(file, root), join(fixture, file), { recursive: true });
     }
     const run = () => spawnSync("bash", [join(fixture, "check-config.sh")], {

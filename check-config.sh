@@ -273,6 +273,15 @@ if ! jq -e '
   $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["companion-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["data-engineer-model"] == "cliproxyapi/gpt-5.6-luna:high" and
+  $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["product-designer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["technical-writer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["visual-designer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
   $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
