@@ -131,3 +131,15 @@ Use the whole Gentle AI suite for every code, config or documentation change, an
 - `gentle-ai-comment-writer` for issue and PR comments; `gentle-ai-skill-registry` after any skill change; `gentle-ai-cognitive-doc-design` for READMEs and guides.
 - Use `codegraph` (query/explore) to locate symbols and call paths before reading or editing code.
 - Subagent roles carry the skills relevant to their task (see `pi-ext-roles/roles/`). Skills used most often: issue-ops, engineering-excellence, container-test-matrix, pi-extensible-workflows, gentle-ai, ponytail, work-unit-commits, tigerstyle, typescript-advanced.
+
+## Research access routing
+
+Which source answers which question, so an authenticated page is never read as public and a public page never pays for a browser session.
+
+- GitHub state (repo, issue, PR, release, commit, file): `gh`, never an anonymous fetch. An anonymous GitHub `404` cannot distinguish private from missing.
+- Pages behind a login: BrowserOS neo, whose Chromium keeps a persistent profile with the operator's sessions. Its MCP endpoint is `http://127.0.0.1:9010/mcp`.
+- Public pages, docs, changelog, crawl or map batches: `firecrawl-local`. It is an HTTP crawler in a container with no profile and no cookies, so it is always anonymous.
+- Discovery: `exa` or `web_search`.
+- Video and audio without downloadable captions: bounded `yt-dlp --download-sections` audio plus an external transcription step. No local ASR engine is installed; do not claim a transcript you could not produce.
+
+Read `docs/research/access-routing.md` for the exact commands and the verified failure modes before improvising a scrape.
