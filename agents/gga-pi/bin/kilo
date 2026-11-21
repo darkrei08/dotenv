@@ -31,12 +31,52 @@ cat > "$prompt_file"
 
 models_to_try=("$model")
 ha_file="${PI_HA_CONFIG:-${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/ha.json}"
-if [ -f "$ha_file" ] && command -v jq >/dev/null 2>&1; then
-  if jq -e --arg m "$model" '.groups.reviewer.entries[]? | select(.id == $m)' "$ha_file" >/dev/null 2>&1; then
-    while IFS= read -r fallback_model; do
-      [ -n "$fallback_model" ] && models_to_try+=("$fallback_model")
-    done < <(jq -r --arg m "$model" '.groups.reviewer.entries[]?.id | select(. != null and . != "" and . != $m)' "$ha_file" 2>/dev/null || true)
+command -v jq >/dev/null 2>&1 || {
+  printf 'gga-pi: jq is required to resolve the reviewer HA chain\n' >&2
+  exit 1
+}
+ha_valid() {
+  jq -s -e '
+    length == 1
+    and (.[0] | type == "object")
+    and (.[0].groups | type == "object")
+    and (.[0].groups | to_entries | map(.value | type == "object") | all)
+    and (.[0].groups | to_entries | map(.value.entries | type == "array") | all)
+    and (.[0].groups | to_entries | map(.value.entries | map((.id | type == "string") and (.id | length > 0)) | all) | all)
+  ' "$1" >/dev/null 2>&1
+}
+has_primary=0
+if [ -f "$ha_file" ]; then
+  ha_valid "$ha_file" || {
+    printf 'gga-pi: invalid HA configuration: %s\n' "$ha_file" >&2
+    exit 1
+  }
+fi
+if [ -f "$ha_file" ] && jq -e --arg m "$model" \
+  'def base: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
+   .groups.reviewer.entries[]? | select((.id // "" | base) == ($m | base))' "$ha_file" >/dev/null 2>&1; then
+  has_primary=1
+fi
+if [ "$has_primary" -eq 0 ]; then
+  script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  template_ha="$script_dir/../../../pi/agent/ha-failover.example.json"
+  if [ -f "$template_ha" ] && ha_valid "$template_ha" && jq -e --arg m "$model" \
+    'def base: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
+     .groups.reviewer.entries[]? | select((.id // "" | base) == ($m | base))' "$template_ha" >/dev/null 2>&1; then
+    printf 'gga-pi: reviewer model is absent from %s; using the tracked HA template\n' "$ha_file" >&2
+    ha_file="$template_ha"
+    has_primary=1
   fi
+fi
+if [ "$has_primary" -eq 1 ]; then
+  while IFS= read -r fallback_model; do
+    [ -n "$fallback_model" ] && models_to_try+=("$fallback_model")
+  done < <(jq -r --arg m "$model" \
+    'def base: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
+     (.groups.reviewer.entries // []) as $e
+     | ($e | map(.id // "" | base) | index($m | base)) as $i
+     | select($i != null) | $e[$i + 1:][] | .id | select(. != null and . != "")' \
+    "$ha_file" 2>/dev/null || true)
 fi
 
 success=0

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execSync, spawnSync } from 'node:child_process';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,4 +140,127 @@ exit 2
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.stdout, 'STATUS: PASSED\n');
   assert.match(result.stderr, /failing over to provider\/fallback-model/);
+});
+
+test('uses the tracked HA template when live HA lacks the reviewer primary', (t) => {
+  const dir = mkdtempSync(join(tmpdir(), 'gga-pi-template-failover-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+  const home = join(dir, 'home');
+  const extension = join(home, 'npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts');
+  mkdirSync(dirname(extension), { recursive: true });
+  writeFileSync(extension, '');
+
+  const haPath = join(dir, 'ha.json');
+  writeFileSync(haPath, JSON.stringify({
+    groups: { reviewer: { entries: [{ id: 'cliproxyapi/old-reviewer' }] } }
+  }));
+  const modelsPath = join(dir, 'models');
+  const fakePi = join(dir, 'pi');
+  writeFileSync(fakePi, `#!/usr/bin/env bash
+model=''
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = '--model' ]; then shift; model=$1; fi
+  shift
+done
+printf '%s\\n' "$model" >> '${modelsPath}'
+if [ "$model" = 'cliproxyapi/gemini-3.8-flash-high:high' ]; then exit 1; fi
+printf 'STATUS: PASSED\\n'
+`);
+  chmodSync(fakePi, 0o755);
+
+  const env = {
+    ...process.env,
+    PATH: `${dir}:${process.env.PATH}`,
+    PI_HA_CONFIG: haPath,
+    PI_CODING_AGENT_DIR: home,
+  };
+  const result = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    env, input: 'review prompt', encoding: 'utf8',
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.stdout, 'STATUS: PASSED\n');
+  assert.match(result.stderr, /using the tracked HA template/);
+  assert.deepEqual(readFileSync(modelsPath, 'utf8').trim().split('\n').slice(0, 2), [
+    'cliproxyapi/gemini-3.8-flash-high:high',
+    'cliproxyapi/gpt-6.2-sol',
+  ]);
+
+  writeFileSync(haPath, JSON.stringify({
+    groups: { reviewer: { entries: [
+      { id: 'cliproxyapi/gemini-3.8-flash-high:medium' },
+      { id: 'cliproxyapi/local-fallback' },
+    ] } }
+  }));
+  writeFileSync(modelsPath, '');
+  const suffixedLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    env, input: 'review prompt', encoding: 'utf8',
+  });
+  assert.equal(suffixedLive.status, 0, suffixedLive.stderr);
+  assert.doesNotMatch(suffixedLive.stderr, /using the tracked HA template/);
+  assert.deepEqual(readFileSync(modelsPath, 'utf8').trim().split('\n').slice(0, 2), [
+    'cliproxyapi/gemini-3.8-flash-high:high',
+    'cliproxyapi/local-fallback',
+  ]);
+
+  rmSync(haPath);
+  writeFileSync(modelsPath, '');
+  const missingLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    env, input: 'review prompt', encoding: 'utf8',
+  });
+  assert.equal(missingLive.status, 0, missingLive.stderr);
+  assert.match(missingLive.stderr, /using the tracked HA template/);
+  assert.equal(readFileSync(modelsPath, 'utf8').trim().split('\n')[1], 'cliproxyapi/gpt-6.2-sol');
+
+  writeFileSync(haPath, '{not json');
+  writeFileSync(modelsPath, '');
+  const invalidLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    env, input: 'review prompt', encoding: 'utf8',
+  });
+  assert.notEqual(invalidLive.status, 0, 'invalid HA configuration must fail');
+  assert.match(invalidLive.stderr, /invalid HA configuration/);
+  assert.doesNotMatch(invalidLive.stderr, /using the tracked HA template/);
+  assert.equal(readFileSync(modelsPath, 'utf8'), '');
+
+  for (const badConfig of [
+    '{"groups":{"reviewer":{"entries":42}}}',
+    '{"groups":{"reviewer":{"entries":false}}}',
+    '{"groups":{"reviewer":{"entries":null}}}',
+    '{"groups":{"reviewer":{"entries":[{}]}}}',
+    '{"groups":{"reviewer":{"entries":[null]}}}',
+    '{"groups":{"reviewer":{"entries":[{"id":123}]}}}',
+    '{"groups":{"reviewer":{"entries":[{"id":false,"route":"cliproxyapi/legacy"}]}}}',
+    '{"groups":{"reviewer":{"entries":[{"id":""}]}}}',
+    '[]',
+    '{} {}',
+  ]) {
+    writeFileSync(haPath, badConfig);
+    writeFileSync(modelsPath, '');
+    const malformed = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+      env, input: 'review prompt', encoding: 'utf8',
+    });
+    assert.notEqual(malformed.status, 0, `malformed HA must fail: ${badConfig}`);
+    assert.match(malformed.stderr, /invalid HA configuration/);
+    assert.doesNotMatch(malformed.stderr, /using the tracked HA template/);
+    assert.equal(readFileSync(modelsPath, 'utf8'), '');
+  }
+
+  // Without jq the reviewer chain cannot be resolved, so the review must fail closed.
+  const jqlessBin = join(dir, 'jqless');
+  mkdirSync(jqlessBin, { recursive: true });
+  for (const cmd of ['mktemp', 'cat', 'tr', 'sed', 'dirname', 'rm']) {
+    const resolved = execSync(`command -v ${cmd}`, { encoding: 'utf8' }).trim();
+    symlinkSync(resolved, join(jqlessBin, cmd));
+  }
+  symlinkSync(fakePi, join(jqlessBin, 'pi'));
+  writeFileSync(haPath, JSON.stringify({ groups: { reviewer: { entries: [{ id: 'cliproxyapi/old-reviewer' }] } } }));
+  writeFileSync(modelsPath, '');
+  const jqless = spawnSync('/bin/bash', [shim, 'run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    env: { ...env, PATH: jqlessBin }, input: 'review prompt', encoding: 'utf8',
+  });
+  assert.notEqual(jqless.status, 0, 'missing jq must fail closed');
+  assert.match(jqless.stderr, /jq is required/);
+  assert.equal(jqless.stdout, '');
+  assert.equal(readFileSync(modelsPath, 'utf8'), '');
 });
