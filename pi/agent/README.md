@@ -28,9 +28,9 @@ claim that a live gateway can use them:
 | Role alias | Resolves to | Effort | Used by |
 | --- | --- | --- | --- |
 | `developer-model`, `architect-model`, `qa-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6` | off | development, architecture, QA, tests |
-| `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | research, release, SRE |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-high` | high | security and review |
-| `verifier-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | verification |
+| `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | research, release, SRE |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered` | high | security and review |
+| `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | verification |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash` | high | scout |
 | `summarizer-model`, `technical-writer-model`, `companion-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summary and writing |
 | `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6` | off | design roles |
@@ -66,9 +66,9 @@ Workflow role aliases resolve directly to CLIProxyAPI targets:
 | Role aliases | CLIProxyAPI target |
 | --- | --- |
 | `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6:off` |
-| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-high:medium` |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-high:high` |
-| `verifier-model` | `cliproxyapi/gemini-3.8-flash-high:medium` |
+| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered:high` |
+| `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` |
 | `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` |
 | `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6:off` |

@@ -113,7 +113,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` and `enabledModels` keep the active picker and role routes on CLIProxyAPI targets; catalog metadata remains separate from entitlement and inference evidence. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/gemini-3.8-flash-high:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` and `enabledModels` keep the active picker and role routes on CLIProxyAPI targets; catalog metadata remains separate from entitlement and inference evidence. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/gemini-3.8-flash-tiered:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -137,8 +137,8 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
 Workflow roles use role-named aliases backed by CLIProxyAPI only:
-`claude-sonnet-4-6:off` for authoring roles, `gemini-3.8-flash-high:medium`
-for research, release and SRE, `gemini-3.8-flash-high:high` for review and
+`claude-sonnet-4-6:off` for authoring roles, `gemini-3.8-flash-tiered:medium`
+for research, release and SRE, `gemini-3.8-flash-tiered:high` for review and
 security (`medium` for verification), `deepseek-v4.1-flash:high` for scouting,
 `gemini-3.5-flash-lite:low` for summaries, and `claude-sonnet-4-6:off` for
 visual/product design. Native aliases and direct OpenCode Go assignments are not

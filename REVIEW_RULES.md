@@ -21,9 +21,9 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   return. Do not reintroduce obsolete OpenCode workflow targets.
 - `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): workflow roles use
   CLIProxyAPI only. Authoring roles use `cliproxyapi/claude-sonnet-4-6:off`;
-  review and security roles use `cliproxyapi/gemini-3.8-flash-high:high` and
+  review and security roles use `cliproxyapi/gemini-3.8-flash-tiered:high` and
   verification uses the same model at `medium`; research, release and SRE use
-  `cliproxyapi/gemini-3.8-flash-high:medium`; scouting uses
+  `cliproxyapi/gemini-3.8-flash-tiered:medium`; scouting uses
   `cliproxyapi/deepseek-v4.1-flash:high`; summaries and writing use
   `cliproxyapi/gemini-3.5-flash-lite:low`; and design roles use
   `cliproxyapi/claude-sonnet-4-6:off`. Provider-family compatibility aliases and
@@ -35,7 +35,7 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
   `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`, and matching
   `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native catalogs remain defined
   for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer HA
-  route `cliproxyapi/gemini-3.8-flash-high:high`. `check-config.sh` requires the route to be enabled and
+  route `cliproxyapi/gemini-3.8-flash-tiered:high`. `check-config.sh` requires the route to be enabled and
   listed in the reviewer HA group.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
