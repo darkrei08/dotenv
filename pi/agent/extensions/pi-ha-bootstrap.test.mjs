@@ -7,14 +7,15 @@ const config = JSON.parse(readFileSync(new URL("../ha-failover.example.json", im
 
 test("returns the configured HA entries after a known model", () => {
   assert.deepEqual(nextEntries(config, "cliproxyapi/claude-sonnet-4-6:off", "development"), [
-    { id: "cliproxyapi/gpt-6-luna:high" },
-    { id: "cliproxyapi/gpt-6-sol:medium" },
-    { id: "cliproxyapi/gpt-6-astra:medium" }
+    { id: "cliproxyapi/gemini-3.8-flash-high" },
+    { id: "cliproxyapi/gpt-6.1-sol" },
+    { id: "cliproxyapi/gpt-6.2-sol" },
+    { id: "cliproxyapi/gpt-6-luna" }
   ]);
 });
 
 test("normalizes effort suffixes and keeps unknown models fail closed", () => {
-  assert.equal(nextEntries(config, "cliproxyapi/claude-sonnet-4-6", "development").length, 3);
+  assert.equal(nextEntries(config, "cliproxyapi/claude-sonnet-4-6", "development").length, 4);
   assert.deepEqual(nextEntries(config, "unknown/provider-model"), []);
   assert.deepEqual(nextEntries(config, ""), []);
 });

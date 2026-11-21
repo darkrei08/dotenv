@@ -27,25 +27,16 @@ claim that a live gateway can use them:
 
 | Role alias | Resolves to | Effort | Used by |
 | --- | --- | --- | --- |
-| `developer-model` | `cliproxyapi/claude-sonnet-4-6` | off | developer |
-| `architect-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | architect |
-| `security-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | security |
-| `qa-model`, `release-model`, `sre-model` | `cliproxyapi/claude-sonnet-4-6` | off | qa, release, sre |
-| `tests-expert` | `cliproxyapi/gpt-5.6-luna` | high | tests-expert |
-| `researcher-model` | `cliproxyapi/gpt-5.6-luna` | xhigh | researcher |
-| `scout-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | scout |
-| `summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summarizer |
-| `reviewer-model`, `oracle-model` | `cliproxyapi/claude-opus-4-6-thinking` | off | reviewer, oracle |
+| `developer-model`, `architect-model`, `qa-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6` | off | development, architecture, QA, tests |
+| `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | research, release, SRE |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-high` | high | security and review |
+| `verifier-model` | `cliproxyapi/gemini-3.8-flash-high` | medium | verification |
+| `scout-model` | `cliproxyapi/deepseek-v4.1-flash` | high | scout |
+| `summarizer-model`, `technical-writer-model`, `companion-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summary and writing |
+| `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6` | off | design roles |
 
-Optional Gemini alternatives are available as explicit aliases, without replacing the
-primary role assignments:
-
-| Alternative alias | Model:effort | Intended use |
-| --- | --- | --- |
-| `gemini-scout-model` | `cliproxyapi/gemini-3.8-flash-high:medium` | fast scouting |
-| `gemini-summarizer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | low-cost summarization |
-| `gemini-researcher-model` | `cliproxyapi/gemini-3.8-flash-high:high` | long research fallback |
-| `gemini-developer-model`, `gemini-tests-model` | `cliproxyapi/gemini-3.8-flash-high:high` | experimental coding/testing fallback |
+Aliases are role names only. Failover is defined by the HA role groups; no
+provider-specific `gemini-*` compatibility aliases are maintained.
 
 Managed role aliases, subagent review profiles, optional modes and GGA use the
 configured effort for their route. GGA uses the dedicated CLIProxyAPI reviewer
@@ -70,29 +61,26 @@ After authenticating an account in CPA:
 - use `/fast` for priority processing and `/pause` or `/continue` to control requests;
 - select a live `cliproxyapi/...` model from `/model` or use the explicit workflow aliases.
 
-Every native alias has a CLIProxyAPI mirror that targets the same model through the gateway:
+Workflow role aliases resolve directly to CLIProxyAPI targets:
 
-| Native | CLIProxyAPI |
+| Role aliases | CLIProxyAPI target |
 | --- | --- |
-| `native-cheap-model` (GPT-5.6 Luna medium) | `cliproxy-cheap-model` → `cliproxyapi/gpt-5.6-luna:medium` |
-| `native-luna` (GPT-5.6 Luna high) | `cliproxy-luna` → `cliproxyapi/gpt-5.6-luna:high` |
-| `native-reviewer-model` (native Opus 4.6 high) | `cliproxy-reviewer-model` → `cliproxyapi/claude-opus-4-6-thinking:off` |
-| `native-sol` (GPT-6 Sol high) | `cliproxy-sol` → `cliproxyapi/gpt-6-sol:high` |
-| `native-astra` (GPT-6 Astra medium) | `cliproxy-astra` → `cliproxyapi/gpt-6-astra:medium` |
+| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6:off` |
+| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-high:medium` |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-high:high` |
+| `verifier-model` | `cliproxyapi/gemini-3.8-flash-high:medium` |
+| `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` |
+| `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` |
+| `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6:off` |
 
-`check-config.sh` fails when a native alias, an enabled model or a startup thinking
-level has no `cliproxyapi` mirror for the same model and configured route, so the two
-routes cannot drift apart by model identifier. The mirrors are not guaranteed until the dynamic catalog is authenticated. Pass one
-as the per-agent `model` override to run a workflow through CLIProxyAPI. With one
-Pro and one Plus account the gateway adds the Keeper usage dashboard, not extra
-models, which is why Codex stays on its native login.
-
-The optional Gemini aliases are explicit alternatives, not automatic role replacements.
+`check-config.sh` validates the exact role alias set and rejects direct non-gateway
+routes. Ordered model/account failover belongs to `ha.json` and its role groups;
+there are no native, provider-specific or Gemini compatibility aliases.
 For automatic quota/capacity fallback, `~/.pi/agent/ha.json` contains `development`,
 `scout`, `fast`, `research`, `summary`, and `testing` groups. Select one with
 `/ha-group <name> <model-id>...`; the repository template is
 `pi/agent/ha-failover.example.json`. The default development chain ends with
-`cliproxyapi/gpt-6-astra` after the existing GPT and Claude entries.
+`cliproxyapi/gpt-6-luna` after the existing GPT and Claude entries.
 
 ### Gemini
 

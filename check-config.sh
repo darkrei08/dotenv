@@ -85,7 +85,7 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
-gga_expected_route='cliproxyapi/gpt-6-luna:high'
+gga_expected_route='cliproxyapi/gemini-3.8-flash-high:high'
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
@@ -99,11 +99,11 @@ if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
     "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
-if [[ -n "$gga_route" ]] && ! jq -e --arg route "$gga_route" '
+if [[ -n "$gga_model" ]] && ! jq -e --arg model "$gga_model" '
   (.groups.reviewer.entries // []) |
-  any(.[]; (.id // "") == $route)
+  any(.[]; (.id // "") == $model)
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
-  printf '%s: GGA route must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
+  printf '%s: GGA model must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -250,49 +250,32 @@ if ! jq -e '
   failures=1
 fi
 
-# Configured gateway-first routing; catalog visibility does not establish plan access.
-# Each native alias mirrors its CLIProxyAPI route, while role aliases deliberately use
-# the effort supported by the selected model and workload.
+# Active workflow aliases are role-to-model mappings. Provider failover belongs
+# to HA groups, not to a second provider-named alias family.
 if ! jq -e '
   .modelAliases as $aliases |
-  $aliases["native-cheap-model"] == "openai-codex/gpt-5.6-luna:medium" and
-  $aliases["native-luna"] == "openai-codex/gpt-5.6-luna:high" and
-  $aliases["native-reviewer-model"] == "anthropic/claude-opus-4-6-thinking:high" and
-  $aliases["native-sol"] == "openai-codex/gpt-6-sol:high" and
-  $aliases["native-astra"] == "openai-codex/gpt-6-astra:medium" and
-  $aliases["cliproxy-cheap-model"] == "cliproxyapi/gpt-5.6-luna:medium" and
-  $aliases["cliproxy-luna"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["cliproxy-reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["cliproxy-sol"] == "cliproxyapi/gpt-6-sol:high" and
-  $aliases["cliproxy-astra"] == "cliproxyapi/gpt-6-astra:medium" and
-  $aliases["cheap-model"] == "cliproxy-cheap-model" and
-  $aliases["scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert", "verifier-model", "visual-designer-model"]) and
+  $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
   $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["architect-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["security-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
+  $aliases["architect-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["security-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
   $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["release-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["sre-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["verifier-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["companion-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["data-engineer-model"] == "cliproxyapi/gpt-5.6-luna:high" and
+  $aliases["release-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["sre-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["verifier-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
+  $aliases["companion-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
+  $aliases["data-engineer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["product-designer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["technical-writer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["visual-designer-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["tests-expert"] == "cliproxyapi/gpt-5.6-luna:high" and
-  $aliases["researcher-model"] == "cliproxyapi/gpt-5.6-luna:xhigh" and
+  $aliases["product-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["technical-writer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
+  $aliases["visual-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["tests-expert"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-scout-model"] == "cliproxyapi/gemini-3.8-flash-high:medium" and
-  $aliases["gemini-summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["gemini-researcher-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-developer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["gemini-tests-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
-  $aliases["reviewer-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  $aliases["oracle-model"] == "cliproxyapi/claude-opus-4-6-thinking:off" and
-  all(["cheap-model-ant", "cheap-model-oai", "old-reviewer-model", "native-gpt-model", "cliproxy-gpt-model", "native-sonnet-executor", "cliproxy-sonnet-executor"][]; $aliases[.] == null)
+  $aliases["reviewer-model"] == "cliproxyapi/gemini-3.8-flash-high:high" and
+  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high:high"
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
@@ -308,24 +291,16 @@ if ! jq -e '
   failures=1
 fi
 
-# Native definitions remain available as a manual fallback, while the active picker
-# exposes only CLIProxyAPI models. Native and gateway aliases must mirror model IDs;
-# provider-specific thinking support may legitimately differ.
+# The active matrix is CLIProxyAPI-only. Exact role alias values are checked
+# above; direct route values must remain syntactically valid.
 if ! jq -e '
-  def native: sub("^(anthropic|openai-codex)/"; "");
-  def mirror: sub("^cliproxyapi/"; "");
-  def route: sub(":(off|minimal|low|medium|high|xhigh|max)$"; "");
-  .modelAliases as $aliases |
-  all(["cheap-model", "luna", "reviewer-model", "sol", "astra"][];
-      (($aliases["native-" + .] | native | route) == ($aliases["cliproxy-" + .] | mirror | route)))
-' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1 ||
-  ! jq -e '
-  def native: sub("^(anthropic|openai-codex)/"; "");
-  def mirror: sub("^cliproxyapi/"; "");
-  ([.modelThinkingLevels | to_entries[] | select(.key | startswith("cliproxyapi/")) | {k: (.key | mirror)}] | sort_by(.k)) ==
-    ([.modelThinkingLevels | to_entries[] | select(.key | startswith("anthropic/") or startswith("openai-codex/")) | {k: (.key | native)}] | sort_by(.k))
-' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: native and CLIProxyAPI aliases, enabledModels or model identifiers do not mirror each other\n' "$WORKFLOWS_SETTINGS and $SETTINGS"
+  .modelAliases | all(.[];
+    if type != "string" or (contains("/") | not) then true
+    else (sub(":(off|minimal|low|medium|high|xhigh|max)$"; "")) as $route |
+      ($route | length) > 0
+    end)
+' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+  printf '%s: model aliases contain an invalid route\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
@@ -370,6 +345,15 @@ required_roles=(
   qa.md
   release.md
   sre.md
+  verifier.md
+  companion.md
+  data-engineer.md
+  debugger.md
+  market-researcher.md
+  marketing-strategist.md
+  product-designer.md
+  technical-writer.md
+  visual-designer.md
 )
 missing_roles=()
 for role in "${required_roles[@]}"; do
@@ -406,15 +390,31 @@ const bind = await import(pathToFileURL(`${root}/pi/agent/extensions/pi-ha-role-
 const groups = JSON.parse(readFileSync(`${root}/pi/agent/ha-failover.example.json`, "utf8"));
 const roleGroups = JSON.parse(readFileSync(`${root}/pi/agent/pi-ha-role-groups.json`, "utf8")).roleGroups;
 const aliases = JSON.parse(readFileSync(`${root}/pi/agent/pi-ext-roles/settings.json`, "utf8")).modelAliases;
-const roleModels = Object.fromEntries(Object.keys(roleGroups).map((role) => {
+const requiredRoles = [
+  "developer", "oracle", "researcher", "reviewer", "scout", "summarizer", "tests-expert",
+  "architect", "security", "qa", "release", "sre", "verifier", "companion", "data-engineer",
+  "debugger", "market-researcher", "marketing-strategist", "product-designer", "technical-writer",
+  "visual-designer",
+];
+const missingBindings = requiredRoles.filter((role) => !Object.hasOwn(roleGroups, role));
+if (missingBindings.length) {
+  console.error(`missing HA role binding(s): ${missingBindings.join(", ")}`);
+  process.exit(1);
+}
+const roleModels = Object.fromEntries(requiredRoles.map((role) => {
   const source = readFileSync(`${root}/pi/agent/pi-ext-roles/roles/${role}.md`, "utf8");
   return [role, source.match(/^model:\s*(\S+)\s*$/m)?.[1]];
 }));
-const failures = bind.assertRoleGroupCoverage({
-  primaries: bind.resolveRolePrimaries({ roleModels, aliases }),
-  roleGroups,
-  groups: groups.groups,
-});
+const primaries = bind.resolveRolePrimaries({ roleModels, aliases });
+const failures = bind.assertRoleGroupCoverage({ primaries, roleGroups, groups: groups.groups });
+for (const [role, primary] of Object.entries(primaries)) {
+  const group = groups.groups[roleGroups[role]];
+  const entries = group?.entries ?? [];
+  const index = entries.findIndex((entry) => bind.normalizeModelId(entry?.id) === primary.model);
+  if (index >= 0 && index === entries.length - 1) {
+    failures.push(`${role}: primary ${primary.model} has no HA fallback in ${roleGroups[role]}`);
+  }
+}
 if (failures.length) {
   console.error(failures.join("\n"));
   process.exit(1);

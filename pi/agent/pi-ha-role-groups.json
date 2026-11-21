@@ -11,6 +11,15 @@
     "security": "reviewer",
     "qa": "development",
     "release": "development",
-    "sre": "development"
+    "sre": "development",
+    "debugger": "development",
+    "market-researcher": "research",
+    "marketing-strategist": "research",
+    "verifier": "reviewer",
+    "companion": "summary",
+    "data-engineer": "development",
+    "product-designer": "reviewer",
+    "technical-writer": "summary",
+    "visual-designer": "reviewer"
   }
 }

@@ -7,8 +7,9 @@ Run these on the machine, after `setup_env.sh`:
 ```bash
 # This checkout's own config invariants: settings.json parses, carries the
 # module-owned packages and gentle-pi exclusions, makes pi-vcc the sole compaction
-# owner, enforces Claude-via-CLIProxyAPI and native Codex aliases, the GGA reviewer
-# model, plus enabledModels, has no ../../ path, and setup_env.sh never writes
+# owner, enforces the configured CLIProxyAPI-only model matrix, its role bindings,
+# the GGA reviewer model and reviewer-group coverage, plus enabledModels, has no
+# ../../ path, and setup_env.sh never writes
 # GENTLE_PI_QUIET_TOOLS=0
 bash check-config.sh
 
