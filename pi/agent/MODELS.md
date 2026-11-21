@@ -45,7 +45,7 @@ from one layer and the effort from another.
 
 This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
 `high`; workflow aliases use the current authenticated CLIProxyAPI catalog matrix.
-The GGA reviewer (`.gga`) uses `cliproxyapi/gemini-3.8-flash-tiered:high` as its effective route; role aliases and the reviewer HA group use the current CLIProxyAPI matrix. The CLIProxyAPI provider dynamically discovers its model catalog; configuration or discovery does not establish upstream entitlement, quota, or sustained inference.
+The GGA reviewer (`.gga`) uses `cliproxyapi/go/deepseek-v4-pro:high` as its effective route; role aliases and the reviewer HA group use the current CLIProxyAPI matrix. The CLIProxyAPI provider dynamically discovers its model catalog; configuration or discovery does not establish upstream entitlement, quota, or sustained inference.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
 
@@ -352,27 +352,27 @@ families, and no provider-specific max mode.
 
 | Alias | Configured target | Use |
 |---|---|---|
-| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6:off` | Authoring roles on the live Anthropic gateway account |
-| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` | Long-context research and operational roles |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered:high` | Security and review gates |
-| `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` | Bounded verification checks |
+| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Authoring roles on the OpenCode Go gateway account |
+| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Research and operational roles |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro:high` | Security and review gates |
+| `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Bounded verification checks |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` | Fast scouting |
-| `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` | Summary and writing |
-| `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6:off` | Design roles |
+| `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/go/deepseek-v4.1-flash:low` | Summary and writing |
+| `product-designer-model`, `visual-designer-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Design roles |
 
 **Plan limits behind the choice.** Catalog and plan evidence are kept separate from local route selection. Current roles are mapped to CLIProxyAPI routes only; unknown entitlement, quota, or sustained inference never authorizes an automatic replacement.
 
-**Review model and effort (GGA and the reviewer role).** For a gate that runs on every commit, speed, independence, and route health matter. GGA uses the independent reviewer HA route (`PROVIDER="kilo:cliproxyapi/gemini-3.8-flash-tiered:high"`), enforced by `check-config.sh`. The bridge normalizes the effort suffix when matching the credentials-free bare-ID HA template and tries ordered fallbacks. Catalog visibility, entitlement, inference, and quota remain separate evidence. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
+**Review model and effort (GGA and the reviewer role).** For a gate that runs on every commit, speed, independence, and route health matter. GGA uses the independent reviewer HA route (`PROVIDER="kilo:cliproxyapi/go/deepseek-v4-pro:high"`), enforced by `check-config.sh`. The bridge normalizes the effort suffix when matching the credentials-free bare-ID HA template and tries ordered fallbacks. Catalog visibility, entitlement, inference, and quota remain separate evidence. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
-- Authoring roles use `cliproxyapi/claude-sonnet-4-6:off`, with no gateway thinking level.
-- Review and security roles use `cliproxyapi/gemini-3.8-flash-tiered:high`; verification uses the same model at `medium`.
-- Research, release and SRE use `cliproxyapi/gemini-3.8-flash-tiered:medium`.
-- Scout uses `cliproxyapi/deepseek-v4.1-flash:high`; companion, summarizer, and technical writer use `cliproxyapi/gemini-3.5-flash-lite:low`.
-- Product and visual design use `cliproxyapi/claude-sonnet-4-6:off`.
+- Authoring roles use `cliproxyapi/go/deepseek-v4.1-flash:high`.
+- Review, oracle and security roles use `cliproxyapi/go/deepseek-v4-pro:high`; verification uses `cliproxyapi/go/deepseek-v4.1-flash:high`.
+- Research, release and SRE use `cliproxyapi/go/deepseek-v4.1-flash:high`.
+- Scout uses `cliproxyapi/deepseek-v4.1-flash:high`; companion, summarizer, and technical writer use `cliproxyapi/go/deepseek-v4.1-flash:low`.
+- Product and visual design use `cliproxyapi/go/deepseek-v4.1-flash:high`.
 
 **Gateway usage:**
-- All active role aliases are direct CLIProxyAPI routes. Ordered model/account failover belongs to `ha.json` and its role groups; no native, provider-specific, or Gemini compatibility aliases are active.
+- All active role aliases are direct CLIProxyAPI routes. Ordered model/account failover belongs to `ha.json` and its role groups; no native compatibility aliases are active.
 
 Do not replace the standard aliases with other targets when the gateway is down; report it and retain the configured choice.
 
@@ -787,7 +787,7 @@ Web sources, all read 2026-09-13:
    the cause was the model's credit requirement, not a version gate. At that
    time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
    a live call. That native route is historical; the active reviewer target is
-   `cliproxyapi/gemini-3.8-flash-tiered:high` and requires dynamic catalog discovery before inference.
+   `cliproxyapi/go/deepseek-v4-pro:high` and requires dynamic catalog discovery before inference.
 2. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces

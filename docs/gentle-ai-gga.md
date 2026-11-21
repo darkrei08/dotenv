@@ -128,30 +128,30 @@ shadows a real Kilo install. Pi accepts `provider/model:effort` and reads the pr
 from stdin, which is why the value after `kilo:` is a Pi model pattern:
 
 ```bash
-PROVIDER="kilo:cliproxyapi/gemini-3.8-flash-tiered:high"
+PROVIDER="kilo:cliproxyapi/go/deepseek-v4-pro:high"
 ```
 
-`check-config.sh` validates the dedicated reviewer HA route (`cliproxyapi/gemini-3.8-flash-tiered:high`), checks that the pair is enabled in Pi settings, and requires `.gga` to use it through the Pi bridge. The workflow reviewer role may use a different primary model; its HA group remains the failover boundary. A missing route or mismatch fails the check; this is configuration validation, not a live authentication or inference test, and there is no automatic model substitution.
+`check-config.sh` validates the dedicated reviewer HA route (`cliproxyapi/go/deepseek-v4-pro:high`), checks that the pair is enabled in Pi settings, and requires `.gga` to use it through the Pi bridge. The workflow reviewer role may use a different primary model; its HA group remains the failover boundary. A missing route or mismatch fails the check; this is configuration validation, not a live authentication or inference test, and there is no automatic model substitution.
 
 If GGA says "Kilo CLI not found", it was started without the wrapper: use
 `agents/gga-pi/run-gga.sh run` instead of `gga run`, or fix the hook block above.
 
 ### Which model, and at what effort
 
-GGA uses the dedicated reviewer HA route `cliproxyapi/gemini-3.8-flash-tiered:high` through the CLIProxyAPI reviewer HA group. If that route is unavailable, the bridge normalizes the effort suffix and tries the configured reviewer-group fallbacks in order; it uses the tracked HA template when the live file lacks the primary.
+GGA uses the dedicated reviewer HA route `cliproxyapi/go/deepseek-v4-pro:high` through the CLIProxyAPI reviewer HA group. If that route is unavailable, the bridge normalizes the effort suffix and tries the configured reviewer-group fallbacks in order; it uses the tracked HA template when the live file lacks the primary.
 
 - Opus is the stronger reviewer for hard changes: CodeRabbit measured 8 of 13 hard known bugs at standard effort (66.7% precision) and 10 of 13 at max (52% precision), against 6 of 13 at 41% precision for Sonnet 5.5, at about twice the list price ([CodeRabbit, Sonnet 5.5 review](https://www.coderabbit.ai/blog/sonnet-5-5-model-review)). The benchmark has 13 cases: a direction, not a verdict.
 - Reasoning curves show low to medium to high as the useful steps and xhigh as much costlier for a small gain ([Stet, reasoning curve](https://www.stet.sh/blog/gpt-55-codex-graphql-reasoning-curve)). Anthropic documents the effort parameter at <https://platform.claude.com/docs/en/build-with-claude/effort>.
 
 | Need | `PROVIDER` | Notes |
 | --- | --- | --- |
-| Default, every commit | `kilo:cliproxyapi/gemini-3.8-flash-tiered:high` | Dedicated reviewer HA route; uses the CLIProxyAPI reviewer HA group |
-| Lower-cost one-off review | `kilo:cliproxyapi/claude-sonnet-4-6:off` | Explicit per-command override; the gateway exposes no Claude thinking effort; `.gga` remains unchanged |
+| Default, every commit | `kilo:cliproxyapi/go/deepseek-v4-pro:high` | Dedicated reviewer HA route; uses the CLIProxyAPI reviewer HA group |
+| Lower-cost one-off review | `kilo:cliproxyapi/go/deepseek-v4.1-flash:high` | Explicit per-command override; `.gga` remains unchanged |
 
 One-off override, without editing `.gga`:
 
 ```bash
-GGA_PROVIDER=kilo:cliproxyapi/claude-sonnet-4-6:off git commit
+GGA_PROVIDER=kilo:cliproxyapi/go/deepseek-v4.1-flash:high git commit
 ```
 
 `check-config.sh` asserts that `.gga` uses the dedicated reviewer HA route and that the route is present in the reviewer group. It never switches models when the gateway or model is unavailable; the GGA bridge itself performs the configured reviewer-group failover, and the Pi HA extension is not involved.
@@ -178,7 +178,7 @@ Run `gga run --no-cache` to force a full review, and `gga run --ci` or
 
 Gentle AI's receipt-driven review does not use `.gga`. Its reviewer lenses take their
 models from `pi/agent/subagents.json` (`review-risk`, `review-resilience`,
-`review-readability`, `review-reliability`), set here to Opus 4.6 Thinking at `off` because the gateway exposes no Claude thinking effort.
+`review-readability`, `review-reliability`), set here to the reviewer HA route at `high`.
 Check or switch it with `gentle-ai review mode status|enable|disable`. Evidence from
 a review never authorizes a commit or push; repository policy still decides
 delivery ([Pi integration](https://github.com/Gentleman-Programming/gentle-ai/blob/main/docs/pi.md)).
@@ -189,7 +189,7 @@ delivery ([Pi integration](https://github.com/Gentleman-Programming/gentle-ai/bl
 | --- | --- |
 | `Kilo CLI not found` | GGA started without the wrapper. Use `agents/gga-pi/run-gga.sh run`, or fix the hook block above. |
 | `gga-pi: pi is not on PATH` | Pi is not installed for this shell. Install it, then retry. |
-| `provider returned no output` | The `pi` call failed. Run the model by hand: `echo hi \| pi --print --no-tools --model cliproxyapi/gemini-3.8-flash-tiered:high -e ~/.pi/agent/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts`, and check the CLIProxyAPI gateway is running. |
+| `provider returned no output` | The `pi` call failed. Run the model by hand: `echo hi \| pi --print --no-tools --model cliproxyapi/go/deepseek-v4-pro:high -e ~/.pi/agent/npm/node_modules/@router-for-me/pi-cliproxyapi-provider/extensions/index.ts`, and check the CLIProxyAPI gateway is running. |
 | Quota or rate-limit error | GGA fails closed; use an explicit per-command `GGA_PROVIDER` override only when you choose that alternative. |
 | Verdict not parsed | `STRICT_MODE` blocks ambiguous answers by design. Re-run once; if it repeats, raise `TIMEOUT` or reduce the staged set. |
 

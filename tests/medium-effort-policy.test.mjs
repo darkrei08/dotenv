@@ -26,29 +26,67 @@ test("orchestration package is pinned to the reviewed v1.2.6 commit", () => {
   assert.ok(readFileSync(new URL("pi/agent/pi-packages.txt", root), "utf8").split("\n").includes(source));
 });
 
+test("active routes are present as plain strings and escaped regexes, old routes are absent", () => {
+  const routes = [
+    "cliproxyapi/go/deepseek-v4.1-flash",
+    "cliproxyapi/go/deepseek-v4-pro",
+    "cliproxyapi/gpt-6-sol",
+    "cliproxyapi/gpt-6-luna",
+  ];
+  const activeFiles = [
+    ".gga",
+    "check-config.sh",
+    "pi/agent/pi-ext-roles/settings.json",
+    "pi/agent/ha-failover.example.json",
+    "tests/medium-effort-policy.test.mjs",
+  ];
+  for (const file of activeFiles) {
+    const content = readFileSync(new URL(file, root), "utf8");
+    if (file === ".gga") {
+      assert.ok(content.includes("cliproxyapi/go/deepseek-v4-pro:high"), `${file}: missing plain PRO route`);
+    }
+    if (file === "tests/medium-effort-policy.test.mjs") continue;
+    for (const route of routes) {
+      if (!content.includes(route)) continue;
+      const escaped = route.replaceAll(".", "\\.");
+      assert.match(content, new RegExp(escaped), `${file}: escaped regex must match ${route}`);
+      assert.ok(content.includes(route), `${file}: plain route ${route} is missing`);
+    }
+    for (const oldRoute of ["antigravity", "gemini-3.8-flash-tiered", "gemini-3.5-flash-lite", "claude-sonnet-4-6", "claude-opus-4-6-thinking"]) {
+      assert.ok(!content.includes(oldRoute), `${file}: old route ${oldRoute} is still active`);
+    }
+  }
+  assert.ok([...new Set(Object.entries(aliases).filter(([name]) => name !== "scout-model").map(([, route]) => route.split(":")[0]))].every((route) => routes.includes(route)));
+  for (const route of ["cliproxyapi/go/deepseek-v4.1-flash", "cliproxyapi/go/deepseek-v4-pro"]) {
+    const escaped = route.replaceAll(".", "\\.");
+    assert.ok(new RegExp(escaped).test(JSON.stringify(aliases)), `${route}: escaped regex must match aliases`);
+    assert.match(readFileSync(new URL("check-config.sh", root), "utf8"), new RegExp(escaped), `${route}: escaped regex must match check-config.sh`);
+  }
+});
+
 test("managed aliases, roles and GGA resolve to the configured model matrix", () => {
   const expected = {
     "scout-model": { model: "cliproxyapi/deepseek-v4.1-flash", effort: "high" },
-    "developer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "architect-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "security-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "high" },
-    "qa-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "release-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "sre-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "verifier-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "companion-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "data-engineer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "debugger-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "market-researcher-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "marketing-strategist-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "product-designer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "technical-writer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "visual-designer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "tests-expert-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "researcher-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
-    "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
-    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "high" },
-    "reviewer-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "high" }
+    "developer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "architect-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "security-model": { model: "cliproxyapi/go/deepseek-v4-pro", effort: "high" },
+    "qa-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "release-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "sre-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "verifier-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "companion-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
+    "data-engineer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "debugger-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "market-researcher-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "marketing-strategist-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "product-designer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "technical-writer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
+    "visual-designer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "tests-expert-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "researcher-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "summarizer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
+    "oracle-model": { model: "cliproxyapi/go/deepseek-v4-pro", effort: "high" },
+    "reviewer-model": { model: "cliproxyapi/go/deepseek-v4-pro", effort: "high" }
   };
   assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {
@@ -65,7 +103,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];
   assert.ok(gga, "GGA must keep its Pi bridge provider");
   const ggaRoute = resolveModel(gga);
-  assert.deepEqual(ggaRoute, { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "high" }, "GGA must use the dedicated reviewer HA route");
+  assert.deepEqual(ggaRoute, { model: "cliproxyapi/go/deepseek-v4-pro", effort: "high" }, "GGA must use the dedicated reviewer HA route");
   assert.ok(ha.groups.reviewer.entries.some((entry) => entry.id === ggaRoute.model), "GGA must use the exact reviewer HA model");
 });
 
@@ -114,7 +152,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     // Mutate live alias effort: check-config must fail when live diverges from canonical
     const liveAliasesPath = join(liveDir, "pi-ext-roles/settings.json");
     const liveAliases = JSON.parse(readFileSync(liveAliasesPath, "utf8"));
-    liveAliases.modelAliases["reviewer-model"] = "cliproxyapi/gemini-3.8-flash-tiered:low";
+    liveAliases.modelAliases["reviewer-model"] = "cliproxyapi/go/deepseek-v4-pro:low";
     writeFileSync(liveAliasesPath, JSON.stringify(liveAliases, null, 2));
     const driftedResult = runDistinct();
     assert.equal(driftedResult.status, 1);
@@ -128,8 +166,8 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-3.8-flash-tiered is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-3.8-flash-tiered is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-3.8-flash-tiered is absent from HA group reviewer\nverifier: primary cliproxyapi/gemini-3.8-flash-tiered is absent from HA group reviewer\n");
-    assert.equal(routeMismatch.stdout, `${fixture}/.gga: GGA model must be listed in the reviewer HA group (found: kilo:cliproxyapi/gemini-3.8-flash-tiered:high)\n${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
+    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/go/deepseek-v4-pro is absent from HA group reviewer\nreviewer: primary cliproxyapi/go/deepseek-v4-pro is absent from HA group reviewer\nsecurity: primary cliproxyapi/go/deepseek-v4-pro is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stdout, `${fixture}/.gga: GGA model must be listed in the reviewer HA group (found: kilo:cliproxyapi/go/deepseek-v4-pro:high)\n${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 
     const roleGroupsPath = join(fixture, "pi/agent/pi-ha-role-groups.json");
@@ -147,11 +185,11 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(reviewerOrder, null, 2));
     const missingFallback = run();
     assert.equal(missingFallback.status, 1);
-    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/gemini-3\.8-flash-tiered has no HA fallback in reviewer/);
+    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/go\/deepseek-v4-pro has no HA fallback in reviewer/);
     writeFileSync(haPath, haBefore);
 
     const ggaPath = join(fixture, ".gga");
-    const rejected = readFileSync(ggaPath, "utf8").replace(/gemini-3\.8-flash-tiered:high/, "gemini-3.8-flash-tiered:medium");
+    const rejected = readFileSync(ggaPath, "utf8").replace(/cliproxyapi\/go\/deepseek-v4-pro:high/, "cliproxyapi/go/deepseek-v4-pro:low");
     writeFileSync(ggaPath, rejected);
     const settingsPath = join(fixture, "pi/agent/settings.json");
     const aliasesPath = join(fixture, "pi/agent/pi-ext-roles/settings.json");
@@ -160,7 +198,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     const invalid = run();
     assert.equal(invalid.status, 1);
     assert.equal(invalid.stderr, "");
-    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/gemini-3.8-flash-tiered:medium)\n${fixture}/.gga: GGA route must use the reviewer HA route (expected: kilo:cliproxyapi/gemini-3.8-flash-tiered:high, found: kilo:cliproxyapi/gemini-3.8-flash-tiered:medium)\n`);
+    assert.equal(invalid.stdout, `${fixture}/pi/agent/settings.json: GGA reviewer model/effort must be enabled (found: cliproxyapi/go/deepseek-v4-pro:low)\n${fixture}/.gga: GGA route must use the reviewer HA route (expected: kilo:cliproxyapi/go/deepseek-v4-pro:high, found: kilo:cliproxyapi/go/deepseek-v4-pro:low)\n`);
     assert.equal(readFileSync(ggaPath, "utf8"), rejected);
     assert.equal(readFileSync(settingsPath, "utf8"), settingsBefore);
     assert.equal(readFileSync(aliasesPath, "utf8"), aliasesBefore);

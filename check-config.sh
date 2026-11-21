@@ -85,7 +85,7 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
-gga_expected_route='cliproxyapi/gemini-3.8-flash-tiered:high'
+gga_expected_route='cliproxyapi/go/deepseek-v4-pro:high'
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
@@ -256,26 +256,26 @@ if ! jq -e '
   .modelAliases as $aliases |
   (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert-model", "verifier-model", "visual-designer-model"]) and
   $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
-  $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["architect-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["security-model"] == "cliproxyapi/gemini-3.8-flash-tiered:high" and
-  $aliases["qa-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["release-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["sre-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["verifier-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["companion-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["data-engineer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["debugger-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["market-researcher-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["marketing-strategist-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["product-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["technical-writer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["visual-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["tests-expert-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
-  $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
-  $aliases["reviewer-model"] == "cliproxyapi/gemini-3.8-flash-tiered:high" and
-  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-tiered:high"
+  $aliases["developer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["architect-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["security-model"] == "cliproxyapi/go/deepseek-v4-pro:high" and
+  $aliases["qa-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["release-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["sre-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["verifier-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["companion-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
+  $aliases["data-engineer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["debugger-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["market-researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["marketing-strategist-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["product-designer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["technical-writer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
+  $aliases["visual-designer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["tests-expert-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["summarizer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
+  $aliases["reviewer-model"] == "cliproxyapi/go/deepseek-v4-pro:high" and
+  $aliases["oracle-model"] == "cliproxyapi/go/deepseek-v4-pro:high"
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1

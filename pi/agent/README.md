@@ -27,16 +27,16 @@ claim that a live gateway can use them:
 
 | Role alias | Resolves to | Effort | Used by |
 | --- | --- | --- | --- |
-| `developer-model`, `architect-model`, `qa-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6` | off | development, architecture, QA, tests |
-| `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | research, release, SRE |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered` | high | security and review |
-| `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | verification |
+| `developer-model`, `architect-model`, `qa-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | development, architecture, QA, tests |
+| `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | research, release, SRE |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro` | high | security and review |
+| `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | verification |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash` | high | scout |
-| `summarizer-model`, `technical-writer-model`, `companion-model` | `cliproxyapi/gemini-3.5-flash-lite` | low | summary and writing |
-| `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6` | off | design roles |
+| `summarizer-model`, `technical-writer-model`, `companion-model` | `cliproxyapi/go/deepseek-v4.1-flash` | low | summary and writing |
+| `product-designer-model`, `visual-designer-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | design roles |
 
 Aliases are role names only. Failover is defined by the HA role groups; no
-provider-specific `gemini-*` compatibility aliases are maintained.
+provider-specific compatibility aliases are maintained.
 
 Managed role aliases, subagent review profiles, optional modes and GGA use the
 configured effort for their route. GGA uses the dedicated CLIProxyAPI reviewer
@@ -65,22 +65,22 @@ Workflow role aliases resolve directly to CLIProxyAPI targets:
 
 | Role aliases | CLIProxyAPI target |
 | --- | --- |
-| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6:off` |
-| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered:high` |
-| `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
+| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
+| `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro:high` |
+| `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` |
-| `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/gemini-3.5-flash-lite:low` |
-| `product-designer-model`, `visual-designer-model` | `cliproxyapi/claude-sonnet-4-6:off` |
+| `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/go/deepseek-v4.1-flash:low` |
+| `product-designer-model`, `visual-designer-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
 
 `check-config.sh` validates the exact role alias set and rejects direct non-gateway
 routes. Ordered model/account failover belongs to `ha.json` and its role groups;
-there are no native, provider-specific or Gemini compatibility aliases.
+there are no native or provider-specific compatibility aliases.
 For automatic quota/capacity fallback, `~/.pi/agent/ha.json` contains `development`,
 `scout`, `fast`, `research`, `summary`, and `testing` groups. Select one with
 `/ha-group <name> <model-id>...`; the repository template is
 `pi/agent/ha-failover.example.json`. The default development chain ends with
-`cliproxyapi/gpt-6-luna` after the existing GPT and Claude entries.
+`cliproxyapi/gpt-6-sol` and `cliproxyapi/gpt-6-luna` after the OpenCode Go entries.
 
 ### Gemini
 

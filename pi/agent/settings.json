@@ -10,13 +10,8 @@
     "cliproxyapi/gpt-5.6-luna": "high",
     "cliproxyapi/gpt-6-luna": "medium",
     "cliproxyapi/gpt-6-sol": "medium",
-    "cliproxyapi/gpt-6.1-sol": "high",
-    "cliproxyapi/gpt-6.2-sol": "high",
-    "cliproxyapi/claude-sonnet-4-6": "off",
-    "cliproxyapi/gemini-3.5-flash-lite": "low",
-    "cliproxyapi/gemini-3.8-flash-tiered": "high",
-    "cliproxyapi/deepseek-v4.1-flash": "high",
-    "cliproxyapi/go/deepseek-v4.1-flash": "high"
+    "cliproxyapi/go/deepseek-v4.1-flash": "high",
+    "cliproxyapi/go/deepseek-v4-pro": "high"
   },
   "theme": "dark",
   "packages": [
@@ -77,33 +72,11 @@
     "git:github.com/darkrei08/pi-herdr-orchestration@e8e52d3a358f036f5cb2bcb517b0abe572d3d216"
   ],
   "enabledModels": [
-    "cliproxyapi/beam-free",
-    "cliproxyapi/claude-opus-4-6-thinking",
-    "cliproxyapi/claude-sonnet-4-6",
-    "cliproxyapi/deepseek-v4-pro",
-    "cliproxyapi/deepseek-v4.1-flash",
-    "cliproxyapi/gemini-3-flash",
-    "cliproxyapi/gemini-3.1-flash-image",
-    "cliproxyapi/gemini-3.1-flash-lite",
-    "cliproxyapi/gemini-3.5-flash-lite",
-    "cliproxyapi/gemini-3.8-flash-high",
-    "cliproxyapi/gemini-3.8-flash-tiered",
-    "cliproxyapi/go/beam-free",
     "cliproxyapi/go/deepseek-v4-pro",
     "cliproxyapi/go/deepseek-v4.1-flash",
-    "cliproxyapi/go/iceman-contributor-free",
     "cliproxyapi/gpt-5.6-luna",
-    "cliproxyapi/gpt-5.6-sol",
-    "cliproxyapi/gpt-5.6-terra",
-    "cliproxyapi/gpt-6-astra",
     "cliproxyapi/gpt-6-luna",
-    "cliproxyapi/gpt-6-sol",
-    "cliproxyapi/gpt-6.1-sol",
-    "cliproxyapi/gpt-6.1-terra",
-    "cliproxyapi/gpt-6.2-astra",
-    "cliproxyapi/gpt-6.2-sol",
-    "cliproxyapi/gpt-oss-120b-medium",
-    "cliproxyapi/iceman-contributor-free"
+    "cliproxyapi/gpt-6-sol"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,
@@ -113,19 +86,12 @@
     "reserveTokens": 16384,
     "keepRecentTokens": 20000,
     "modelOverrides": {
-      "cliproxyapi/beam-free": { "reserveTokens": 724000 },
-      "cliproxyapi/deepseek-v4-pro": { "reserveTokens": 724000 },
-      "cliproxyapi/deepseek-v4.1-flash": { "reserveTokens": 724000 },
-      "cliproxyapi/gemini-3-flash": { "reserveTokens": 724000 },
-      "cliproxyapi/gemini-3.1-flash-lite": { "reserveTokens": 724000 },
-      "cliproxyapi/gemini-3.5-flash-lite": { "reserveTokens": 724000 },
-      "cliproxyapi/gemini-3.8-flash-tiered": { "reserveTokens": 724000 },
-      "cliproxyapi/go/beam-free": { "reserveTokens": 724000 },
-      "cliproxyapi/go/deepseek-v4-pro": { "reserveTokens": 724000 },
-      "cliproxyapi/go/deepseek-v4.1-flash": { "reserveTokens": 724000 },
-      "cliproxyapi/gpt-6.1-sol": { "reserveTokens": 224000 },
-      "cliproxyapi/gpt-6.1-terra": { "reserveTokens": 224000 },
-      "cliproxyapi/gpt-6.2-sol": { "reserveTokens": 224000 }
+      "cliproxyapi/go/deepseek-v4-pro": {
+        "reserveTokens": 724000
+      },
+      "cliproxyapi/go/deepseek-v4.1-flash": {
+        "reserveTokens": 724000
+      }
     }
   }
 }

@@ -1,4 +1,4 @@
-PROVIDER="kilo:cliproxyapi/gemini-3.8-flash-tiered:high"
+PROVIDER="kilo:cliproxyapi/go/deepseek-v4-pro:high"
 FILE_PATTERNS="*.sh,*.json,*.ts,*.mjs,*.md,*.lua,*.toml"
 EXCLUDE_PATTERNS="package-lock.json,node_modules/*,*.log,*.jsonl,logs/*"
 RULES_FILE="REVIEW_RULES.md"
