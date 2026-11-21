@@ -29,7 +29,7 @@ claim that a live gateway can use them:
 | --- | --- | --- | --- |
 | `developer-model`, `architect-model`, `qa-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | development, architecture, QA, tests |
 | `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | research, release, SRE |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro` | high | security and review |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gpt-6-sol` | high | security and review |
 | `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash` | high | verification |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash` | high | scout |
 | `summarizer-model`, `technical-writer-model`, `companion-model` | `cliproxyapi/go/deepseek-v4.1-flash` | low | summary and writing |
@@ -41,8 +41,9 @@ provider-specific compatibility aliases are maintained.
 Managed role aliases, subagent review profiles, optional modes and GGA use the
 configured effort for their route. GGA uses the dedicated CLIProxyAPI reviewer
 HA route (`.gga` and the `agents/gga-pi/` bridge; see
-[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)). An unavailable review
-model remains a blocker, not permission to bypass the gate or choose another one.
+[`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md)). An unavailable primary
+uses the configured reviewer-group fallbacks; it is not permission to bypass the
+gate or choose an arbitrary model.
 
 Verify this matrix with `node --test tests/medium-effort-policy.test.mjs` and
 `bash tests/role-tool-policy.sh` from the repository root. Existing sessions
@@ -67,7 +68,7 @@ Workflow role aliases resolve directly to CLIProxyAPI targets:
 | --- | --- |
 | `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
 | `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro:high` |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gpt-6-sol:high` |
 | `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` |
 | `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/go/deepseek-v4.1-flash:low` |

@@ -3,7 +3,7 @@
     "scout-model": "cliproxyapi/deepseek-v4.1-flash:high",
     "developer-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "architect-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
-    "security-model": "cliproxyapi/go/deepseek-v4-pro:high",
+    "security-model": "cliproxyapi/gpt-6-sol:high",
     "qa-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "release-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "sre-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
@@ -19,8 +19,8 @@
     "tests-expert-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "researcher-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "summarizer-model": "cliproxyapi/go/deepseek-v4.1-flash:low",
-    "oracle-model": "cliproxyapi/go/deepseek-v4-pro:high",
-    "reviewer-model": "cliproxyapi/go/deepseek-v4-pro:high"
+    "oracle-model": "cliproxyapi/gpt-6-sol:high",
+    "reviewer-model": "cliproxyapi/gpt-6-sol:high"
   },
   "skills": [
     "!*",

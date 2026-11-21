@@ -111,13 +111,13 @@
       "name": "Reviewer fallback",
       "entries": [
         {
+          "id": "cliproxyapi/gpt-6-sol"
+        },
+        {
           "id": "cliproxyapi/go/deepseek-v4-pro"
         },
         {
           "id": "cliproxyapi/go/deepseek-v4.1-flash"
-        },
-        {
-          "id": "cliproxyapi/gpt-6-sol"
         },
         {
           "id": "cliproxyapi/gpt-6-luna"

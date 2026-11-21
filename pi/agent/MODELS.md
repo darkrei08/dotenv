@@ -45,7 +45,7 @@ from one layer and the effort from another.
 
 This repository's interactive default is `cliproxyapi/gpt-5.6-luna` at
 `high`; workflow aliases use the current authenticated CLIProxyAPI catalog matrix.
-The GGA reviewer (`.gga`) uses `cliproxyapi/go/deepseek-v4-pro:high` as its effective route; role aliases and the reviewer HA group use the current CLIProxyAPI matrix. The CLIProxyAPI provider dynamically discovers its model catalog; configuration or discovery does not establish upstream entitlement, quota, or sustained inference.
+The GGA reviewer (`.gga`) uses `cliproxyapi/gpt-6-sol:high` as its effective route; role aliases and the reviewer HA group use the current CLIProxyAPI matrix. The CLIProxyAPI provider dynamically discovers its model catalog; configuration or discovery does not establish upstream entitlement, quota, or sustained inference.
 
 This is implemented in `~/.pi/agent/npm/node_modules/gentle-pi/lib/agents-config.ts`:
 
@@ -266,7 +266,7 @@ where noted.
 | Group | Models | What reaches the provider |
 |---|---|---|
 | Full ladder | `gpt-5.6-luna` | `low`, `medium`, `high`, `xhigh`, `max`, each sent unchanged |
-| Effort: high + max | `deepseek-v4.1-flash`, `deepseek-v4-pro`, `glm-5.2` | `high`, `max`; `minimal`/`low`/`medium` land on `high`, `xhigh` on `max` |
+| Effort: high + max | `deepseek-v4.1-flash`, `deepseek-v4-pro`, `glm-5.2` | Native route: `high`, `max`; `minimal`/`low`/`medium` land on `high`, `xhigh` on `max`. The gateway route `cliproxyapi/go/deepseek-v4.1-flash` also accepts `low`, `medium` and `high` (bounded probe 2026-11-21), so summary aliases can use `:low`. |
 | Effort: low + high + max | `deepseek-v4-flash`, `deepseek-v4-flash-vision-exp`, `glm-5.3`, `glm-5.3-flash` | `low`, `high`, `max` |
 | Effort: top is xhigh | `grok-4.6`, `muse-spark-1.2-contributor`, `muse-spark-1.3-contributor` | `low` .. `xhigh` (`grok-4.6` also `medium`); `max` clamps down to `xhigh` |
 | Effort: xhigh unmapped | `qwen3.8-max` | `low`, `medium`, `xhigh`; `high` clamps **up** to `xhigh` |
@@ -354,7 +354,7 @@ families, and no provider-specific max mode.
 |---|---|---|
 | `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Authoring roles on the OpenCode Go gateway account |
 | `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Research and operational roles |
-| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/go/deepseek-v4-pro:high` | Security and review gates |
+| `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gpt-6-sol:high` | Security and review gates |
 | `verifier-model` | `cliproxyapi/go/deepseek-v4.1-flash:high` | Bounded verification checks |
 | `scout-model` | `cliproxyapi/deepseek-v4.1-flash:high` | Fast scouting |
 | `companion-model`, `summarizer-model`, `technical-writer-model` | `cliproxyapi/go/deepseek-v4.1-flash:low` | Summary and writing |
@@ -362,11 +362,11 @@ families, and no provider-specific max mode.
 
 **Plan limits behind the choice.** Catalog and plan evidence are kept separate from local route selection. Current roles are mapped to CLIProxyAPI routes only; unknown entitlement, quota, or sustained inference never authorizes an automatic replacement.
 
-**Review model and effort (GGA and the reviewer role).** For a gate that runs on every commit, speed, independence, and route health matter. GGA uses the independent reviewer HA route (`PROVIDER="kilo:cliproxyapi/go/deepseek-v4-pro:high"`), enforced by `check-config.sh`. The bridge normalizes the effort suffix when matching the credentials-free bare-ID HA template and tries ordered fallbacks. Catalog visibility, entitlement, inference, and quota remain separate evidence. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
+**Review model and effort (GGA and the reviewer role).** For a gate that runs on every commit, speed, independence, and route health matter. GGA uses the independent reviewer HA route (`PROVIDER="kilo:cliproxyapi/gpt-6-sol:high"`), enforced by `check-config.sh`. The bridge normalizes the effort suffix when matching the credentials-free bare-ID HA template and tries ordered fallbacks. Catalog visibility, entitlement, inference, and quota remain separate evidence. Setup and alternatives: [`docs/gentle-ai-gga.md`](../../docs/gentle-ai-gga.md).
 
 **Role routing policy:**
 - Authoring roles use `cliproxyapi/go/deepseek-v4.1-flash:high`.
-- Review, oracle and security roles use `cliproxyapi/go/deepseek-v4-pro:high`; verification uses `cliproxyapi/go/deepseek-v4.1-flash:high`.
+- Review, oracle and security roles use `cliproxyapi/gpt-6-sol:high`; verification uses `cliproxyapi/go/deepseek-v4.1-flash:high`.
 - Research, release and SRE use `cliproxyapi/go/deepseek-v4.1-flash:high`.
 - Scout uses `cliproxyapi/deepseek-v4.1-flash:high`; companion, summarizer, and technical writer use `cliproxyapi/go/deepseek-v4.1-flash:low`.
 - Product and visual design use `cliproxyapi/go/deepseek-v4.1-flash:high`.
@@ -787,7 +787,7 @@ Web sources, all read 2026-09-13:
    the cause was the model's credit requirement, not a version gate. At that
    time `reviewer-model` targeted `anthropic/claude-opus-5:high`, verified with
    a live call. That native route is historical; the active reviewer target is
-   `cliproxyapi/go/deepseek-v4-pro:high` and requires dynamic catalog discovery before inference.
+   `cliproxyapi/gpt-6-sol:high` and requires dynamic catalog discovery before inference.
 2. That the `models.json` cost override for `openai-codex/gpt-5.6-luna` changes
    recorded cost at runtime. The two files disagree (0.20/1.20 versus
    1.00/6.00) and the documented merge semantics say the custom entry replaces

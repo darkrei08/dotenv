@@ -85,7 +85,7 @@ if ! node "$ROOT/pi/agent/bin/pi-token-budget.mjs" --root="$ROOT/pi/agent" --jso
   failures=1
 fi
 
-gga_expected_route='cliproxyapi/go/deepseek-v4-pro:high'
+gga_expected_route='cliproxyapi/gpt-6-sol:high'
 gga_provider=$(sed -nE 's/^PROVIDER="([^"]*)".*/\1/p' "$GGA_CONFIG" 2>/dev/null)
 gga_route=${gga_provider#kilo:}
 gga_model=${gga_route%:*}
@@ -99,11 +99,11 @@ if [[ "$gga_provider" != "kilo:$gga_expected_route" ]]; then
     "$GGA_CONFIG" "$gga_expected_route" "${gga_provider:-missing}"
   failures=1
 fi
-if [[ -n "$gga_model" ]] && ! jq -e --arg model "$gga_model" '
-  (.groups.reviewer.entries // []) |
-  any(.[]; (.id // "") == $model)
+# HA entries are bare model ids; the configured effort is checked against modelThinkingLevels above.
+if [[ -n "$gga_model" ]] && ! jq -e --arg model "$gga_model" --arg effort "$gga_effort" '
+  ((.groups.reviewer.entries // []) | any(.[]; (.id // "") == $model)) and $effort == "high"
 ' "$HA_EXAMPLE" >/dev/null 2>&1; then
-  printf '%s: GGA model must be listed in the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
+  printf '%s: GGA model and high effort must be covered by the reviewer HA group (found: %s)\n' "$GGA_CONFIG" "${gga_provider:-missing}"
   failures=1
 fi
 for bridge in agents/gga-pi/bin/kilo agents/gga-pi/run-gga.sh; do
@@ -122,7 +122,7 @@ if git_common_dir=$(git -C "$ROOT" rev-parse --git-common-dir 2>/dev/null); then
   fi
   pre_commit_hook="$git_common_dir/hooks/pre-commit"
 fi
-if [[ -n "$pre_commit_hook" && -f "$pre_commit_hook" ]] && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
+if [[ -n "$pre_commit_hook" && -f "$pre_commit_hook" ]] && grep -Fqi 'gga' "$pre_commit_hook" && ! grep -Fq 'agents/gga-pi/run-gga.sh' "$pre_commit_hook"; then
   printf '%s: installed pre-commit hook must invoke agents/gga-pi/run-gga.sh\n' "$pre_commit_hook"
   failures=1
 fi
@@ -258,7 +258,7 @@ if ! jq -e '
   $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
   $aliases["developer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["architect-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["security-model"] == "cliproxyapi/go/deepseek-v4-pro:high" and
+  $aliases["security-model"] == "cliproxyapi/gpt-6-sol:high" and
   $aliases["qa-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["release-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["sre-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
@@ -274,8 +274,8 @@ if ! jq -e '
   $aliases["tests-expert-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["summarizer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
-  $aliases["reviewer-model"] == "cliproxyapi/go/deepseek-v4-pro:high" and
-  $aliases["oracle-model"] == "cliproxyapi/go/deepseek-v4-pro:high"
+  $aliases["reviewer-model"] == "cliproxyapi/gpt-6-sol:high" and
+  $aliases["oracle-model"] == "cliproxyapi/gpt-6-sol:high"
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
@@ -322,6 +322,16 @@ if ((live_settings_ok)); then
       <(jq -S '[.packages? // [] | .[]? | select(type == "object") | {source, extensions: (.extensions? // [])}] | sort_by(.source)' "$LIVE_SETTINGS") >/dev/null; then
     printf '%s: canonical object-package source/extensions entries differ from %s\n' \
       "$SETTINGS" "$LIVE_SETTINGS"
+    failures=1
+  fi
+  # String packages are compared by base source: versions, branches and operator-local extras may differ.
+  # The regex strips only a trailing @version/@commit, never the @ of a scoped npm name.
+  missing_string=$(comm -23 \
+    <(jq -S -r '[.packages? // [] | .[]? | select(type == "string") | sub("@[^@/]*$"; "")] | unique[]' "$SETTINGS") \
+    <(jq -S -r '[.packages? // [] | .[]? | select(type == "string") | sub("@[^@/]*$"; "")] | unique[]' "$LIVE_SETTINGS"))
+  if [[ -n "$missing_string" ]]; then
+    printf '%s: canonical string packages missing from %s: %s\n' \
+      "$SETTINGS" "$LIVE_SETTINGS" "${missing_string//$'\n'/, }"
     failures=1
   fi
 fi

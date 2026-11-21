@@ -23,7 +23,7 @@ bash setup-ai.sh --only pi-packages   # from the @darkrei08/setup-ai checkout
 | `settings.json` entry | Why it is not a plain `pi-packages.txt` line |
 | --- | --- |
 | `git:github.com/vekexasia/pi-high-availability` | Plain source; all extensions enabled, including `extensions/index.ts`. Failover config is read from `~/.pi/agent/ha.json` (real file holds credentials and is git-ignored; `ha-failover.example.json` is the tracked, credentials-free template). |
-| `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts`, `extensions/pi-pretty.ts`, and `extensions/codegraph-tools.ts`. The first two avoid the visual-shell conflict and the third avoids duplicate `codegraph` registration with `pi-extension-pack`. The manifest line carries the source only. |
+| `npm:gentle-pi` | Object form excluding `extensions/quiet-tools.ts`, `extensions/pi-pretty.ts`, and `extensions/codegraph-tools.ts`. The first two avoid the visual-shell conflict and the third avoids duplicate `codegraph` registration with `pi-extension-pack`. This package stays out of `pi-packages.txt`; the `gentle-ai` setup module installs and verifies it. |
 | `packages/pi-omplike-advisor` | The manifest writes the same directory as `~/.pi/agent/packages/pi-omplike-advisor`; both resolve to the corresponding live configuration directory. |
 | `npm:pi-extensible-workflows`, `npm:gentle-pi` | `setup-ai`'s `pi-workflows` module installs the first (published release or patched local build) and its `gentle-ai` module runs `pi install` for the second and verifies it, so they stay out of the manifest. `settings.json` must still carry them: `sync_pi` rsyncs that file over `~/.pi/agent` on every run, so an entry only a module added is dropped by the next run and the module's own readback verification then fails. |
 | `npm:@router-for-me/pi-cliproxyapi-provider` | Object form copied from the Vekexasia upstream: it loads the provider and excludes `extensions/tps.ts`, the package's optional TUI elapsed-time/TPS footer helper, which its README documents as separately disableable. The manifest line carries the source only. |
@@ -113,7 +113,7 @@ Which layer resolves model routing, the precedence rule between them, and how to
 
 ## Providers and credentials
 
-`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` and `enabledModels` keep the active picker and role routes on CLIProxyAPI targets; catalog metadata remains separate from entitlement and inference evidence. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/go/deepseek-v4-pro:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
+`pi/agent/settings.json` sets `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, and `defaultThinkingLevel: high`. `modelThinkingLevels` and `enabledModels` keep the active picker and role routes on CLIProxyAPI targets; catalog metadata remains separate from entitlement and inference evidence. Compaction is enabled with `compaction.enabled: true`. `pi/agent/subagents.json` uses CLIProxyAPI Claude Sonnet 4.6 by default and Opus 4.6 Thinking for workflow review profiles. GGA uses the reviewer HA route `kilo:cliproxyapi/gpt-6-sol:high` through Pi (`.gga`, `agents/gga-pi/`), with the reviewer HA group providing CLIProxyAPI fallbacks, so it needs no separate Claude or Codex login. See [gentle-ai-gga.md](gentle-ai-gga.md).
 
 `pi/agent/models.json` declares the static `openrouter` and `openai-codex` providers; `npm:@router-for-me/pi-cliproxyapi-provider` adds the dynamic `cliproxyapi` catalog from the local CPA service:
 
@@ -138,7 +138,7 @@ Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, 
 
 Workflow roles use role-named aliases backed by CLIProxyAPI only:
 `cliproxyapi/go/deepseek-v4.1-flash:high` for authoring, research, release, SRE, verification and design,
-`cliproxyapi/go/deepseek-v4-pro:high` for review, oracle and security, `cliproxyapi/deepseek-v4.1-flash:high`
+`cliproxyapi/gpt-6-sol:high` for review, oracle and security, `cliproxyapi/deepseek-v4.1-flash:high`
 for scouting, and `cliproxyapi/go/deepseek-v4.1-flash:low` for summaries. Native aliases are not part of the
 active matrix. These assignments describe configuration only:
 catalog visibility, entitlement, inference, and quota are not interchangeable
