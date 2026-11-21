@@ -44,7 +44,7 @@ Align the repository and live Pi profile with the verified Vekexasia workflow mo
 - [x] Align exact upstream model, alias, role, enabled-model, extension, and GGA settings.
 - [x] Update and validate CLIProxyAPI repository/local setup without exposing secrets.
 - [x] Sync the live Pi profile and provider package.
-- [ ] Run checks, GGA, and commit one coherent work unit. Checks and GGA are complete; commit remains pending explicit delivery authorization.
+- [x] Run checks, GGA, and commit one coherent work unit. Landed as `43e8227 feat(pi): align Vekexasia routing with CLIProxyAPI`; checks, GGA and push completed.
 
 ## Current status
 - Repository configuration now uses `gpt-5.6-luna` with `xhigh` for Pi, subagent review profiles, and Guardian Angel.
@@ -53,8 +53,7 @@ Align the repository and live Pi profile with the verified Vekexasia workflow mo
 - Removed `pi-web-access` from the active Pi/package manifests because it conflicts with the tracked `web_search` extension.
 - Local `cliproxyapi/config.yaml` was preserved/configured without exposing it; client config is mode 600 and `auths/` is mode 700. Compose validation passed; Docker was not started and OAuth was not run.
 - GREEN assertions, JSON/package checks, Debian 13 and Arch container rows, Compose validation, normal Pi startup/list-models, and live/repository byte comparisons passed. CLIProxyAPI model discovery remains empty until provider OAuth/configuration is completed.
-- Guardian Angel pre-commit review passed (`STATUS: PASSED`) for the staged candidate. The candidate was then unstaged; no commit or push was made.
+- Guardian Angel pre-commit review passed (`STATUS: PASSED`) for the staged candidate. The candidate was committed as `43e8227` and pushed to `origin/main`; the worktree is clean.
 
 ## Next steps
 1. Complete CLIProxyAPI OAuth manually using `cliproxyapi/README.md`, then restart Pi and select/verify the discovered models.
-2. Commit the unstaged candidate only after explicit user authorization.
