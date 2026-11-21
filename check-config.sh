@@ -254,7 +254,7 @@ fi
 # to HA groups, not to a second provider-named alias family.
 if ! jq -e '
   .modelAliases as $aliases |
-  (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert", "verifier-model", "visual-designer-model"]) and
+  (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert-model", "verifier-model", "visual-designer-model"]) and
   $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
   $aliases["developer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["architect-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
@@ -271,7 +271,7 @@ if ! jq -e '
   $aliases["product-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["technical-writer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["visual-designer-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
-  $aliases["tests-expert"] == "cliproxyapi/claude-sonnet-4-6:off" and
+  $aliases["tests-expert-model"] == "cliproxyapi/claude-sonnet-4-6:off" and
   $aliases["researcher-model"] == "cliproxyapi/gemini-3.8-flash-tiered:medium" and
   $aliases["summarizer-model"] == "cliproxyapi/gemini-3.5-flash-lite:low" and
   $aliases["reviewer-model"] == "cliproxyapi/gemini-3.8-flash-tiered:high" and

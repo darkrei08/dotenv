@@ -44,7 +44,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "product-designer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "technical-writer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
     "visual-designer-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
-    "tests-expert": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
+    "tests-expert-model": { model: "cliproxyapi/claude-sonnet-4-6", effort: "off" },
     "researcher-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "medium" },
     "summarizer-model": { model: "cliproxyapi/gemini-3.5-flash-lite", effort: "low" },
     "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-tiered", effort: "high" },
@@ -59,6 +59,7 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     const content = readFileSync(new URL(name, roles), "utf8");
     const model = content.match(/^model:\s*(\S+)\s*$/m)?.[1];
     assert.ok(model, `${name}: missing model declaration`);
+    assert.equal(model, `${name.slice(0, -3)}-model`, `${name}: role must use its role-named alias`);
     assert.ok(["off", "low", "medium", "high", "xhigh"].includes(resolveModel(model).effort), `${name}: unsupported effort`);
   }
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];

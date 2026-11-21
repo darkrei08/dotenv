@@ -352,7 +352,7 @@ families, and no provider-specific max mode.
 
 | Alias | Configured target | Use |
 |---|---|---|
-| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6:off` | Authoring roles on the live Anthropic gateway account |
+| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6:off` | Authoring roles on the live Anthropic gateway account |
 | `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` | Long-context research and operational roles |
 | `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered:high` | Security and review gates |
 | `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` | Bounded verification checks |

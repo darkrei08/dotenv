@@ -16,7 +16,7 @@
     "product-designer-model": "cliproxyapi/claude-sonnet-4-6:off",
     "technical-writer-model": "cliproxyapi/gemini-3.5-flash-lite:low",
     "visual-designer-model": "cliproxyapi/claude-sonnet-4-6:off",
-    "tests-expert": "cliproxyapi/claude-sonnet-4-6:off",
+    "tests-expert-model": "cliproxyapi/claude-sonnet-4-6:off",
     "researcher-model": "cliproxyapi/gemini-3.8-flash-tiered:medium",
     "summarizer-model": "cliproxyapi/gemini-3.5-flash-lite:low",
     "oracle-model": "cliproxyapi/gemini-3.8-flash-tiered:high",

@@ -27,7 +27,7 @@ claim that a live gateway can use them:
 
 | Role alias | Resolves to | Effort | Used by |
 | --- | --- | --- | --- |
-| `developer-model`, `architect-model`, `qa-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6` | off | development, architecture, QA, tests |
+| `developer-model`, `architect-model`, `qa-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6` | off | development, architecture, QA, tests |
 | `researcher-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | research, release, SRE |
 | `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered` | high | security and review |
 | `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered` | medium | verification |
@@ -65,7 +65,7 @@ Workflow role aliases resolve directly to CLIProxyAPI targets:
 
 | Role aliases | CLIProxyAPI target |
 | --- | --- |
-| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert` | `cliproxyapi/claude-sonnet-4-6:off` |
+| `developer-model`, `architect-model`, `qa-model`, `data-engineer-model`, `debugger-model`, `tests-expert-model` | `cliproxyapi/claude-sonnet-4-6:off` |
 | `researcher-model`, `market-researcher-model`, `marketing-strategist-model`, `release-model`, `sre-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
 | `security-model`, `reviewer-model`, `oracle-model` | `cliproxyapi/gemini-3.8-flash-tiered:high` |
 | `verifier-model` | `cliproxyapi/gemini-3.8-flash-tiered:medium` |
