@@ -258,17 +258,17 @@ fi
 if ! jq -e '
   .modelAliases as $aliases |
   (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert-model", "verifier-model", "visual-designer-model"]) and
-  $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
+  $aliases["scout-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["developer-model"] == "opencode-go/deepseek-v4.1-flash:high" and
-  $aliases["architect-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["architect-model"] == "opencode-go/deepseek-v4-pro:high" and
   $aliases["security-model"] == "cliproxyapi/gemini-3.8-flash-high" and
   $aliases["qa-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["release-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["sre-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["verifier-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["release-model"] == "opencode-go/deepseek-v4-pro:high" and
+  $aliases["sre-model"] == "opencode-go/deepseek-v4-pro:high" and
+  $aliases["verifier-model"] == "cliproxyapi/gemini-3.8-flash-high" and
   $aliases["companion-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
   $aliases["data-engineer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["debugger-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["debugger-model"] == "opencode-go/deepseek-v4-pro:high" and
   $aliases["market-researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["marketing-strategist-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["product-designer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and

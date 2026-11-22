@@ -29,6 +29,7 @@ test("orchestration package is pinned to the reviewed v1.2.6 commit", () => {
 test("active routes are present as plain strings and escaped regexes, old routes are absent", () => {
   const routes = [
     "opencode-go/deepseek-v4.1-flash",
+    "opencode-go/deepseek-v4-pro",
     "cliproxyapi/gemini-3.8-flash-high",
     "cliproxyapi/go/deepseek-v4.1-flash",
     "cliproxyapi/gpt-6-sol",
@@ -68,17 +69,17 @@ test("active routes are present as plain strings and escaped regexes, old routes
 
 test("managed aliases, roles and GGA resolve to the configured model matrix", () => {
   const expected = {
-    "scout-model": { model: "cliproxyapi/deepseek-v4.1-flash", effort: "high" },
+    "scout-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "developer-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
-    "architect-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "architect-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
     "security-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
     "qa-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "release-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "sre-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "verifier-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "release-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
+    "sre-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
+    "verifier-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
     "companion-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
     "data-engineer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "debugger-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "debugger-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
     "market-researcher-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "marketing-strategist-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "product-designer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
@@ -170,7 +171,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nverifier: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\n");
     assert.equal(routeMismatch.stdout, `${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 

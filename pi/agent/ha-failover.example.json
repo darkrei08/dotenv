@@ -25,6 +25,21 @@
         },
         {
           "id": "cliproxyapi/gpt-6-luna"
+        },
+        {
+          "id": "opencode-go/deepseek-v4-pro"
+        },
+        {
+          "id": "opencode-go/beam-free"
+        },
+        {
+          "id": "opencode-go/hy4-flash-free"
+        },
+        {
+          "id": "opencode-go/iceman-contributor-free"
+        },
+        {
+          "id": "opencode-go/longcat-2.5-free"
         }
       ]
     },
@@ -32,13 +47,22 @@
       "name": "scout",
       "entries": [
         {
-          "id": "cliproxyapi/deepseek-v4.1-flash"
+          "id": "opencode-go/deepseek-v4.1-flash"
+        },
+        {
+          "id": "cliproxyapi/go/deepseek-v4.1-flash"
         },
         {
           "id": "cliproxyapi/gpt-6-sol"
         },
         {
           "id": "cliproxyapi/gpt-6-luna"
+        },
+        {
+          "id": "opencode-go/hy4-flash-free"
+        },
+        {
+          "id": "opencode-go/iceman-contributor-free"
         }
       ]
     },
@@ -73,6 +97,15 @@
         },
         {
           "id": "cliproxyapi/gpt-6-luna"
+        },
+        {
+          "id": "opencode-go/beam-free"
+        },
+        {
+          "id": "opencode-go/longcat-2.5-free"
+        },
+        {
+          "id": "opencode-go/hy4-flash-free"
         }
       ]
     },
@@ -90,6 +123,12 @@
         },
         {
           "id": "cliproxyapi/gpt-6-luna"
+        },
+        {
+          "id": "opencode-go/beam-free"
+        },
+        {
+          "id": "opencode-go/longcat-2.5-free"
         }
       ]
     },
@@ -110,6 +149,18 @@
         },
         {
           "id": "cliproxyapi/gpt-6-luna"
+        },
+        {
+          "id": "opencode-go/beam-free"
+        },
+        {
+          "id": "opencode-go/hy4-flash-free"
+        },
+        {
+          "id": "opencode-go/iceman-contributor-free"
+        },
+        {
+          "id": "opencode-go/longcat-2.5-free"
         }
       ]
     },
@@ -118,6 +169,9 @@
       "entries": [
         {
           "id": "cliproxyapi/gemini-3.8-flash-high"
+        },
+        {
+          "id": "opencode-go/deepseek-v4-pro"
         },
         {
           "id": "cliproxyapi/gpt-6-sol"
