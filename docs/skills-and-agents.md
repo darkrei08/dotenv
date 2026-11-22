@@ -46,7 +46,7 @@ The rule for agents working in this repository:
 3. Run `node agents/link-skills.mjs` to review, then `--apply`.
 4. Confirm with `node agents/link-skills.mjs --verify`.
 
-Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` copies the skills this repository ships (`phantom-ui`, `skillopt-sleep`) into every harness root; an identical harness copy is intentionally reported as a conflict because replacing a live directory with a link cannot be atomic portably.
+Never copy the same skill into two roots, and never edit a linked skill in place: the link points at the canonical copy, so the edit is the canonical edit, but the duplicate you also copied elsewhere will drift. `agents/install-agent-extensions.sh` installs repository-owned shared skills (`phantom-ui`, `skillopt-sleep`) into `~/.agents/skills`; `agents/link-skills.mjs --apply` then reconciles the harness links. A pre-existing harness-level copy is intentionally reported as a conflict because replacing a live directory with a link cannot be atomic portably.
 
 [`agents/LINKING.md`](../agents/LINKING.md) documents the actions (`link`, `already-linked`, `drop-copy`, `drop-link`, `conflict`, `skip`), the conflict procedure, and the two unmanaged cases: `_shared/` is a support directory with no `SKILL.md` and a per-runtime copy per harness, and `impeccable` is installed per provider by its own installer, so each harness copy legitimately differs.
 
@@ -54,13 +54,14 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 
 | Upstream | Skills | Installer |
 | --- | --- | --- |
-| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent pi cline --yes` (`setup_env.sh`) |
-| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent pi cline --yes` |
+| `herdrdev/herdr` | `herdr` | `npx skills add ... --global --agent cline --yes` (`setup_env.sh`); Pi reads the canonical root directly |
+| `mattpocock/skills` | First-party engineering set, including `setup-matt-pocock-skills`, `code-review`, `diagnosing-bugs`, `tdd`, planning, research, and implementation skills | `npx skills@latest add ... --global --agent cline --yes` |
 | `pedronauck/skills` | `typescript-advanced` | `npx skills add` |
 | `humanlayer/skills` | `show-me` | `npx skills add` |
 | `micio86dev/Engineering-Excellence` | `engineering-excellence` | `npx skills@latest add` |
 | `darkrei08/ai-memory-kit` (tag `v0.1.0`) | `project-memory` | Pinned `npx skills add "...#v0.1.0" --agent cline`; Pi is excluded from `--agent` because Pi reads the canonical root directly - passing `pi` would create a duplicate in `~/.pi/agent/skills` that Pi loads twice (S1-S2). The `aimem` CLI installer runs with `--no-skill`. `check-config.sh` detects any residual Pi-local copy as a collision (S3). |
 | `darkrei08/pi-data-search` (commit `7d19e656be75b2dc853d4edc7b3c29a9b839b8cf`) | `reusable-data-search` | Pinned `npx skills add "https://github.com/darkrei08/pi-data-search#<commit>" --skill reusable-data-search --global --agent cline --yes`; the skill uses the Data Research Stack for service deployment and keeps provider credentials out of this repository. Pi reads the canonical copy directly; the linker shares it with other agent harnesses. |
+| `darkrei08/pi-model-fit` (tag `v0.3.0`) | `pi-model-fit` | Pinned `npx skills add "darkrei08/pi-model-fit#v0.3.0" --skill pi-model-fit --global --agent cline --yes` in `setup_env.sh`; Pi reads the canonical root directly and `--copy` would create a duplicate Pi-local skill. The skill owns model/route/effort evidence. v0.3.0 added fail-closed cross-provider reviewer checks. |
 | `h3nryprod01/design-taste` | `design-taste` | `npx skills@latest add ... --global --agent <agent> --copy --yes`, per detected CLI, in `install-agent-extensions.sh` |
 | `pbakaus/impeccable` | `impeccable` | `npx impeccable install --providers=... --scope=global`, run in a scratch directory; engine binary lands in `~/.impeccable/bin` |
 | `DietrichGebert/ponytail` | `ponytail` (plus its commands) | Per-host plugin installers in `install-agent-extensions.sh`; for Pi, `git:github.com/DietrichGebert/ponytail` in `pi-packages.txt` |
@@ -82,6 +83,6 @@ Never copy the same skill into two roots, and never edit a linked skill in place
 | Claude Code | Not scriptable: the script prints the two interactive `/plugin` commands as a manual step |
 | pi | Not handled here; Pi installs ponytail from `pi/agent/pi-packages.txt` |
 
-The same script installs `design-taste` and `impeccable` through their upstream installers, and copies `phantom-ui` and `skillopt-sleep` into each existing non-Pi harness skills root (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`, plus `~/.agents/skills`). Pi reads the canonical root. Differing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
+The same script installs `design-taste` and `impeccable` through their upstream installers and installs `phantom-ui` and `skillopt-sleep` into `~/.agents/skills`; `agents/link-skills.mjs --apply` reconciles links for the non-Pi harnesses (`claude-code`, `codex`, `gemini-cli`, `cursor`, `antigravity`, `opencode`). Pi reads the canonical root. Differing pre-existing copies are moved to `~/.pi/backups/install-agent-extensions.*` before replacement; one failing host is logged and does not stop the run, and the exit status is 1 when an attempted step failed. Skills themselves are single-sourced and junctioned as described above.
 
 Other harnesses this repository configures indirectly: `~/.codex`, `~/.claude`, `~/.gemini`, `~/.config/opencode` are only written by the skills installer and the linker; the one exception is that `setup_env.sh`, when run as root, sets `permissions.defaultMode` to `default` in `~/.claude/settings.json` and preserves every other setting.

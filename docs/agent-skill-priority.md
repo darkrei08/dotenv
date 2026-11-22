@@ -61,7 +61,7 @@ This index defines when commonly used skills should be loaded. It is a routing a
 
 - `pi-extensible-workflows` is installed and active at version 6.3.0.
 - `@piewf/pi-ext-roles`, Herdr, Engram, and the CLIProxyAPI provider are installed in the global Pi profile.
-- `pi-model-fit` is installed in the canonical shared skill root and is declared for the supported agent roots.
+- `pi-model-fit` v0.3.0 is installed in the canonical shared skill root from the pinned release tag and is declared for the supported agent roots.
 - The existing model-preflight extension remains the automatic session-start owner. The separate runtime-model-refresh extension stays on-demand until duplicate refresh ownership is explicitly removed.
 - Standalone workflow subagents remain disabled in this profile to avoid a second execution surface.
 
@@ -79,7 +79,7 @@ Catalog visibility alone never authorizes a default, a failover route, or an inf
 
 ## PiWorkflow agent loadouts
 
-PiWorkflow is the execution owner. Agents receive only the role skills needed for their contract; they do not create a second scheduler.
+PiWorkflow is the execution owner. Agents receive only the role skills needed for their contract; they do not create a second scheduler. This table mirrors `pi/agent/pi-ext-roles/settings.json`; `bash check-config.sh` is the cross-file parity check after any edit.
 
 | Role | Required skills | Purpose |
 | --- | --- | --- |
