@@ -15,6 +15,13 @@ import { Text } from "@earendil-works/pi-tui";
 import { realpathSync } from "fs";
 import { createRequire } from "module";
 import { homedir } from "os";
+import { dirname, join } from "path";
+import { pathToFileURL } from "url";
+import {
+  imageSourcesForResult,
+  redactSensitive,
+  type ImageSource,
+} from "./compact-rendering.js";
 
 const PATCH_FLAG = "__compactToolsPatched" as const;
 
@@ -47,8 +54,8 @@ type PatchableProto = typeof ToolExecutionComponent.prototype & {
   showImages: boolean;
   imageWidthCells: number;
   imageComponents: unknown[];
+  imageSources: ImageSource[];
   imageSpacers: unknown[];
-  convertedImages: Map<number, { data: string; mimeType: string }>;
   addChild(c: unknown): void;
   removeChild(c: unknown): void;
   contentText: {
@@ -63,6 +70,11 @@ type PatchableProto = typeof ToolExecutionComponent.prototype & {
   hideComponent: boolean;
   hasRendererDefinition(): boolean;
   getRenderShell(): string;
+  invalidate(): void;
+  ui: {
+    requestRender(): void;
+    notify?(message: string, level: "info" | "warning" | "error"): void;
+  };
   __originalUpdateDisplay?(): void;
 };
 
@@ -72,22 +84,6 @@ const COMPACT_TOOLS = new Set(["read", "edit", "write", "bash"]);
 // Set PI_COMPACT_BASH=1 or COMPACT_BASH=1 to keep bash compact even when expanded.
 const BASH_ALWAYS_COMPACT =
   process.env.PI_COMPACT_BASH === "1" || process.env.COMPACT_BASH === "1";
-
-const SENSITIVE_FLAG_RE =
-  /(--?(?:api[-_]?key|token|secret|password|passwd|pwd|auth|authorization|access[-_]?token|refresh[-_]?token)(?:\s+|=))([^\s'"`]+)/gi;
-const SENSITIVE_ASSIGNMENT_RE =
-  /\b([A-Z0-9_]*(?:API[_-]?KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|AUTH|CREDENTIAL|PRIVATE[_-]?KEY)[A-Z0-9_]*\s*=\s*)([^\s'"`]+)/gi;
-const BEARER_RE = /\b(Bearer\s+)([A-Za-z0-9._~+\/-]+=*)/gi;
-const COMMON_SECRET_RE =
-  /\b(?:sk-[A-Za-z0-9_-]{8,}|ghp_[A-Za-z0-9_]{8,}|github_pat_[A-Za-z0-9_]+|xox[baprs]-[A-Za-z0-9-]{8,}|AKIA[0-9A-Z]{16})\b/g;
-
-function redactSensitive(text: string): string {
-  return text
-    .replace(SENSITIVE_ASSIGNMENT_RE, "$1[redacted]")
-    .replace(SENSITIVE_FLAG_RE, "$1[redacted]")
-    .replace(BEARER_RE, "$1[redacted]")
-    .replace(COMMON_SECRET_RE, "[redacted]");
-}
 
 function truncateSingleLine(text: string, max = 96): string {
   const single = text.replace(/\s+/g, " ").trim();
@@ -169,6 +165,43 @@ function getTheme(): Themed {
 
 type PatchStatus = "applied" | "already-patched" | "missing-update-display";
 
+let pngTranscoderWarned = false;
+
+function requestPngTranscoder(component: PatchableProto): void {
+  try {
+    const requireRuntime = createRequire(piAgentDistIndex);
+    const packageEntry = requireRuntime.resolve(
+      "@earendil-works/pi-coding-agent",
+    );
+    const modulePath = join(dirname(packageEntry), "utils/image-convert.js");
+    void import(pathToFileURL(modulePath).href)
+      .then((module) => {
+        const { ensurePngTranscoder } = module as {
+          ensurePngTranscoder?: (onRegistered: () => void) => void;
+        };
+        ensurePngTranscoder?.(() => {
+          component.invalidate();
+          component.ui.requestRender();
+        });
+      })
+      .catch(() => {
+        if (pngTranscoderWarned) return;
+        pngTranscoderWarned = true;
+        component.ui.notify?.(
+          "compact-tools: PNG transcoder unavailable; image text fallback remains",
+          "warning",
+        );
+      });
+  } catch {
+    if (pngTranscoderWarned) return;
+    pngTranscoderWarned = true;
+    component.ui.notify?.(
+      "compact-tools: PNG transcoder unavailable; image text fallback remains",
+      "warning",
+    );
+  }
+}
+
 function isPatchActive(): boolean {
   const proto = ToolExecutionComponent.prototype as PatchableProto;
   return (
@@ -236,41 +269,47 @@ function applyPatch(): PatchStatus {
       );
     }
 
-    // Rebuild image children (same logic as original updateDisplay)
-    for (const img of this.imageComponents) this.removeChild(img);
+    const previousImages = this.imageComponents ?? [];
+    const previousSources = this.imageSources ?? [];
+    for (const img of previousImages) this.removeChild(img);
     this.imageComponents = [];
-    for (const sp of this.imageSpacers) this.removeChild(sp);
+    this.imageSources = [];
+    for (const sp of this.imageSpacers ?? []) this.removeChild(sp);
     this.imageSpacers = [];
 
-    if (this.result) {
-      const piTuiPath = createRequire(piAgentDistIndex).resolve(
-        "@earendil-works/pi-tui/dist/index.js",
-      );
-      const { getCapabilities, Image, Spacer } =
-        createRequire(piTuiPath)(piTuiPath);
-      const caps = getCapabilities();
-      const imageBlocks = this.result.content.filter((c) => c.type === "image");
-      for (let i = 0; i < imageBlocks.length; i++) {
-        const img = imageBlocks[i];
-        if (caps.images && this.showImages && img.data && img.mimeType) {
-          const converted = this.convertedImages.get(i);
-          const imageData = converted?.data ?? img.data;
-          const imageMimeType = converted?.mimeType ?? img.mimeType;
-          if (caps.images === "kitty" && imageMimeType !== "image/png")
-            continue;
-          const spacer = new Spacer(1);
-          this.addChild(spacer);
-          this.imageSpacers.push(spacer);
-          const imageComponent = new Image(
-            imageData,
-            imageMimeType,
-            { fallbackColor: (s: string) => t.fg("toolOutput", s) },
-            { maxWidthCells: this.imageWidthCells },
-          );
-          this.imageComponents.push(imageComponent);
-          this.addChild(imageComponent);
-        }
-      }
+    const piTuiPath = createRequire(piAgentDistIndex).resolve(
+      "@earendil-works/pi-tui/dist/index.js",
+    );
+    const { getCapabilities, Image, Spacer } =
+      createRequire(piTuiPath)(piTuiPath);
+    const caps = getCapabilities();
+    const imageSources = imageSourcesForResult(
+      this.result,
+      this.showImages,
+      this.imageWidthCells,
+      caps,
+    );
+    for (const source of imageSources) {
+      const spacer = new Spacer(1);
+      this.addChild(spacer);
+      this.imageSpacers.push(spacer);
+      const index = this.imageComponents.length;
+      const previous = previousSources[index];
+      const imageComponent =
+        previous?.data === source.data &&
+        previous.mimeType === source.mimeType &&
+        previous.widthCells === source.widthCells
+          ? previousImages[index]
+          : new Image(
+              source.data,
+              source.mimeType,
+              { fallbackColor: (s: string) => t.fg("toolOutput", s) },
+              { maxWidthCells: source.widthCells },
+            );
+      if (source.mimeType !== "image/png") requestPngTranscoder(this);
+      this.imageComponents.push(imageComponent);
+      this.imageSources.push(source);
+      this.addChild(imageComponent);
     }
   };
 
