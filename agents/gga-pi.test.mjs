@@ -151,6 +151,15 @@ test('uses the tracked HA template when live HA lacks the reviewer primary', (t)
   mkdirSync(dirname(extension), { recursive: true });
   writeFileSync(extension, '');
 
+  // Derive the expected reviewer chain from the tracked template so this test follows
+  // the shipped failover config instead of hardcoding a model id that can go stale.
+  const template = JSON.parse(readFileSync(fileURLToPath(new URL('../pi/agent/ha-failover.example.json', import.meta.url)), 'utf8'));
+  const reviewer = template.groups.reviewer.entries.map((entry) => entry.id);
+  const primary = reviewer[0].replace(/:(off|minimal|low|medium|high|xhigh|max)$/, '');
+  const requested = `${primary}:high`;
+  const nextFallback = reviewer[1];
+  const reviewArgs = ['run', '--auto', '--model', requested];
+
   const haPath = join(dir, 'ha.json');
   writeFileSync(haPath, JSON.stringify({
     groups: { reviewer: { entries: [{ id: 'cliproxyapi/old-reviewer' }] } }
@@ -164,7 +173,7 @@ while [ "$#" -gt 0 ]; do
   shift
 done
 printf '%s\\n' "$model" >> '${modelsPath}'
-if [ "$model" = 'cliproxyapi/gemini-3.8-flash-high:high' ]; then exit 1; fi
+if [ "$model" = '${requested}' ]; then exit 1; fi
 printf 'STATUS: PASSED\\n'
 `);
   chmodSync(fakePi, 0o755);
@@ -175,7 +184,7 @@ printf 'STATUS: PASSED\\n'
     PI_HA_CONFIG: haPath,
     PI_CODING_AGENT_DIR: home,
   };
-  const result = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+  const result = spawnSync(shim, reviewArgs, {
     env, input: 'review prompt', encoding: 'utf8',
   });
 
@@ -183,39 +192,39 @@ printf 'STATUS: PASSED\\n'
   assert.equal(result.stdout, 'STATUS: PASSED\n');
   assert.match(result.stderr, /using the tracked HA template/);
   assert.deepEqual(readFileSync(modelsPath, 'utf8').trim().split('\n').slice(0, 2), [
-    'cliproxyapi/gemini-3.8-flash-high:high',
-    'cliproxyapi/gpt-6.2-sol',
+    requested,
+    nextFallback,
   ]);
 
   writeFileSync(haPath, JSON.stringify({
     groups: { reviewer: { entries: [
-      { id: 'cliproxyapi/gemini-3.8-flash-high:medium' },
+      { id: `${primary}:medium` },
       { id: 'cliproxyapi/local-fallback' },
     ] } }
   }));
   writeFileSync(modelsPath, '');
-  const suffixedLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+  const suffixedLive = spawnSync(shim, reviewArgs, {
     env, input: 'review prompt', encoding: 'utf8',
   });
   assert.equal(suffixedLive.status, 0, suffixedLive.stderr);
   assert.doesNotMatch(suffixedLive.stderr, /using the tracked HA template/);
   assert.deepEqual(readFileSync(modelsPath, 'utf8').trim().split('\n').slice(0, 2), [
-    'cliproxyapi/gemini-3.8-flash-high:high',
+    requested,
     'cliproxyapi/local-fallback',
   ]);
 
   rmSync(haPath);
   writeFileSync(modelsPath, '');
-  const missingLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+  const missingLive = spawnSync(shim, reviewArgs, {
     env, input: 'review prompt', encoding: 'utf8',
   });
   assert.equal(missingLive.status, 0, missingLive.stderr);
   assert.match(missingLive.stderr, /using the tracked HA template/);
-  assert.equal(readFileSync(modelsPath, 'utf8').trim().split('\n')[1], 'cliproxyapi/gpt-6.2-sol');
+  assert.equal(readFileSync(modelsPath, 'utf8').trim().split('\n')[1], nextFallback);
 
   writeFileSync(haPath, '{not json');
   writeFileSync(modelsPath, '');
-  const invalidLive = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+  const invalidLive = spawnSync(shim, reviewArgs, {
     env, input: 'review prompt', encoding: 'utf8',
   });
   assert.notEqual(invalidLive.status, 0, 'invalid HA configuration must fail');
@@ -237,7 +246,7 @@ printf 'STATUS: PASSED\\n'
   ]) {
     writeFileSync(haPath, badConfig);
     writeFileSync(modelsPath, '');
-    const malformed = spawnSync(shim, ['run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+    const malformed = spawnSync(shim, reviewArgs, {
       env, input: 'review prompt', encoding: 'utf8',
     });
     assert.notEqual(malformed.status, 0, `malformed HA must fail: ${badConfig}`);
@@ -256,7 +265,7 @@ printf 'STATUS: PASSED\\n'
   symlinkSync(fakePi, join(jqlessBin, 'pi'));
   writeFileSync(haPath, JSON.stringify({ groups: { reviewer: { entries: [{ id: 'cliproxyapi/old-reviewer' }] } } }));
   writeFileSync(modelsPath, '');
-  const jqless = spawnSync('/bin/bash', [shim, 'run', '--auto', '--model', 'cliproxyapi/gemini-3.8-flash-high:high'], {
+  const jqless = spawnSync('/bin/bash', [shim, ...reviewArgs], {
     env: { ...env, PATH: jqlessBin }, input: 'review prompt', encoding: 'utf8',
   });
   assert.notEqual(jqless.status, 0, 'missing jq must fail closed');
