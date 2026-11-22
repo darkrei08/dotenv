@@ -136,11 +136,13 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Workflow roles use role-named aliases backed by CLIProxyAPI only:
+Workflow roles use the approved 2026-11-22 role-named alias matrix:
 `cliproxyapi/go/deepseek-v4.1-flash:high` for authoring, research, release, SRE, verification and design,
-`cliproxyapi/gpt-6-sol:high` for review, oracle and security, `cliproxyapi/deepseek-v4.1-flash:high`
-for scouting, and `cliproxyapi/go/deepseek-v4.1-flash:low` for summaries. Native aliases are not part of the
-active matrix. These assignments describe configuration only:
+except `developer` and `tests-expert`, which use direct `opencode-go/deepseek-v4.1-flash:high` for the 32K output floor;
+`cliproxyapi/gemini-3.8-flash-high` for review, oracle and security (user-confirmed after two timed-out probes,
+entitlement/quota UNVERIFIED), `cliproxyapi/deepseek-v4.1-flash:high` for scouting, and
+`cliproxyapi/go/deepseek-v4.1-flash:low` for summaries. Native direct routes are part of the active matrix
+only where explicitly listed. These assignments describe configuration only:
 catalog visibility, entitlement, inference, and quota are not interchangeable
 evidence.
 
