@@ -1,9 +1,9 @@
 {
   "modelAliases": {
     "scout-model": "cliproxyapi/deepseek-v4.1-flash:high",
-    "developer-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
+    "developer-model": "opencode-go/deepseek-v4.1-flash:high",
     "architect-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
-    "security-model": "cliproxyapi/gpt-6-sol:high",
+    "security-model": "cliproxyapi/gemini-3.8-flash-high",
     "qa-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "release-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "sre-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
@@ -16,11 +16,11 @@
     "product-designer-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "technical-writer-model": "cliproxyapi/go/deepseek-v4.1-flash:low",
     "visual-designer-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
-    "tests-expert-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
+    "tests-expert-model": "opencode-go/deepseek-v4.1-flash:high",
     "researcher-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "summarizer-model": "cliproxyapi/go/deepseek-v4.1-flash:low",
-    "oracle-model": "cliproxyapi/gpt-6-sol:high",
-    "reviewer-model": "cliproxyapi/gpt-6-sol:high"
+    "oracle-model": "cliproxyapi/gemini-3.8-flash-high",
+    "reviewer-model": "cliproxyapi/gemini-3.8-flash-high"
   },
   "skills": [
     "!*",

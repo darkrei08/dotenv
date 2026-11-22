@@ -19,21 +19,8 @@ defect. The current role matrix is derived from `pi-model-fit/scripts/report.mjs
 - `pi/agent/models.json`: preserve the `openai-codex` catalog entries for
   `gpt-6-luna` and `gpt-6-sol`. The retired `tuxevil-rotator` provider must not
   return. Do not reintroduce obsolete OpenCode workflow targets.
-- `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): workflow roles use
-  CLIProxyAPI only. Authoring, research, release, SRE, design and verification
-  roles use `cliproxyapi/go/deepseek-v4.1-flash:high`; review, oracle and security roles use `cliproxyapi/gpt-6-sol:high`;
-  scouting keeps `cliproxyapi/deepseek-v4.1-flash:high`; summaries and writing
-  use `cliproxyapi/go/deepseek-v4.1-flash:low`. Provider-family compatibility aliases and native-provider
-  primaries are not active. Preserve the expanded `skills` list.
-  When a primary route is unavailable in the authenticated catalog, the role may use
-  the first reachable route in its committed HA group at the configured effort; this
-  is the explicit failover path, not a silent alias rewrite.
-- `pi/agent/settings.json`: the Pi baseline is `defaultProvider: cliproxyapi`,
-  `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`, and matching
-  `modelThinkingLevels`. `enabledModels` lists only CLIProxyAPI models; native catalogs remain defined
-  for manual fallback. `.gga` remains on the Pi bridge with the effective CLIProxyAPI reviewer HA
-  route `cliproxyapi/gpt-6-sol:high`. `check-config.sh` requires the route to be enabled and
-  listed in the reviewer HA group.
+- `pi/agent/pi-ext-roles/settings.json` (roles and shared role settings; `pi/agent/pi-extensible-workflows/settings.json` keeps only workflow `extensionSettings`): the user-approved 2026-11-22 matrix is authoritative. Authoring, research, release, SRE, design and verification roles use `cliproxyapi/go/deepseek-v4.1-flash:high`, except `developer` and `tests-expert`, which use the direct `opencode-go/deepseek-v4.1-flash:high` route because it publishes 384K output and clears the 32K code floor. `security`, `oracle` and `reviewer` use `cliproxyapi/gemini-3.8-flash-high`: user-confirmed, opposite-provider, with entitlement/quota UNVERIFIED after two timed-out probes. Scouting keeps `cliproxyapi/deepseek-v4.1-flash:high`; summaries and writing use `cliproxyapi/go/deepseek-v4.1-flash:low`. Provider-family compatibility aliases are not active. Preserve the expanded `skills` list. When a primary route is unavailable in the authenticated catalog, the role may use the first reachable route in its committed HA group at the configured effort; this is the explicit failover path, not a silent alias rewrite.
+- `pi/agent/settings.json`: the Pi baseline is `defaultProvider: cliproxyapi`, `defaultModel: gpt-5.6-luna`, `defaultThinkingLevel: high`, and matching `modelThinkingLevels`. `enabledModels` keeps native mirrors and current CLIProxyAPI targets; native catalogs remain defined for manual fallback. `.gga` remains on the Pi bridge with `cliproxyapi/gpt-6-sol:high` as the reviewer HA fallback until the Gemini primary is live-verified. `check-config.sh` requires that route to be enabled and listed in the reviewer HA group.
 - `pi/agent/extensions/light-web-search.ts`: the tracked extension intentionally
   replaces `pi-web-access` so only one `web_search` tool is registered; it uses
   CLIProxyAPI first and openai-codex fallback.

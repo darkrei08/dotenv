@@ -235,17 +235,20 @@ fi
 # Compare only behavior-bearing projections: modelAliases, workflow tools/extensions, and object-package source/extensions. Pi/setup-ai may normalize package versions, duplicate entries, and order, so the whole settings file is intentionally not compared.
 if ((versioned_workflows_ok && live_workflows_ok)) &&
     ! diff -u \
-      <(jq -S '{modelAliases, tools, extensions}' "$WORKFLOWS_SETTINGS") \
-      <(jq -S '{modelAliases, tools, extensions}' "$LIVE_WORKFLOWS_SETTINGS") >/dev/null; then
-  printf '%s: canonical modelAliases/tools/extensions differ from %s\n' \
+      <(jq -S '{modelAliases, tools, extensions, skills}' "$WORKFLOWS_SETTINGS") \
+      <(jq -S '{modelAliases, tools, extensions, skills}' "$LIVE_WORKFLOWS_SETTINGS") >/dev/null; then
+  printf '%s: canonical modelAliases/tools/extensions/skills differ from %s\n' \
     "$WORKFLOWS_SETTINGS" "$LIVE_WORKFLOWS_SETTINGS"
   failures=1
 fi
 
-if ! jq -e '
+if ! workflow_extensions=$(jq '.extensions // []' "$WORKFLOWS_SETTINGS" 2>/dev/null); then
+  printf '%s: could not read workflow extensions for validation\n' "$WORKFLOWS_SETTINGS"
+  failures=1
+elif ! jq -e '
   (.tools // [] | index("tool_search") != null) and
   ((["builtin:codemode", "builtin:tool-search", "builtin:mcp"] | all(.[]; . as $extension | $extensions | index($extension) != null)))
-' --argjson extensions "$(jq '.extensions // []' "$WORKFLOWS_SETTINGS" 2>/dev/null || printf '[]')" "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
+' --argjson extensions "$workflow_extensions" "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow subagents must retain tool_search and the built-in codemode/tool-search/mcp extensions\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
@@ -256,9 +259,9 @@ if ! jq -e '
   .modelAliases as $aliases |
   (($aliases | keys) == ["architect-model", "companion-model", "data-engineer-model", "debugger-model", "developer-model", "market-researcher-model", "marketing-strategist-model", "oracle-model", "product-designer-model", "qa-model", "release-model", "researcher-model", "reviewer-model", "scout-model", "security-model", "sre-model", "summarizer-model", "technical-writer-model", "tests-expert-model", "verifier-model", "visual-designer-model"]) and
   $aliases["scout-model"] == "cliproxyapi/deepseek-v4.1-flash:high" and
-  $aliases["developer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["developer-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["architect-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["security-model"] == "cliproxyapi/gpt-6-sol:high" and
+  $aliases["security-model"] == "cliproxyapi/gemini-3.8-flash-high" and
   $aliases["qa-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["release-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["sre-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
@@ -271,11 +274,11 @@ if ! jq -e '
   $aliases["product-designer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["technical-writer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
   $aliases["visual-designer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
-  $aliases["tests-expert-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
+  $aliases["tests-expert-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["summarizer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
-  $aliases["reviewer-model"] == "cliproxyapi/gpt-6-sol:high" and
-  $aliases["oracle-model"] == "cliproxyapi/gpt-6-sol:high"
+  $aliases["reviewer-model"] == "cliproxyapi/gemini-3.8-flash-high" and
+  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high"
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
   printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
@@ -283,16 +286,18 @@ fi
 
 if ! jq -e '
   .defaultProvider == "cliproxyapi" and .defaultModel == "gpt-5.6-luna" and .defaultThinkingLevel == "high" and
-  (.enabledModels | all(.[]; startswith("cliproxyapi/"))) and
+  .modelThinkingLevels["cliproxyapi/gpt-5.6-luna"] == "high" and
+  (.enabledModels | all(.[]; type == "string" and length > 0)) and
   (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
   (.enabledModels | index("cliproxyapi/gpt-6-sol") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
-  printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with gateway-only enabledModels\n' "$SETTINGS"
+  printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with native mirrors and current gateway targets enabled\n' "$SETTINGS"
   failures=1
 fi
 
-# The active matrix is CLIProxyAPI-only. Exact role alias values are checked
-# above; direct route values must remain syntactically valid.
+# The approved matrix permits direct provider routes where the gateway lacks
+# output headroom. Exact role alias values are checked above; all route values
+# must remain syntactically valid.
 if ! jq -e '
   .modelAliases | all(.[];
     if type != "string" or (contains("/") | not) then true

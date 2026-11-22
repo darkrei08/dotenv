@@ -28,6 +28,8 @@ test("orchestration package is pinned to the reviewed v1.2.6 commit", () => {
 
 test("active routes are present as plain strings and escaped regexes, old routes are absent", () => {
   const routes = [
+    "opencode-go/deepseek-v4.1-flash",
+    "cliproxyapi/gemini-3.8-flash-high",
     "cliproxyapi/go/deepseek-v4.1-flash",
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-sol",
@@ -57,7 +59,7 @@ test("active routes are present as plain strings and escaped regexes, old routes
     }
   }
   assert.ok([...new Set(Object.entries(aliases).filter(([name]) => name !== "scout-model").map(([, route]) => route.split(":")[0]))].every((route) => routes.includes(route)));
-  for (const route of ["cliproxyapi/go/deepseek-v4.1-flash", "cliproxyapi/gpt-6-sol"]) {
+  for (const route of ["opencode-go/deepseek-v4.1-flash", "cliproxyapi/gemini-3.8-flash-high"]) {
     const escaped = route.replaceAll(".", "\\.");
     assert.ok(new RegExp(escaped).test(JSON.stringify(aliases)), `${route}: escaped regex must match aliases`);
     assert.match(readFileSync(new URL("check-config.sh", root), "utf8"), new RegExp(escaped), `${route}: escaped regex must match check-config.sh`);
@@ -67,9 +69,9 @@ test("active routes are present as plain strings and escaped regexes, old routes
 test("managed aliases, roles and GGA resolve to the configured model matrix", () => {
   const expected = {
     "scout-model": { model: "cliproxyapi/deepseek-v4.1-flash", effort: "high" },
-    "developer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "developer-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "architect-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "security-model": { model: "cliproxyapi/gpt-6-sol", effort: "high" },
+    "security-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
     "qa-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "release-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "sre-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
@@ -82,11 +84,11 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "product-designer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "technical-writer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
     "visual-designer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
-    "tests-expert-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
+    "tests-expert-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "researcher-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "summarizer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
-    "oracle-model": { model: "cliproxyapi/gpt-6-sol", effort: "high" },
-    "reviewer-model": { model: "cliproxyapi/gpt-6-sol", effort: "high" }
+    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
+    "reviewer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined }
   };
   assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {
@@ -98,7 +100,9 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     const model = content.match(/^model:\s*(\S+)\s*$/m)?.[1];
     assert.ok(model, `${name}: missing model declaration`);
     assert.equal(model, `${name.slice(0, -3)}-model`, `${name}: role must use its role-named alias`);
-    assert.ok(["off", "low", "medium", "high", "xhigh"].includes(resolveModel(model).effort), `${name}: unsupported effort`);
+    const { model: route, effort } = resolveModel(model);
+    assert.ok(["off", "low", "medium", "high", "xhigh"].includes(effort) ||
+      (effort === undefined && /-(off|minimal|low|medium|high|xhigh|max)$/.test(route)), `${name}: unsupported effort`);
   }
   const gga = readFileSync(new URL(".gga", root), "utf8").match(/^PROVIDER="kilo:([^"]+)"$/m)?.[1];
   assert.ok(gga, "GGA must keep its Pi bridge provider");
@@ -125,7 +129,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     assert.equal(valid.stdout, `config check passed: ${fixture}/pi/agent/settings.json and ${fixture}/setup_env.sh\n`);
 
     // Verify distinct source vs live behavior: live may have different subagent models or packages,
-    // but as long as modelAliases/tools/extensions and package source/extensions match the checker rules,
+    // but as long as modelAliases/tools/extensions/skills and package source/extensions match the checker rules,
     // it passes. Then verify that actual alias/thinking drift between source and live fails.
     const liveDir = mkdtempSync(join(tmpdir(), "pi-live-fixture-"));
     cpSync(join(fixture, "pi/agent"), liveDir, { recursive: true });
@@ -156,7 +160,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(liveAliasesPath, JSON.stringify(liveAliases, null, 2));
     const driftedResult = runDistinct();
     assert.equal(driftedResult.status, 1);
-    assert.match(driftedResult.stdout, /canonical modelAliases\/tools\/extensions differ/);
+    assert.match(driftedResult.stdout, /canonical modelAliases\/tools\/extensions(?:\/skills)? differ/);
     rmSync(liveDir, { recursive: true, force: true });
 
     const haPath = join(fixture, "pi/agent/ha-failover.example.json");
@@ -166,8 +170,8 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gpt-6-sol is absent from HA group reviewer\nreviewer: primary cliproxyapi/gpt-6-sol is absent from HA group reviewer\nsecurity: primary cliproxyapi/gpt-6-sol is absent from HA group reviewer\n");
-    assert.equal(routeMismatch.stdout, `${fixture}/.gga: GGA model and high effort must be covered by the reviewer HA group (found: kilo:cliproxyapi/gpt-6-sol:high)\n${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
+    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stdout, `${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 
     const roleGroupsPath = join(fixture, "pi/agent/pi-ha-role-groups.json");
@@ -185,7 +189,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(reviewerOrder, null, 2));
     const missingFallback = run();
     assert.equal(missingFallback.status, 1);
-    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/gpt-6-sol has no HA fallback in reviewer/);
+    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/gemini-3.8-flash-high has no HA fallback in reviewer/);
     writeFileSync(haPath, haBefore);
 
     const ggaPath = join(fixture, ".gga");

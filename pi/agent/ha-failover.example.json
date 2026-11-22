@@ -12,6 +12,9 @@
       "name": "development",
       "entries": [
         {
+          "id": "opencode-go/deepseek-v4.1-flash"
+        },
+        {
           "id": "cliproxyapi/go/deepseek-v4.1-flash"
         },
         {
@@ -94,6 +97,9 @@
       "name": "testing",
       "entries": [
         {
+          "id": "opencode-go/deepseek-v4.1-flash"
+        },
+        {
           "id": "cliproxyapi/go/deepseek-v4.1-flash"
         },
         {
@@ -110,6 +116,9 @@
     "reviewer": {
       "name": "Reviewer fallback",
       "entries": [
+        {
+          "id": "cliproxyapi/gemini-3.8-flash-high"
+        },
         {
           "id": "cliproxyapi/gpt-6-sol"
         },
