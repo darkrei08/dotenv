@@ -32,8 +32,14 @@ wezterm.on("gui-startup", function()
 	window:gui_window():maximize()
 end)
 
+-- The Windows clipboard already holds the screenshot bytes after Win+Shift+S.
+-- Ask Pi to paste them: its WSL fallback reads the image through PowerShell,
+-- writes a PNG and inserts its path. Without an image, Pi falls back to text.
 wezterm.on("copy-latest-screenshot", function(window, pane)
-	wezterm.background_child_process({ "powershell.exe", "-Command", "Set-Clipboard -Value '/tmp/latest.png'" })
+	window:perform_action(
+		act.SendKey({ key = "v", mods = "ALT" }),
+		pane
+	)
 end)
 
 config.key_tables = {
@@ -53,7 +59,6 @@ config.keys = {
 	},
 	{ key = "Backspace", mods = "CTRL", action = act.SendString("\x17") },
 	{ key = "Delete", mods = "CTRL", action = act.SendString("\x1bd") },
-	--	{ key = "v", mods = "CTRL", action = act.PasteFrom("Clipboard") },
 	{
 		key = "v",
 		mods = "CTRL|ALT",
