@@ -51,6 +51,14 @@ Third-party packages:
 | `pi/agent/packages/pi-omplike-advisor` | In-repo advisor extension: a second, read-only model reviews the main agent's transcript and injects advice; driven by `advisor-system.md` and the `advisor` entry in `modes.json`. |
 | `pi/agent/packages/pi-codex-context` | Retained source-only for historical tests and comparison; it is not registered in `settings.json` or `pi-packages.txt`. |
 
+### Compaction and codemode ownership
+
+The compaction owner is `npm:@sting8k/pi-vcc@0.11.2`, registered in `pi/agent/pi-packages.txt` and `pi/agent/settings.json` and configured by `pi/agent/pi-vcc-config.json`. The tracked npm manifest still declares `^0.7.3` and its lockfile resolves `0.7.3`; raising it is a package change, not a docs change. `pi-codex-context` stays source-only and unregistered.
+
+The built-in `codemode` tool shipped from Pi 1.5.0 is the sole script executor: scripts call Pi tools and non-LLM models inside the QuickJS sandbox, and no second script-execution extension is installed.
+
+Two alternative compactors exist and are mutually exclusive with the installed owner: `pi-vcc-codemode@0.1.6` and `@rochecompaan/pi-context-paging@0.3.11`. Two compaction engines are never installed together: choose one, and remove the previous engine in the same change. The alternates are recorded for evaluation only; neither is a `pi-packages.txt`, `settings.json` or npm manifest entry.
+
 ### In-repo extensions
 
 `pi/agent/package.json` declares the package surface: `pi.extensions` is `extensions`, `pi.skills` is `skills`.

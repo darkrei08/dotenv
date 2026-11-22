@@ -11,8 +11,12 @@ This index defines when commonly used skills should be loaded. It is a routing a
 | Model inventory, route evidence, context budgets, and failover refresh | `pi-model-fit` | Credentials, billing claims, or workflow orchestration |
 | Pane lifecycle, liveness, and external session control | `pi-herdr-orchestrator` / Herdr | Workflow state and retry ownership |
 | Project memory and durable decisions | Engram / `project-memory` | Provider routing and code changes |
+| Conversation compaction and older-context recall | `npm:@sting8k/pi-vcc@0.11.2` | `pi-vcc-codemode@0.1.6`, `@rochecompaan/pi-context-paging@0.3.11`, native compaction, `pi-codex-context` |
+| Script execution inside Pi | Built-in `codemode` from Pi 1.5.0 | Any second script executor |
 | Commit-time review gate | GGA | Native workflow review or model-fit selection |
 | Gentle AI compatibility | Future adapter layer only | A second runtime, duplicate subagents, or Gentle Review |
+
+Compaction ownership is not duplicated: the compaction owner is `npm:@sting8k/pi-vcc@0.11.2`, while `pi-vcc-codemode@0.1.6` and `@rochecompaan/pi-context-paging@0.3.11` are mutually exclusive alternates, never installed alongside it. Two compaction engines are never installed together. The built-in `codemode` tool from Pi 1.5.0 is the sole script executor; no extension may register a second one.
 
 ## Priority tiers
 
