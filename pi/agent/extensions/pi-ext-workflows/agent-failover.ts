@@ -1,0 +1,200 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { Type } from "typebox";
+import {
+  defineWorkflowFunction,
+  registerWorkflowExtension,
+  type WorkflowExtension,
+} from "pi-extensible-workflows";
+
+const DEFAULT_AGENT_DIR = join(homedir(), ".pi", "agent");
+const EFFORTS = new Set(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+//NOTE: the set covers provider quota, route availability, transport failure and transport timeouts; a logic error is never listed here, so it always rethrows.
+const PROVIDER_ERROR =
+  /429|5 0 [234]|50[234]|quota|rate limit|rate_limit|usage limit|resource_exhausted|too many requests|model_cooldown|unknown model|unsupported route|route unavailable|model unavailable|unavailable route|AGENT_FAILED|unknown effort|unsupported thinking|does not support thinking|thinking is not supported|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|socket hang up|fetch failed|overloaded/i;
+const DEFAULT_COOLDOWN_MS = 30000;
+const cooldowns = new Map<string, number>();
+let failoverClock = () => Date.now();
+
+export function setFailoverClock(clock: () => number): void {
+  failoverClock = clock;
+}
+
+export function clearFailoverCooldowns(): void {
+  cooldowns.clear();
+}
+
+type JsonObject = Record<string, unknown>;
+
+function cannotResolve(path: string, reason: string): never {
+  throw new Error(`cannot resolve role chain: ${path} ${reason}`);
+}
+
+function readJson(path: string): unknown {
+  try {
+    return JSON.parse(readFileSync(path, "utf8"));
+  } catch (error) {
+    cannotResolve(path, error instanceof Error ? error.message : String(error));
+  }
+}
+
+function object(value: unknown, path: string, reason: string): JsonObject {
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    cannotResolve(path, reason);
+  return value as JsonObject;
+}
+
+function modelParts(model: string): { base: string; effort?: string } {
+  const suffix = model.lastIndexOf(":");
+  if (suffix > model.lastIndexOf("/") && EFFORTS.has(model.slice(suffix + 1)))
+    return { base: model.slice(0, suffix), effort: model.slice(suffix + 1) };
+  return { base: model };
+}
+
+function deduplicate(models: string[]): string[] {
+  const seen = new Set<string>();
+  return models.filter((model) => {
+    const base = modelParts(model).base;
+    if (seen.has(base)) return false;
+    seen.add(base);
+    return true;
+  });
+}
+
+export function resolveRoleChain(
+  role: string,
+  agentDir = process.env.PI_CODING_AGENT_DIR ?? DEFAULT_AGENT_DIR,
+): string[] {
+  const rolesPath = join(agentDir, "pi-ext-roles", "settings.json");
+  const roleGroupsPath = join(agentDir, "pi-ha-role-groups.json");
+  const haPath = join(agentDir, "ha.json");
+  const settings = object(readJson(rolesPath), rolesPath, "expected an object");
+  const modelAliases = object(settings.modelAliases, rolesPath, "missing modelAliases");
+  const knownRoles = Object.keys(modelAliases)
+    .map((name) => (name.endsWith("-model") ? name.slice(0, -6) : name))
+    .sort();
+  //NOTE: a few role aliases deliberately drop the "-model" suffix (tests-expert), so the bare role name is a valid key too.
+  const aliasKey = [`${role}-model`, role].find((key) =>
+    Object.prototype.hasOwnProperty.call(modelAliases, key),
+  );
+  if (aliasKey === undefined)
+    throw new Error(`unknown role: ${role} (known roles: ${knownRoles.join(", ")})`);
+  const alias = modelAliases[aliasKey];
+  if (typeof alias !== "string" || !alias.trim())
+    cannotResolve(rolesPath, `model alias ${aliasKey} is malformed`);
+
+  const roleGroups = object(readJson(roleGroupsPath), roleGroupsPath, "expected an object");
+  const roleGroupMap = object(roleGroups.roleGroups, roleGroupsPath, "missing roleGroups");
+  const groupName = roleGroupMap[role];
+  if (typeof groupName !== "string" || !groupName.trim())
+    cannotResolve(roleGroupsPath, `missing role group for ${role}`);
+
+  const ha = object(readJson(haPath), haPath, "expected an object");
+  const groups = object(ha.groups, haPath, "missing groups");
+  const group = object(groups[groupName], haPath, `missing group ${groupName}`);
+  if (!Array.isArray(group.entries)) cannotResolve(haPath, `group ${groupName} has malformed entries`);
+
+  const primary = alias.trim();
+  const primaryEffort = modelParts(primary).effort;
+  const chain = [primary];
+  for (const [index, entryValue] of group.entries.entries()) {
+    const entry = object(entryValue, haPath, `group ${groupName} entry ${index} is malformed`);
+    if (typeof entry.id !== "string" || !entry.id.trim())
+      cannotResolve(haPath, `group ${groupName} entry ${index} is missing id`);
+    const id = entry.id.trim();
+    const entryEffort = modelParts(id).effort;
+    chain.push(entryEffort || !primaryEffort ? id : `${id}:${primaryEffort}`);
+  }
+  return deduplicate(chain);
+}
+
+function isCooling(model: string, now: number): boolean {
+  const base = modelParts(model).base;
+  const expiry = cooldowns.get(base);
+  if (expiry === undefined || expiry <= now) {
+    if (expiry !== undefined) cooldowns.delete(base);
+    return false;
+  }
+  return true;
+}
+
+export const agentWithFailover = defineWorkflowFunction({
+  description: "Run an agent task against ordered models with provider-error failover",
+  async run({ models, role, task, label, timeoutMs, cooldownMs = DEFAULT_COOLDOWN_MS }, { agent }) {
+    if (models === undefined && role === undefined)
+      throw new Error("agentWithFailover requires at least one of role or models");
+    const roleChain = role === undefined ? [] : resolveRoleChain(role);
+    //NOTE: explicit models win over the role alias for the same base name.
+    const modelChain = role === undefined ? deduplicate(models!) : deduplicate([...(models ?? []), ...roleChain]);
+    const now = failoverClock();
+    const coolingModels = modelChain.filter((model) => isCooling(model, now));
+    const allCooling = coolingModels.length === modelChain.length;
+    const modelsToAttempt = allCooling ? modelChain : modelChain.filter((model) => !isCooling(model, now));
+    const attempts: Array<{ model: string; error: string }> = [];
+
+    for (const model of modelsToAttempt) {
+      try {
+        //NOTE: retries: 0 avoids replaying an exhausted model; models already carry the alias or provider/model:effort, and only explicit provider markers, including AGENT_FAILED, continue while other errors rethrow so agent bugs are not masked.
+        const result = await agent(task, {
+          model,
+          label,
+          retries: 0,
+          ...(timeoutMs === undefined ? {} : { timeoutMs }),
+        });
+        return { model, result, attempts };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (!PROVIDER_ERROR.test(message)) {
+          if (attempts.length === 0) throw error;
+          throw new Error(
+            `${message} (attempts: ${attempts.map(({ model: attemptedModel, error: attemptError }) => `${attemptedModel}: ${attemptError}`).join(" | ")})`,
+            { cause: error },
+          );
+        }
+        if (cooldownMs > 0) cooldowns.set(modelParts(model).base, failoverClock() + cooldownMs);
+        attempts.push({ model, error: message.slice(0, 300) });
+      }
+    }
+
+    throw new Error(
+      `${allCooling ? `all models cooling down: ${coolingModels.join(", ")}; ` : ""}all failover models failed: ${attempts.map(({ model, error }) => `${model}: ${error}`).join(" | ")}`,
+    );
+  },
+  input: Type.Object(
+    {
+      models: Type.Optional(Type.Array(Type.String(), { minItems: 1 })),
+      role: Type.Optional(Type.String({ minLength: 1 })),
+      task: Type.String(),
+      label: Type.Optional(Type.String()),
+      timeoutMs: Type.Optional(Type.Integer({ minimum: 1000, maximum: 3600000 })),
+      cooldownMs: Type.Optional(Type.Integer({ minimum: 0, maximum: 600000 })),
+    },
+    { additionalProperties: false },
+  ),
+  output: Type.Object(
+    {
+      model: Type.String(),
+      result: Type.Any(),
+      attempts: Type.Array(
+        Type.Object(
+          { model: Type.String(), error: Type.String() },
+          { additionalProperties: false },
+        ),
+      ),
+    },
+    { additionalProperties: false },
+  ),
+});
+
+const extension: WorkflowExtension = {
+  source: import.meta.url,
+  dependencies: ["typebox"],
+  version: "1.0.0",
+  headline: "Ordered model failover for workflow agents",
+  functions: { agentWithFailover },
+};
+
+export default function (): void {
+  registerWorkflowExtension(extension);
+}
