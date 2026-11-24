@@ -3,11 +3,11 @@
     "scout-model": "opencode-go/deepseek-v4.1-flash:high",
     "developer-model": "opencode-go/deepseek-v4.1-flash:high",
     "architect-model": "opencode-go/deepseek-v4-pro:high",
-    "security-model": "cliproxyapi/gemini-3.8-flash-high",
+    "security-model": "cliproxyapi/gemini-4-hydrogen-xhigh",
     "qa-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "release-model": "opencode-go/deepseek-v4-pro:high",
     "sre-model": "opencode-go/deepseek-v4-pro:high",
-    "verifier-model": "cliproxyapi/gemini-3.8-flash-high",
+    "verifier-model": "cliproxyapi/gemini-4-hydrogen-xhigh",
     "companion-model": "cliproxyapi/go/deepseek-v4.1-flash:low",
     "data-engineer-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "debugger-model": "opencode-go/deepseek-v4-pro:high",
@@ -19,8 +19,8 @@
     "tests-expert-model": "opencode-go/deepseek-v4.1-flash:high",
     "researcher-model": "cliproxyapi/go/deepseek-v4.1-flash:high",
     "summarizer-model": "cliproxyapi/go/deepseek-v4.1-flash:low",
-    "oracle-model": "cliproxyapi/gemini-3.8-flash-high",
-    "reviewer-model": "cliproxyapi/gemini-3.8-flash-high"
+    "oracle-model": "cliproxyapi/gemini-4-hydrogen-xhigh",
+    "reviewer-model": "cliproxyapi/gemini-4-hydrogen-xhigh"
   },
   "skills": [
     "!*",

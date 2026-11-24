@@ -261,11 +261,11 @@ if ! jq -e '
   $aliases["scout-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["developer-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["architect-model"] == "opencode-go/deepseek-v4-pro:high" and
-  $aliases["security-model"] == "cliproxyapi/gemini-3.8-flash-high" and
+  $aliases["security-model"] == "cliproxyapi/gemini-4-hydrogen-xhigh" and
   $aliases["qa-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["release-model"] == "opencode-go/deepseek-v4-pro:high" and
   $aliases["sre-model"] == "opencode-go/deepseek-v4-pro:high" and
-  $aliases["verifier-model"] == "cliproxyapi/gemini-3.8-flash-high" and
+  $aliases["verifier-model"] == "cliproxyapi/gemini-4-hydrogen-xhigh" and
   $aliases["companion-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
   $aliases["data-engineer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["debugger-model"] == "opencode-go/deepseek-v4-pro:high" and
@@ -277,10 +277,10 @@ if ! jq -e '
   $aliases["tests-expert-model"] == "opencode-go/deepseek-v4.1-flash:high" and
   $aliases["researcher-model"] == "cliproxyapi/go/deepseek-v4.1-flash:high" and
   $aliases["summarizer-model"] == "cliproxyapi/go/deepseek-v4.1-flash:low" and
-  $aliases["reviewer-model"] == "cliproxyapi/gemini-3.8-flash-high" and
-  $aliases["oracle-model"] == "cliproxyapi/gemini-3.8-flash-high"
+  $aliases["reviewer-model"] == "cliproxyapi/gemini-4-hydrogen-xhigh" and
+  $aliases["oracle-model"] == "cliproxyapi/gemini-4-hydrogen-xhigh"
 ' "$WORKFLOWS_SETTINGS" >/dev/null 2>&1; then
-  printf '%s: workflow aliases are not the configured gateway-first matrix\n' "$WORKFLOWS_SETTINGS"
+  printf '%s: workflow aliases are not the configured role matrix\n' "$WORKFLOWS_SETTINGS"
   failures=1
 fi
 
@@ -289,7 +289,10 @@ if ! jq -e '
   .modelThinkingLevels["cliproxyapi/gpt-5.6-luna"] == "high" and
   (.enabledModels | all(.[]; type == "string" and length > 0)) and
   (.enabledModels | index("cliproxyapi/gpt-5.6-luna") != null) and
-  (.enabledModels | index("cliproxyapi/gpt-6-sol") != null)
+  (.enabledModels | index("cliproxyapi/gpt-6-sol") != null) and
+  (.enabledModels | index("cliproxyapi/gemini-4-hydrogen-xhigh") != null) and
+  (.enabledModels | index("opencode-go/deepseek-v4.1-flash") != null) and
+  (.enabledModels | index("opencode-go/deepseek-v4-pro") != null)
 ' "$SETTINGS" >/dev/null 2>&1; then
   printf '%s: defaults must be the gateway GPT-5.6 Luna high matrix with native mirrors and current gateway targets enabled\n' "$SETTINGS"
   failures=1

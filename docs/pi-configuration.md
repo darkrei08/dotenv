@@ -136,14 +136,15 @@ Pi's footer prints `no subscription usage for this provider` for `cliproxyapi`: 
 
 Credentials live in `~/.pi/agent/auth.json` and `~/.pi/agent/cliproxyapi.json`, which are git-ignored and preserved by `sync_pi`. Pi selects live CLIProxyAPI targets from its provider catalog. The tracked files do not verify runtime credential contents or how each credential is acquired; this repository does not store or modify them.
 
-Workflow roles use the approved 2026-11-22 role-named alias matrix:
-`cliproxyapi/go/deepseek-v4.1-flash:high` for authoring, research, release, SRE, verification and design,
-except `developer` and `tests-expert`, which use direct `opencode-go/deepseek-v4.1-flash:high` for the 32K output floor;
-`cliproxyapi/gemini-3.8-flash-high` for review, oracle and security (user-confirmed after two timed-out probes,
-entitlement/quota UNVERIFIED), `cliproxyapi/deepseek-v4.1-flash:high` for scouting, and
-`cliproxyapi/go/deepseek-v4.1-flash:low` for summaries. Native direct routes are part of the active matrix
-only where explicitly listed. These assignments describe configuration only:
-catalog visibility, entitlement, inference, and quota are not interchangeable
+Workflow roles use the approved role-named alias matrix:
+`opencode-go/deepseek-v4.1-flash:high` for scout, developer and tests-expert;
+`opencode-go/deepseek-v4-pro:high` for architect, debugger, release and sre;
+`cliproxyapi/gemini-4-hydrogen-xhigh` for review, oracle, security and verifier (user-confirmed,
+entitlement/quota UNVERIFIED); `cliproxyapi/go/deepseek-v4.1-flash:high` for qa, data-engineer,
+research, market-researcher, marketing-strategist, product-designer and visual-designer; and
+`cliproxyapi/go/deepseek-v4.1-flash:low` for companion, summarizer and technical-writer.
+Native direct routes are part of the active matrix where explicitly listed. These assignments describe
+configuration only: catalog visibility, entitlement, inference, and quota are not interchangeable
 evidence.
 
 The tracked `pi/agent/pi-ha-role-groups.json` binds each role primary to a group

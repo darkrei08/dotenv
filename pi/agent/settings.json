@@ -77,7 +77,10 @@
     "cliproxyapi/gpt-5.6-luna",
     "cliproxyapi/gpt-6-luna",
     "cliproxyapi/gpt-6-sol",
-    "cliproxyapi/deepseek-v4.1-flash"
+    "cliproxyapi/deepseek-v4.1-flash",
+    "cliproxyapi/gemini-4-hydrogen-xhigh",
+    "opencode-go/deepseek-v4.1-flash",
+    "opencode-go/deepseek-v4-pro"
   ],
   "hideThinkingBlock": true,
   "showCacheMissNotices": true,

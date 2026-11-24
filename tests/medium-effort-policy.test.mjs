@@ -30,7 +30,7 @@ test("active routes are present as plain strings and escaped regexes, old routes
   const routes = [
     "opencode-go/deepseek-v4.1-flash",
     "opencode-go/deepseek-v4-pro",
-    "cliproxyapi/gemini-3.8-flash-high",
+    "cliproxyapi/gemini-4-hydrogen-xhigh",
     "cliproxyapi/go/deepseek-v4.1-flash",
     "cliproxyapi/gpt-6-sol",
     "cliproxyapi/gpt-6-sol",
@@ -60,7 +60,7 @@ test("active routes are present as plain strings and escaped regexes, old routes
     }
   }
   assert.ok([...new Set(Object.entries(aliases).filter(([name]) => name !== "scout-model").map(([, route]) => route.split(":")[0]))].every((route) => routes.includes(route)));
-  for (const route of ["opencode-go/deepseek-v4.1-flash", "cliproxyapi/gemini-3.8-flash-high"]) {
+  for (const route of ["opencode-go/deepseek-v4.1-flash", "cliproxyapi/gemini-4-hydrogen-xhigh"]) {
     const escaped = route.replaceAll(".", "\\.");
     assert.ok(new RegExp(escaped).test(JSON.stringify(aliases)), `${route}: escaped regex must match aliases`);
     assert.match(readFileSync(new URL("check-config.sh", root), "utf8"), new RegExp(escaped), `${route}: escaped regex must match check-config.sh`);
@@ -72,11 +72,11 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "scout-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "developer-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "architect-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
-    "security-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
+    "security-model": { model: "cliproxyapi/gemini-4-hydrogen-xhigh", effort: undefined },
     "qa-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "release-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
     "sre-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
-    "verifier-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
+    "verifier-model": { model: "cliproxyapi/gemini-4-hydrogen-xhigh", effort: undefined },
     "companion-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
     "data-engineer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "debugger-model": { model: "opencode-go/deepseek-v4-pro", effort: "high" },
@@ -88,8 +88,8 @@ test("managed aliases, roles and GGA resolve to the configured model matrix", ()
     "tests-expert-model": { model: "opencode-go/deepseek-v4.1-flash", effort: "high" },
     "researcher-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "high" },
     "summarizer-model": { model: "cliproxyapi/go/deepseek-v4.1-flash", effort: "low" },
-    "oracle-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined },
-    "reviewer-model": { model: "cliproxyapi/gemini-3.8-flash-high", effort: undefined }
+    "oracle-model": { model: "cliproxyapi/gemini-4-hydrogen-xhigh", effort: undefined },
+    "reviewer-model": { model: "cliproxyapi/gemini-4-hydrogen-xhigh", effort: undefined }
   };
   assert.deepEqual(JSON.parse(readFileSync(new URL("pi/agent/settings.json", root), "utf8")).defaultTools, ["+tool_search"]);
   for (const [name, expectedModel] of Object.entries(expected)) {
@@ -171,7 +171,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(haMismatch, null, 2));
     const routeMismatch = run();
     assert.equal(routeMismatch.status, 1);
-    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\nverifier: primary cliproxyapi/gemini-3.8-flash-high is absent from HA group reviewer\n");
+    assert.equal(routeMismatch.stderr, "oracle: primary cliproxyapi/gemini-4-hydrogen-xhigh is absent from HA group reviewer\nreviewer: primary cliproxyapi/gemini-4-hydrogen-xhigh is absent from HA group reviewer\nsecurity: primary cliproxyapi/gemini-4-hydrogen-xhigh is absent from HA group reviewer\nverifier: primary cliproxyapi/gemini-4-hydrogen-xhigh is absent from HA group reviewer\n");
     assert.equal(routeMismatch.stdout, `${fixture}/pi/agent/ha-failover.example.json: configured role primaries must be covered by their HA groups\n`);
     writeFileSync(haPath, haBefore);
 
@@ -190,7 +190,7 @@ test("configuration checker accepts the matrix and rejects mismatched GGA effort
     writeFileSync(haPath, JSON.stringify(reviewerOrder, null, 2));
     const missingFallback = run();
     assert.equal(missingFallback.status, 1);
-    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/gemini-3.8-flash-high has no HA fallback in reviewer/);
+    assert.match(missingFallback.stderr, /oracle: primary cliproxyapi\/gemini-4-hydrogen-xhigh has no HA fallback in reviewer/);
     writeFileSync(haPath, haBefore);
 
     const ggaPath = join(fixture, ".gga");
